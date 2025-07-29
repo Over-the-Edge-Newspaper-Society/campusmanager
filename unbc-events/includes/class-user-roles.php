@@ -125,7 +125,7 @@ class UNBC_Events_User_Roles {
             if ($post && ($post->post_type === 'organization' || $post->post_type === 'unbc_event')) {
                 $user = get_user_by('id', $user_id);
                 
-                if (in_array('organization_manager', $user->roles)) {
+                if ($user && !empty($user->roles) && in_array('organization_manager', $user->roles)) {
                     $assigned_org = $this->get_user_organization($user_id);
                     
                     if ($post->post_type === 'organization') {
@@ -156,7 +156,7 @@ class UNBC_Events_User_Roles {
         // Handle create new post capability
         if ($cap === 'create_posts' || $cap === 'edit_posts') {
             $user = get_user_by('id', $user_id);
-            if (in_array('organization_manager', $user->roles)) {
+            if ($user && !empty($user->roles) && in_array('organization_manager', $user->roles)) {
                 // Check if this is for events
                 global $pagenow, $typenow;
                 if (($pagenow === 'post-new.php' && $typenow === 'unbc_event') || 

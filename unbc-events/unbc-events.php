@@ -12,11 +12,12 @@ if (!defined('ABSPATH')) {
 class UNBC_Events_Plugin {
     public function __construct() {
         add_action('init', array($this, 'init'));
-        add_action('rest_api_init', array($this, 'register_rest_routes'));
         
         // Include files immediately
         $this->include_files();
         
+        // Initialize REST API immediately after including files
+        new UNBC_Events_REST_API();
     }
 
     public function init() {
@@ -55,9 +56,6 @@ class UNBC_Events_Plugin {
         );
     }
 
-    public function register_rest_routes() {
-        new UNBC_Events_REST_API();
-    }
 
     private function include_files() {
         $files_to_include = array(

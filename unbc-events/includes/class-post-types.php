@@ -72,7 +72,7 @@ class UNBC_Events_Post_Types {
             'has_archive' => true,
             'supports' => array('title', 'editor', 'thumbnail', 'excerpt'),
             'show_in_rest' => true,
-            'rest_base' => 'organizations',
+            'rest_base' => 'organization',
             'menu_icon' => 'dashicons-groups', // Group of people icon for organizations
             'rewrite' => array('slug' => 'clubs'),
             'publicly_queryable' => true,
