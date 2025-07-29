@@ -9,6 +9,10 @@ class UNBC_Events_Post_Types {
         add_filter('post_link', array($this, 'custom_organization_permalink'), 10, 2);
         add_filter('post_type_link', array($this, 'custom_organization_permalink'), 10, 2);
         add_action('add_meta_boxes', array($this, 'add_featured_image_support'));
+        add_action('pre_get_posts', array($this, 'restrict_organization_manager_posts'));
+        add_action('admin_menu', array($this, 'modify_admin_menu_for_org_managers'));
+        add_action('admin_init', array($this, 'block_restricted_pages_for_org_managers'));
+        add_action('admin_init', array($this, 'redirect_org_managers_from_dashboard'));
     }
 
     public function register_post_types() {
@@ -41,7 +45,9 @@ class UNBC_Events_Post_Types {
             'supports' => array('title', 'editor', 'excerpt', 'thumbnail'), // Full support
             'show_in_rest' => true,          // Keep REST API access for React app
             'rest_base' => 'events',
-            'menu_icon' => 'dashicons-calendar-alt' // Calendar icon for events
+            'menu_icon' => 'dashicons-calendar-alt', // Calendar icon for events
+            'capability_type' => array('unbc_event', 'unbc_events'),
+            'map_meta_cap' => true
         ));
         }
 
@@ -70,7 +76,9 @@ class UNBC_Events_Post_Types {
             'menu_icon' => 'dashicons-groups', // Group of people icon for organizations
             'rewrite' => array('slug' => 'clubs'),
             'publicly_queryable' => true,
-            'query_var' => true
+            'query_var' => true,
+            'capability_type' => array('organization', 'organizations'),
+            'map_meta_cap' => true
         ));
         }
     }
@@ -169,5 +177,255 @@ class UNBC_Events_Post_Types {
             'side',
             'high'
         );
+    }
+    
+    public function restrict_organization_manager_posts($query) {
+        global $pagenow;
+        
+        if (!is_admin() || !$query->is_main_query()) {
+            return;
+        }
+        
+        $current_user = wp_get_current_user();
+        if (!in_array('organization_manager', $current_user->roles)) {
+            return;
+        }
+        
+        // Get user's assigned organization
+        $assigned_org = get_user_meta($current_user->ID, 'assigned_organization', true);
+        if (!$assigned_org) {
+            return;
+        }
+        
+        // Restrict organization posts to only the assigned organization
+        if ($pagenow === 'edit.php' && isset($_GET['post_type']) && $_GET['post_type'] === 'organization') {
+            $query->set('post__in', array($assigned_org));
+        }
+        
+        // Restrict event posts to only events associated with their organization
+        if (($pagenow === 'edit.php' && isset($_GET['post_type']) && $_GET['post_type'] === 'unbc_event') ||
+            ($pagenow === 'edit.php' && !isset($_GET['post_type']))) {
+            
+            // Find events that belong to this organization
+            $organization_events = get_posts(array(
+                'post_type' => 'unbc_event',
+                'numberposts' => -1,
+                'meta_query' => array(
+                    array(
+                        'key' => 'organization_id',
+                        'value' => $assigned_org,
+                        'compare' => '='
+                    )
+                ),
+                'fields' => 'ids'
+            ));
+            
+            if (!empty($organization_events)) {
+                $query->set('post__in', $organization_events);
+            } else {
+                // If no events found, return empty result
+                $query->set('post__in', array(0));
+            }
+        }
+    }
+    
+    public function modify_admin_menu_for_org_managers() {
+        $current_user = wp_get_current_user();
+        if (!in_array('organization_manager', $current_user->roles)) {
+            return;
+        }
+        
+        // Remove Posts menu
+        remove_menu_page('edit.php');
+        
+        // Remove Pages menu
+        remove_menu_page('edit.php?post_type=page');
+        
+        // Remove Comments menu
+        remove_menu_page('edit-comments.php');
+        
+        // Remove Dashboard menu
+        remove_menu_page('index.php');
+        
+        // Remove Media menu (they can still upload via events/organization forms)
+        remove_menu_page('upload.php');
+        
+        // Remove Tools menu
+        remove_menu_page('tools.php');
+        
+        // Remove ability to add new organizations
+        remove_submenu_page('edit.php?post_type=organization', 'post-new.php?post_type=organization');
+        
+        // Also remove any "Add New" links that might appear elsewhere
+        add_action('admin_head', function() {
+            echo '<style>
+                .page-title-action[href*="post-new.php?post_type=organization"] { display: none !important; }
+                .add-new-h2[href*="post-new.php?post_type=organization"] { display: none !important; }
+                a[href*="post-new.php?post_type=organization"] { display: none !important; }
+            </style>';
+        });
+        
+        // Modify menu labels for clarity
+        global $submenu;
+        if (isset($submenu['edit.php?post_type=organization'])) {
+            foreach ($submenu['edit.php?post_type=organization'] as $key => $item) {
+                if ($item[2] === 'edit.php?post_type=organization') {
+                    $submenu['edit.php?post_type=organization'][$key][0] = 'My Organization';
+                }
+            }
+        }
+        
+        if (isset($submenu['edit.php?post_type=unbc_event'])) {
+            foreach ($submenu['edit.php?post_type=unbc_event'] as $key => $item) {
+                if ($item[2] === 'edit.php?post_type=unbc_event') {
+                    $submenu['edit.php?post_type=unbc_event'][$key][0] = 'My Organization Events';
+                }
+            }
+        }
+    }
+    
+    public function block_restricted_pages_for_org_managers() {
+        $current_user = wp_get_current_user();
+        if (!in_array('organization_manager', $current_user->roles)) {
+            return;
+        }
+        
+        global $pagenow;
+        
+        // List of restricted pages for organization managers
+        $restricted_pages = array(
+            'index.php',             // Dashboard
+            'edit.php',              // Posts listing
+            'post-new.php',          // New post
+            'post.php',              // Edit post
+            'edit-comments.php',     // Comments
+            'comment.php',           // Edit comment
+            'edit-tags.php',         // Tags
+            'term.php',              // Edit term
+            'nav-menus.php',         // Menus
+            'widgets.php',           // Widgets
+            'customize.php',         // Customizer
+            'themes.php',            // Themes
+            'plugins.php',           // Plugins
+            'users.php',             // Users
+            'user-new.php',          // Add user
+            'profile.php',           // Profile (they can still edit their own)
+            'options-general.php',   // Settings
+            'options-writing.php',   // Writing settings
+            'options-reading.php',   // Reading settings
+            'options-discussion.php',// Discussion settings
+            'options-media.php',     // Media settings
+            'options-permalink.php', // Permalink settings
+            'tools.php',             // Tools
+            'import.php',            // Import
+            'export.php',            // Export
+            'upload.php'             // Media library
+        );
+        
+        // Check if current page is restricted
+        if (in_array($pagenow, $restricted_pages)) {
+            // Dashboard is handled by redirect function, not blocked here
+            if ($pagenow === 'index.php') {
+                return;
+            }
+            
+            // Allow editing their own profile
+            if ($pagenow === 'profile.php' || ($pagenow === 'user-edit.php' && isset($_GET['user_id']) && $_GET['user_id'] == $current_user->ID)) {
+                return;
+            }
+            
+            // Allow editing posts if it's their organization's content
+            if ($pagenow === 'post.php' && isset($_GET['post'])) {
+                $post_id = intval($_GET['post']);
+                $post = get_post($post_id);
+                
+                if ($post && ($post->post_type === 'organization' || $post->post_type === 'unbc_event')) {
+                    // Let the capability system handle this
+                    return;
+                }
+            }
+            
+            // Allow new posts if it's for their allowed post types
+            if ($pagenow === 'post-new.php' && isset($_GET['post_type'])) {
+                $post_type = $_GET['post_type'];
+                if ($post_type === 'unbc_event') {
+                    // Let the capability system handle this
+                    return;
+                }
+            }
+            
+            // Allow edit.php for their allowed post types
+            if ($pagenow === 'edit.php' && isset($_GET['post_type'])) {
+                $post_type = $_GET['post_type'];
+                if ($post_type === 'organization' || $post_type === 'unbc_event') {
+                    // Let the capability system handle this
+                    return;
+                }
+            }
+            
+            // Block access to regular posts (edit.php without post_type)
+            if ($pagenow === 'edit.php' && !isset($_GET['post_type'])) {
+                wp_die(__('Sorry, you are not allowed to access this page.'), 403);
+            }
+            
+            // Block access to other restricted pages (but not edit.php, post.php, post-new.php as we handle those above)
+            if (!in_array($pagenow, array('edit.php', 'post.php', 'post-new.php'))) {
+                wp_die(__('Sorry, you are not allowed to access this page.'), 403);
+            }
+        }
+        
+        // Also block if they try to access regular posts directly
+        if ($pagenow === 'post.php' && isset($_GET['post'])) {
+            $post_id = intval($_GET['post']);
+            $post = get_post($post_id);
+            
+            if ($post && $post->post_type === 'post') {
+                wp_die(__('Sorry, you are not allowed to edit regular posts.'), 403);
+            }
+        }
+        
+        // Block creating regular posts
+        if ($pagenow === 'post-new.php' && (!isset($_GET['post_type']) || $_GET['post_type'] === 'post')) {
+            wp_die(__('Sorry, you are not allowed to create regular posts.'), 403);
+        }
+        
+        // Block editing pages
+        if ($pagenow === 'post.php' && isset($_GET['post'])) {
+            $post_id = intval($_GET['post']);
+            $post = get_post($post_id);
+            
+            if ($post && $post->post_type === 'page') {
+                wp_die(__('Sorry, you are not allowed to edit pages.'), 403);
+            }
+        }
+        
+        // Block creating pages
+        if ($pagenow === 'post-new.php' && isset($_GET['post_type']) && $_GET['post_type'] === 'page') {
+            wp_die(__('Sorry, you are not allowed to create pages.'), 403);
+        }
+    }
+    
+    public function redirect_org_managers_from_dashboard() {
+        $current_user = wp_get_current_user();
+        if (!in_array('organization_manager', $current_user->roles)) {
+            return;
+        }
+        
+        global $pagenow;
+        
+        // Redirect from dashboard to their organization page
+        if ($pagenow === 'index.php' || $pagenow === 'admin.php') {
+            $assigned_org = get_user_meta($current_user->ID, 'assigned_organization', true);
+            
+            if ($assigned_org) {
+                // Redirect to edit their organization
+                wp_redirect(admin_url('post.php?post=' . $assigned_org . '&action=edit'));
+                exit;
+            } else {
+                // If no organization assigned, redirect to events page
+                wp_redirect(admin_url('edit.php?post_type=unbc_event'));
+                exit;
+            }
+        }
     }
 }

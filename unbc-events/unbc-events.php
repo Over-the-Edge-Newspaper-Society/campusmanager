@@ -17,32 +17,13 @@ class UNBC_Events_Plugin {
         // Include files immediately
         $this->include_files();
         
-        // Add admin notice to confirm plugin is loaded (for debugging)
-        add_action('admin_notices', array($this, 'debug_admin_notice'));
-    }
-    
-    public function debug_admin_notice() {
-        if (current_user_can('manage_options')) {
-            // Ensure we're checking after init has run
-            if (!did_action('init')) {
-                return;
-            }
-            
-            // Check if post types exist (regardless of public setting)
-            $event_exists = post_type_exists('unbc_event');
-            $org_exists = post_type_exists('organization');
-            
-            if ($event_exists && $org_exists) {
-                echo '<div class="notice notice-success"><p>UNBC Campus Manager: Post types available (Events: ' . ($event_exists ? 'Yes' : 'No') . ', Organizations: ' . ($org_exists ? 'Yes' : 'No') . ')</p></div>';
-            } else {
-                echo '<div class="notice notice-error"><p>UNBC Campus Manager: Post types not found. Events: ' . ($event_exists ? 'Yes' : 'No') . ', Organizations: ' . ($org_exists ? 'Yes' : 'No') . '</p></div>';
-            }
-        }
     }
 
     public function init() {
         new UNBC_Events_Post_Types();
         new UNBC_Events_Meta_Boxes();
+        new UNBC_Events_User_Roles();
+        new UNBC_Organization_Manager_Admin();
         
         // Add custom rewrite rules for organizations/departments
         add_action('init', array($this, 'add_rewrite_rules'));
@@ -82,7 +63,9 @@ class UNBC_Events_Plugin {
         $files_to_include = array(
             'includes/class-post-types.php',
             'includes/class-rest-api.php',
-            'includes/class-meta-boxes.php'
+            'includes/class-meta-boxes.php',
+            'includes/class-user-roles.php',
+            'includes/class-organization-manager-admin.php'
         );
         
         foreach ($files_to_include as $file) {

@@ -1,8 +1,29 @@
 <?php
 class UNBC_Events_Meta_Boxes {
+    private $user_roles_handler;
+    
     public function __construct() {
         add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
         add_action('save_post', array($this, 'save_meta_boxes'));
+        add_action('wp_loaded', array($this, 'init_user_roles_handler'));
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
+    }
+    
+    public function init_user_roles_handler() {
+        if (class_exists('UNBC_Events_User_Roles')) {
+            $this->user_roles_handler = new UNBC_Events_User_Roles();
+        }
+    }
+    
+    public function enqueue_admin_scripts($hook) {
+        if ($hook !== 'post.php' && $hook !== 'post-new.php') {
+            return;
+        }
+        
+        global $post;
+        if ($post && $post->post_type === 'organization') {
+            wp_enqueue_script('unbc-org-restrictions', plugin_dir_url(dirname(__FILE__)) . 'js/organization-restrictions.js', array('jquery'), '1.0.0', true);
+        }
     }
 
     public function add_meta_boxes() {
@@ -107,14 +128,31 @@ class UNBC_Events_Meta_Boxes {
                 <th><label for="organization_id">Organization</label></th>
                 <td>
                     <?php
-                    $organizations = get_posts(array('post_type' => 'organization', 'numberposts' => -1));
-                    echo '<select id="organization_id" name="organization_id">';
-                    echo '<option value="">Select Organization</option>';
-                    foreach ($organizations as $org) {
-                        $selected = ($organization_id == $org->ID) ? 'selected' : '';
-                        echo '<option value="' . $org->ID . '" ' . $selected . '>' . $org->post_title . '</option>';
+                    $current_user = wp_get_current_user();
+                    $is_org_manager = in_array('organization_manager', $current_user->roles);
+                    $assigned_org_id = $is_org_manager ? get_user_meta($current_user->ID, 'assigned_organization', true) : null;
+                    
+                    if ($is_org_manager && $assigned_org_id) {
+                        // For organization managers, only show their assigned organization
+                        $assigned_org = get_post($assigned_org_id);
+                        if ($assigned_org) {
+                            echo '<input type="hidden" id="organization_id" name="organization_id" value="' . $assigned_org_id . '" />';
+                            echo '<p><strong>' . esc_html($assigned_org->post_title) . '</strong></p>';
+                            echo '<p class="description">Events will be automatically associated with your organization.</p>';
+                        } else {
+                            echo '<p class="error">No organization assigned to your account. Please contact an administrator.</p>';
+                        }
+                    } else {
+                        // For administrators and other users, show all organizations
+                        $organizations = get_posts(array('post_type' => 'organization', 'numberposts' => -1));
+                        echo '<select id="organization_id" name="organization_id">';
+                        echo '<option value="">Select Organization</option>';
+                        foreach ($organizations as $org) {
+                            $selected = ($organization_id == $org->ID) ? 'selected' : '';
+                            echo '<option value="' . $org->ID . '" ' . $selected . '>' . $org->post_title . '</option>';
+                        }
+                        echo '</select>';
                     }
-                    echo '</select>';
                     ?>
                 </td>
             </tr>
@@ -228,8 +266,14 @@ class UNBC_Events_Meta_Boxes {
         $meeting_schedule = get_post_meta($post->ID, 'org_meeting_schedule', true);
         $original_image_path = get_post_meta($post->ID, 'org_original_image_path', true);
         
+        $current_user = wp_get_current_user();
+        $is_org_manager = in_array('organization_manager', $current_user->roles);
+        
         ?>
         <p><strong>Note:</strong> Use the "Club/Organization Logo" box on the right to upload your organization's logo/image.</p>
+        <?php if ($is_org_manager): ?>
+        <p><strong>Organization Manager:</strong> You can edit most fields, but some administrative fields are restricted.</p>
+        <?php endif; ?>
         
         <table class="form-table">
             <tr>
@@ -362,6 +406,9 @@ class UNBC_Events_Meta_Boxes {
         $registration_date = get_post_meta($post->ID, 'org_registration_date', true);
         $is_department = get_post_meta($post->ID, 'org_is_department', true);
         
+        $current_user = wp_get_current_user();
+        $is_org_manager = in_array('organization_manager', $current_user->roles);
+        
         ?>
         <table class="form-table">
             <tr>
@@ -375,6 +422,7 @@ class UNBC_Events_Meta_Boxes {
                     </select>
                 </td>
             </tr>
+            <?php if (!$is_org_manager): ?>
             <tr>
                 <th><label for="org_is_department">UNBC Department</label></th>
                 <td>
@@ -385,6 +433,17 @@ class UNBC_Events_Meta_Boxes {
                     <p class="description">Check this for academic departments, administrative offices, etc. that aren't student clubs.</p>
                 </td>
             </tr>
+            <?php else: ?>
+            <tr>
+                <th>UNBC Department Status</th>
+                <td>
+                    <p><?php echo $is_department ? 'Yes - This is a UNBC department' : 'No - This is a student club/organization'; ?></p>
+                    <input type="hidden" name="org_is_department" value="<?php echo esc_attr($is_department); ?>" />
+                    <p class="description"><em>This field can only be changed by administrators.</em></p>
+                </td>
+            </tr>
+            <?php endif; ?>
+            <?php if (!$is_org_manager): ?>
             <tr>
                 <th><label for="org_founded_date">Founded Date</label></th>
                 <td><input type="date" id="org_founded_date" name="org_founded_date" value="<?php echo esc_attr($founded_date); ?>" /></td>
@@ -397,6 +456,38 @@ class UNBC_Events_Meta_Boxes {
                 <th><label for="org_registration_date">Registration Date</label></th>
                 <td><input type="date" id="org_registration_date" name="org_registration_date" value="<?php echo esc_attr($registration_date); ?>" /></td>
             </tr>
+            <?php else: ?>
+            <?php if ($founded_date): ?>
+            <tr>
+                <th>Founded Date</th>
+                <td>
+                    <p><?php echo esc_html(date('F j, Y', strtotime($founded_date))); ?></p>
+                    <input type="hidden" name="org_founded_date" value="<?php echo esc_attr($founded_date); ?>" />
+                    <p class="description"><em>This field can only be changed by administrators.</em></p>
+                </td>
+            </tr>
+            <?php endif; ?>
+            <?php if ($approval_date): ?>
+            <tr>
+                <th>Approval Date</th>
+                <td>
+                    <p><?php echo esc_html(date('F j, Y', strtotime($approval_date))); ?></p>
+                    <input type="hidden" name="org_approval_date" value="<?php echo esc_attr($approval_date); ?>" />
+                    <p class="description"><em>This field can only be changed by administrators.</em></p>
+                </td>
+            </tr>
+            <?php endif; ?>
+            <?php if ($registration_date): ?>
+            <tr>
+                <th>Registration Date</th>
+                <td>
+                    <p><?php echo esc_html(date('F j, Y', strtotime($registration_date))); ?></p>
+                    <input type="hidden" name="org_registration_date" value="<?php echo esc_attr($registration_date); ?>" />
+                    <p class="description"><em>This field can only be changed by administrators.</em></p>
+                </td>
+            </tr>
+            <?php endif; ?>
+            <?php endif; ?>
         </table>
         <?php
     }
@@ -448,6 +539,9 @@ class UNBC_Events_Meta_Boxes {
         
         // Save organization meta
         if (get_post_type($post_id) === 'organization') {
+            $current_user = wp_get_current_user();
+            $is_org_manager = in_array('organization_manager', $current_user->roles);
+            
             $org_fields = array(
                 'org_email', 'org_size', 'org_founded_year', 'org_short_description',
                 'org_membership_requirements', 'org_meeting_schedule', 'org_president_name',
@@ -458,8 +552,16 @@ class UNBC_Events_Meta_Boxes {
                 'org_original_image_path'
             );
 
+            // Fields that organization managers cannot edit
+            $restricted_fields = array('org_founded_date', 'org_approval_date', 'org_registration_date');
+
             foreach ($org_fields as $field) {
                 if (isset($_POST[$field])) {
+                    // Skip restricted fields for organization managers
+                    if ($is_org_manager && in_array($field, $restricted_fields)) {
+                        continue;
+                    }
+                    
                     // Handle URL fields
                     if (in_array($field, array('org_website', 'org_facebook', 'org_instagram', 'org_discord', 'org_linktree', 'org_youtube', 'org_registration_link'))) {
                         update_post_meta($post_id, $field, esc_url_raw($_POST[$field]));
@@ -479,8 +581,32 @@ class UNBC_Events_Meta_Boxes {
                 }
             }
             
-            // Handle organization checkbox
-            update_post_meta($post_id, 'org_is_department', isset($_POST['org_is_department']) ? '1' : '0');
+            // Handle organization checkbox - only for non-org managers
+            if (!$is_org_manager) {
+                update_post_meta($post_id, 'org_is_department', isset($_POST['org_is_department']) ? '1' : '0');
+            } else {
+                // For org managers, preserve the existing value
+                if (isset($_POST['org_is_department'])) {
+                    update_post_meta($post_id, 'org_is_department', sanitize_text_field($_POST['org_is_department']));
+                }
+            }
+            
+            // Prevent organization managers from changing post title and slug
+            if ($is_org_manager) {
+                // Don't allow title changes
+                remove_action('save_post', 'wp_update_post');
+                
+                // Get original post data to preserve title and slug
+                $original_post = get_post($post_id);
+                if ($original_post) {
+                    wp_update_post(array(
+                        'ID' => $post_id,
+                        'post_title' => $original_post->post_title,
+                        'post_name' => $original_post->post_name,
+                        'post_status' => $original_post->post_status
+                    ));
+                }
+            }
         }
     }
 }

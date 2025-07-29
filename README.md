@@ -24,6 +24,7 @@ A comprehensive WordPress plugin for managing campus events and organizations at
 - Custom permalink structure (`/clubs/name` for clubs, `/organization/name` for departments)
 - Featured image support for organization logos
 - Rich content editing with WordPress editor
+- **Organization Manager Role**: Custom user role for delegated organization management
 
 ### 🔧 Technical Features
 - **Smart Post Type Detection**: Automatically detects existing post types to prevent conflicts
@@ -54,7 +55,21 @@ A comprehensive WordPress plugin for managing campus events and organizations at
 3. **Activate the Plugin**
    - Go to WordPress Admin > Plugins
    - Find "UNBC Campus Manager" and click "Activate"
-   - You should see a success message confirming post types are registered
+   - Plugin automatically creates the Organization Manager role
+
+### Quick Start: Organization Manager Setup
+
+**For Administrators:**
+1. Create some organizations first: **Organizations > Add New Organization**
+2. Set up organization managers: **Organizations > Managers**
+3. Either create new users or assign existing users to organizations
+4. Users receive email with login credentials (for new accounts)
+
+**For Organization Managers:**
+1. Log in with provided credentials
+2. Automatically redirected to organization edit page
+3. Update organization information (contact details, description, social media)
+4. Create events: **Events > Add New Event** (automatically linked to your organization)
 
 ## Usage
 
@@ -81,6 +96,104 @@ A comprehensive WordPress plugin for managing campus events and organizations at
    - **Categories**: Classify the organization type
    - **Tags**: Add relevant tags
    - **Department Flag**: Mark if it's a university department
+
+### Organization Manager Role System
+
+The plugin includes a powerful **Organization Manager** role system that allows you to delegate organization management to club presidents or designated members while maintaining administrative control.
+
+#### 🎯 What Organization Managers Can Do
+
+**✅ Allowed Actions:**
+- Edit their assigned organization's profile (with restrictions)
+- Create and manage events for their organization
+- Update contact information (president, primary contact, office location)
+- Manage social media links and website information
+- Edit organization description and membership requirements
+- Upload and change organization logo/featured image
+- Update organization size and meeting schedule
+- Change organization status (Established/New/Inactive)
+
+**❌ Restricted Actions:**
+- Cannot create new organizations
+- Cannot edit other organizations
+- Cannot change organization name/title
+- Cannot modify organization slug/permalink
+- Cannot change visibility status
+- Cannot edit administrative fields (UNBC Department status, founded date, approval date, registration date)
+- Cannot access WordPress posts, pages, or comments
+- Cannot access themes, plugins, or site settings
+- Cannot manage users or access admin tools
+
+#### 🔧 Setting Up Organization Managers
+
+**Method 1: Create New User**
+1. Go to **Organizations > Managers**
+2. Use the "Create New Organization Manager" form:
+   - Enter username, email, first name, last name
+   - Select the organization to assign
+   - User account is automatically created with random password
+   - Login credentials are emailed to the user
+
+**Method 2: Convert Existing User**
+1. Go to **Organizations > Managers**
+2. Use the "Assign Existing User as Organization Manager" form:
+   - Select an existing WordPress user
+   - Choose the organization to assign
+   - User role is automatically converted
+
+#### 🏛️ Organization Manager Experience
+
+When an organization manager logs in:
+
+**Streamlined Interface:**
+- **No Dashboard**: Automatically redirected to their organization edit page
+- **Clean Menu**: Only sees "My Organization" and "My Organization Events"
+- **Focused Workflow**: Direct access to what they need to manage
+
+**Organization Editing:**
+- Can edit most organization fields with clear restrictions
+- Restricted fields are shown as read-only with explanatory text
+- JavaScript prevents editing of title and permalink fields
+- Server-side validation ensures security
+
+**Event Management:**
+- Can create new events that automatically link to their organization
+- Can edit/delete only events belonging to their organization
+- Cannot see or modify events from other organizations
+- Full access to event creation and management tools
+
+#### 🔒 Security Features
+
+**Access Control:**
+- Custom capability system with granular permissions
+- Server-side validation prevents unauthorized changes
+- Direct URL access blocked for restricted pages
+- Role-based menu restrictions
+
+**Field Restrictions:**
+- Administrative fields are hidden or shown as read-only
+- Client-side JavaScript prevents form manipulation
+- Backend validation ensures data integrity
+- Clear visual indicators for restricted content
+
+**Session Management:**
+- Automatic redirects from unauthorized pages
+- Clean error messages for blocked actions
+- Maintains user experience while enforcing security
+
+#### 🛠️ Administrative Management
+
+**User Management Interface:**
+- View all organization managers in one place
+- See which organization each manager is assigned to
+- Easy role removal and reassignment
+- Direct links to edit user profiles
+
+**Assignment Features:**
+- One manager per organization (can be changed)
+- Automatic role creation and capability assignment
+- Email notifications for new accounts
+- Role verification and status reporting
 
 ### API Integration
 
@@ -111,12 +224,16 @@ GET /wp-json/wp/v2/organizations
 ### File Structure
 ```
 unbc-events/
-├── unbc-events.php              # Main plugin file
+├── unbc-events.php                           # Main plugin file
 ├── includes/
-│   ├── class-post-types.php     # Post type registration
-│   ├── class-meta-boxes.php     # Custom meta fields
-│   └── class-rest-api.php       # REST API endpoints
-└── admin/                       # Admin interface files
+│   ├── class-post-types.php                 # Post type registration & admin restrictions
+│   ├── class-meta-boxes.php                 # Custom meta fields & field restrictions
+│   ├── class-rest-api.php                   # REST API endpoints
+│   ├── class-user-roles.php                 # Organization Manager role system
+│   └── class-organization-manager-admin.php # Admin interface for managing roles
+├── js/
+│   └── organization-restrictions.js         # Client-side restrictions for org managers
+└── admin/                                    # Admin interface files
 ```
 
 ### Post Types
@@ -212,6 +329,17 @@ The plugin respects WordPress standards and provides hooks for customization:
 This plugin is licensed under the GPL v2 or later.
 
 ## Changelog
+
+### Version 2.1.0 (Latest)
+- **NEW**: Organization Manager role system
+- **NEW**: Delegated organization management with field restrictions
+- **NEW**: Organization manager admin interface (Organizations > Managers)
+- **NEW**: Automatic dashboard redirect for organization managers
+- **NEW**: Client-side and server-side access controls
+- **NEW**: Custom capability system for granular permissions
+- **ENHANCEMENT**: Improved admin menu organization
+- **ENHANCEMENT**: Better user experience for organization managers
+- **SECURITY**: Comprehensive access restriction system
 
 ### Version 2.0.0
 - Smart post type detection
