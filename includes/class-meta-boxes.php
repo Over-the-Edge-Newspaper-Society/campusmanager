@@ -72,6 +72,17 @@ class UNBC_Events_Meta_Boxes {
             'normal',
             'default'
         );
+        
+        
+        // Club post meta boxes
+        add_meta_box(
+            'club_post_organization',
+            'Linked Organization',
+            array($this, 'club_post_organization_callback'),
+            'club_post',
+            'side',
+            'high'
+        );
     }
 
     public function event_details_callback($post) {
@@ -491,10 +502,59 @@ class UNBC_Events_Meta_Boxes {
         </table>
         <?php
     }
+    
+    
+    public function club_post_organization_callback($post) {
+        wp_nonce_field('club_post_nonce', 'club_post_nonce');
+        
+        $organization_id = get_post_meta($post->ID, 'club_post_organization', true);
+        
+        $current_user = wp_get_current_user();
+        $is_org_manager = in_array('organization_manager', $current_user->roles);
+        $assigned_org_id = $is_org_manager ? get_user_meta($current_user->ID, 'assigned_organization', true) : null;
+        
+        ?>
+        <table class="form-table">
+            <tr>
+                <th><label for="club_post_organization">Organization</label></th>
+                <td>
+                    <?php if ($is_org_manager && $assigned_org_id): ?>
+                        <?php
+                        $assigned_org = get_post($assigned_org_id);
+                        if ($assigned_org) {
+                            echo '<input type="hidden" id="club_post_organization" name="club_post_organization" value="' . $assigned_org_id . '" />';
+                            echo '<p><strong>' . esc_html($assigned_org->post_title) . '</strong></p>';
+                            echo '<p class="description">This post will be linked to your organization.</p>';
+                        }
+                        ?>
+                    <?php else: ?>
+                        <?php
+                        $organizations = get_posts(array(
+                            'post_type' => 'organization',
+                            'numberposts' => -1,
+                            'post_status' => 'publish'
+                        ));
+                        ?>
+                        <select id="club_post_organization" name="club_post_organization" required>
+                            <option value="">Select Organization</option>
+                            <?php foreach ($organizations as $org): ?>
+                                <option value="<?php echo $org->ID; ?>" <?php selected($organization_id, $org->ID); ?>>
+                                    <?php echo esc_html($org->post_title); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="description">Select which organization this post belongs to.</p>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        </table>
+        <?php
+    }
 
     public function save_meta_boxes($post_id) {
         // Skip if not our nonce
-        if (!isset($_POST['event_details_nonce']) && !isset($_POST['org_details_nonce'])) {
+        if (!isset($_POST['event_details_nonce']) && !isset($_POST['org_details_nonce']) && 
+            !isset($_POST['club_post_nonce'])) {
             return;
         }
         
@@ -505,6 +565,11 @@ class UNBC_Events_Meta_Boxes {
         
         // Verify nonce for organizations
         if (isset($_POST['org_details_nonce']) && !wp_verify_nonce($_POST['org_details_nonce'], 'org_details_nonce')) {
+            return;
+        }
+        
+        // Verify nonce for club posts
+        if (isset($_POST['club_post_nonce']) && !wp_verify_nonce($_POST['club_post_nonce'], 'club_post_nonce')) {
             return;
         }
 
@@ -606,6 +671,14 @@ class UNBC_Events_Meta_Boxes {
                         'post_status' => $original_post->post_status
                     ));
                 }
+            }
+        }
+        
+        
+        // Save club post meta
+        if (get_post_type($post_id) === 'club_post') {
+            if (isset($_POST['club_post_organization'])) {
+                update_post_meta($post_id, 'club_post_organization', sanitize_text_field($_POST['club_post_organization']));
             }
         }
     }

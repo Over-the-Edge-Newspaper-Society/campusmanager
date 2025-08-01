@@ -26,6 +26,7 @@ class UNBC_Events_Plugin {
         new UNBC_Events_User_Roles();
         new UNBC_Organization_Manager_Admin();
         new UNBC_Events_Blocks();
+        new UNBC_Events_Settings();
         
         // Add custom rewrite rules for organizations/departments
         add_action('init', array($this, 'add_rewrite_rules'));
@@ -65,7 +66,8 @@ class UNBC_Events_Plugin {
             'includes/class-meta-boxes.php',
             'includes/class-user-roles.php',
             'includes/class-organization-manager-admin.php',
-            'includes/class-blocks.php'
+            'includes/class-blocks.php',
+            'includes/class-settings.php'
         );
         
         foreach ($files_to_include as $file) {

@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Get organization ID from current post context (for Query Loop)
+// Get organization ID from current post context
 $organization_id = 0;
 
 // Check if we're in a block context (Query Loop)
@@ -23,10 +23,58 @@ if (isset($block->context['postId'])) {
         $organization_id = $current_post_id;
     }
 } else {
-    // Fallback to global post
-    global $post;
-    if ($post && $post->post_type === 'organization') {
-        $organization_id = $post->ID;
+    // Check if we're viewing an organization page directly
+    if (is_singular('organization')) {
+        $organization_id = get_queried_object_id();
+    } else {
+        // Check if we're on a page that's showing organization content via template
+        $queried_object = get_queried_object();
+        
+        // If we're on a page that uses the organization template
+        if ($queried_object && isset($queried_object->post_type)) {
+            if ($queried_object->post_type === 'organization') {
+                $organization_id = $queried_object->ID;
+            } else if ($queried_object->post_type === 'page') {
+                // Check if this page is being used as organization template
+                $global_template_id = get_option('unbc_org_global_template', '');
+                if ($global_template_id && $queried_object->ID == $global_template_id) {
+                    // We need to detect which organization we're viewing
+                    // Check URL structure for organization slug
+                    $request_uri = $_SERVER['REQUEST_URI'];
+                    if (preg_match('/\/clubs\/([^\/]+)/', $request_uri, $matches)) {
+                        $org_slug = $matches[1];
+                        $organization = get_page_by_path($org_slug, OBJECT, 'organization');
+                        if ($organization) {
+                            $organization_id = $organization->ID;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Check URL for organization slug when using templates
+        if (!$organization_id) {
+            global $wp_query;
+            if (isset($wp_query->query_vars['name']) && !empty($wp_query->query_vars['name'])) {
+                $organization = get_page_by_path($wp_query->query_vars['name'], OBJECT, 'organization');
+                if ($organization) {
+                    $organization_id = $organization->ID;
+                }
+            }
+        }
+        
+        // Check for globally stored organization data (from template handling)
+        if (!$organization_id && isset($GLOBALS['current_organization'])) {
+            $organization_id = $GLOBALS['current_organization']->ID;
+        }
+        
+        // Fallback to global post
+        if (!$organization_id) {
+            global $post;
+            if ($post && $post->post_type === 'organization') {
+                $organization_id = $post->ID;
+            }
+        }
     }
 }
 

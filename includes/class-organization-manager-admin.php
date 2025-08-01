@@ -7,6 +7,8 @@ class UNBC_Organization_Manager_Admin {
         add_action('personal_options_update', array($this, 'save_organization_assignment_field'));
         add_action('edit_user_profile_update', array($this, 'save_organization_assignment_field'));
         add_action('admin_menu', array($this, 'add_admin_menu'));
+        add_action('admin_init', array($this, 'register_settings'));
+        add_action('wp_ajax_apply_template_to_all_orgs', array($this, 'apply_template_to_all_organizations'));
     }
     
     public function add_organization_assignment_field($user) {
@@ -62,6 +64,23 @@ class UNBC_Organization_Manager_Admin {
             'manage_options',
             'organization-managers',
             array($this, 'organization_managers_page')
+        );
+        
+        add_submenu_page(
+            'edit.php?post_type=organization',
+            'Organization Settings',
+            'Settings',
+            'manage_options',
+            'organization-settings',
+            array($this, 'organization_settings_page')
+        );
+        
+        add_submenu_page(
+            'edit.php?post_type=organization',
+            'Club Posts',
+            'Club Posts',
+            'edit_club_posts',
+            'edit.php?post_type=club_post'
         );
     }
     
@@ -251,6 +270,129 @@ class UNBC_Organization_Manager_Admin {
         <?php
     }
     
+    public function organization_settings_page() {
+        // Handle form submission
+        if (isset($_POST['submit']) && wp_verify_nonce($_POST['_wpnonce'], 'organization_settings')) {
+            update_option('campus_manager_default_org_template', sanitize_text_field($_POST['campus_manager_default_org_template']));
+            echo '<div class="notice notice-success"><p>Settings saved successfully!</p></div>';
+        }
+        
+        $current_template = get_option('campus_manager_default_org_template', 'default');
+        $templates = $this->get_available_templates();
+        
+        ?>
+        <div class="wrap">
+            <h1>Organization Settings</h1>
+            
+            <form method="post" action="">
+                <?php wp_nonce_field('organization_settings'); ?>
+                
+                <div class="card">
+                    <h2>Organization Templates</h2>
+                    <p>Configure template settings for organizations and clubs.</p>
+                    
+                    <div id="template-selection-metabox" class="postbox">
+                        <div class="postbox-header">
+                            <h2 class="hndle ui-sortable-handle">Post Attributes</h2>
+                            <div class="handle-actions hide-if-no-js">
+                                <button type="button" class="handle-order-higher" aria-disabled="false" aria-describedby="pageparentdiv-handle-order-higher-description">
+                                    <span class="screen-reader-text">Move up</span>
+                                    <span class="order-higher-indicator" aria-hidden="true"></span>
+                                </button>
+                                <span class="hidden" id="pageparentdiv-handle-order-higher-description">Move Post Attributes box up</span>
+                                <button type="button" class="handle-order-lower" aria-disabled="false" aria-describedby="pageparentdiv-handle-order-lower-description">
+                                    <span class="screen-reader-text">Move down</span>
+                                    <span class="order-lower-indicator" aria-hidden="true"></span>
+                                </button>
+                                <span class="hidden" id="pageparentdiv-handle-order-lower-description">Move Post Attributes box down</span>
+                                <button type="button" class="handlediv" aria-expanded="true">
+                                    <span class="screen-reader-text">Toggle panel: Post Attributes</span>
+                                    <span class="toggle-indicator" aria-hidden="true"></span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="inside">
+                            <p class="post-attributes-label-wrapper page-template-label-wrapper">
+                                <label class="post-attributes-label" for="campus_manager_default_org_template">Template</label>
+                            </p>
+                            <select name="campus_manager_default_org_template" id="campus_manager_default_org_template">
+                                <?php foreach ($templates as $template_file => $template_name): ?>
+                                    <option value="<?php echo esc_attr($template_file); ?>" <?php selected($current_template, $template_file); ?>>
+                                        <?php echo esc_html($template_name); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="description">Select the default template to apply to all organization pages.</p>
+                            <div style="margin-top: 15px;">
+                                <button type="button" id="apply-template-to-all" class="button button-secondary">Apply Template to All Organizations</button>
+                                <span id="apply-template-status" style="margin-left: 10px;"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <?php submit_button(); ?>
+            </form>
+            
+            <div class="card">
+                <h2>Club Posts</h2>
+                <p>Organizations can now create posts that are linked to their organization. These posts will have URLs like:</p>
+                <code>/clubs/organization-name/post-name/</code>
+                
+                <h3>Features:</h3>
+                <ul>
+                    <li>Posts are automatically linked to the organization</li>
+                    <li>Custom URL structure maintains club/organization association</li>
+                    <li>Organization managers can only create posts for their assigned organization</li>
+                    <li>Administrators can create posts for any organization</li>
+                </ul>
+                
+                <p><a href="<?php echo admin_url('edit.php?post_type=club_post'); ?>" class="button button-primary">Manage Club Posts</a></p>
+                <p><a href="<?php echo admin_url('post-new.php?post_type=club_post'); ?>" class="button">Create New Club Post</a></p>
+            </div>
+        </div>
+        
+        <script type="text/javascript">
+        jQuery(document).ready(function($) {
+            $('#apply-template-to-all').on('click', function() {
+                var template = $('#campus_manager_default_org_template').val();
+                var button = $(this);
+                var status = $('#apply-template-status');
+                
+                if (!template) {
+                    status.html('<span style="color: red;">Please select a template first.</span>');
+                    return;
+                }
+                
+                button.prop('disabled', true).text('Applying...');
+                status.html('<span style="color: blue;">Processing...</span>');
+                
+                $.post(ajaxurl, {
+                    action: 'apply_template_to_all_orgs',
+                    template: template,
+                    nonce: '<?php echo wp_create_nonce('apply_template_nonce'); ?>'
+                }, function(response) {
+                    if (response.success) {
+                        status.html('<span style="color: green;">✓ Successfully applied template to ' + response.data.count + ' organizations</span>');
+                    } else {
+                        status.html('<span style="color: red;">Error: ' + response.data.message + '</span>');
+                    }
+                    button.prop('disabled', false).text('Apply Template to All Organizations');
+                    
+                    setTimeout(function() {
+                        status.html('');
+                    }, 5000);
+                }).fail(function() {
+                    status.html('<span style="color: red;">Error: Failed to apply template</span>');
+                    button.prop('disabled', false).text('Apply Template to All Organizations');
+                });
+            });
+        });
+        </script>
+        <?php
+    }
+    
+    
     private function handle_create_manager() {
         $username = sanitize_user($_POST['username']);
         $email = sanitize_email($_POST['email']);
@@ -399,6 +541,16 @@ class UNBC_Organization_Manager_Admin {
                 'edit_unbc_event_terms' => true,
                 'delete_unbc_event_terms' => false,
                 'assign_unbc_event_terms' => true,
+                
+                // Club post capabilities
+                'edit_club_posts' => true,
+                'edit_published_club_posts' => true,
+                'publish_club_posts' => true,
+                'delete_club_posts' => true,
+                'delete_published_club_posts' => true,
+                'read_club_post' => true,
+                'edit_others_club_posts' => false,
+                'delete_others_club_posts' => false,
             ));
         }
         
@@ -436,6 +588,117 @@ class UNBC_Organization_Manager_Admin {
             $admin_role->add_cap('edit_organization_terms');
             $admin_role->add_cap('delete_organization_terms');
             $admin_role->add_cap('assign_organization_terms');
+            
+            // Club post capabilities for administrators
+            $admin_role->add_cap('edit_club_posts');
+            $admin_role->add_cap('edit_others_club_posts');
+            $admin_role->add_cap('publish_club_posts');
+            $admin_role->add_cap('read_club_post');
+            $admin_role->add_cap('delete_club_posts');
+            $admin_role->add_cap('delete_others_club_posts');
+            $admin_role->add_cap('delete_published_club_posts');
+            $admin_role->add_cap('edit_published_club_posts');
         }
+    }
+    
+    public function register_settings() {
+        register_setting('campus_manager_settings', 'campus_manager_default_org_template');
+    }
+    
+    public function get_available_templates() {
+        $templates = array(
+            'default' => 'Default template'
+        );
+        
+        // Get theme templates
+        $theme_templates = wp_get_theme()->get_page_templates();
+        foreach ($theme_templates as $template_file => $template_name) {
+            $templates[$template_file] = $template_name;
+        }
+        
+        // Get block templates from current theme
+        if (wp_is_block_theme()) {
+            $block_templates = get_block_templates(array('post_type' => 'organization'), 'wp_template');
+            foreach ($block_templates as $template) {
+                // Check if template is for our post type by checking the slug or theme
+                if (strpos($template->slug, 'organization') !== false || 
+                    strpos($template->slug, 'single-organization') !== false ||
+                    $template->slug === 'single' || $template->slug === 'index') {
+                    $templates['wp-custom-template-' . $template->slug] = $template->title;
+                }
+            }
+        }
+        
+        // Add custom templates if they exist
+        $custom_templates = array(
+            'wp-custom-template-club-homepage-2' => 'Club Homepage',
+            'wp-custom-template-clubs-droppage' => 'Clubs Droppage'
+        );
+        
+        foreach ($custom_templates as $template_file => $template_name) {
+            if ($this->template_exists($template_file)) {
+                $templates[$template_file] = $template_name;
+            }
+        }
+        
+        return $templates;
+    }
+    
+    private function template_exists($template_file) {
+        // Check if template exists in theme
+        $theme_root = get_template_directory();
+        $stylesheet_root = get_stylesheet_directory();
+        
+        return file_exists($theme_root . '/' . $template_file . '.php') || 
+               file_exists($stylesheet_root . '/' . $template_file . '.php') ||
+               file_exists($theme_root . '/templates/' . $template_file . '.html') ||
+               file_exists($stylesheet_root . '/templates/' . $template_file . '.html');
+    }
+    
+    public function apply_template_to_all_organizations() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'apply_template_nonce')) {
+            wp_die('Security check failed');
+        }
+        
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+        
+        $template = sanitize_text_field($_POST['template']);
+        
+        if (empty($template)) {
+            wp_send_json_error(array('message' => 'No template selected'));
+            return;
+        }
+        
+        // Get all organizations
+        $organizations = get_posts(array(
+            'post_type' => 'organization',
+            'post_status' => 'any',
+            'numberposts' => -1,
+            'fields' => 'ids'
+        ));
+        
+        $count = 0;
+        foreach ($organizations as $org_id) {
+            // Update the page template meta
+            if ($template === 'default') {
+                delete_post_meta($org_id, '_wp_page_template');
+            } else {
+                update_post_meta($org_id, '_wp_page_template', $template);
+            }
+            $count++;
+        }
+        
+        // Update the default template setting
+        update_option('campus_manager_default_org_template', $template);
+        
+        wp_send_json_success(array(
+            'count' => $count,
+            'template' => $template
+        ));
     }
 }

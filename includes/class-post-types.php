@@ -8,11 +8,18 @@ class UNBC_Events_Post_Types {
         add_filter('use_block_editor_for_post_type', array($this, 'disable_gutenberg_for_events'), 10, 2);
         add_filter('post_link', array($this, 'custom_organization_permalink'), 10, 2);
         add_filter('post_type_link', array($this, 'custom_organization_permalink'), 10, 2);
+        add_filter('post_type_link', array($this, 'custom_club_post_permalink'), 10, 2);
+        add_action('init', array($this, 'add_club_post_rewrite_rules'));
+        add_filter('query_vars', array($this, 'add_club_post_query_vars'));
         add_action('add_meta_boxes', array($this, 'add_featured_image_support'));
         add_action('pre_get_posts', array($this, 'restrict_organization_manager_posts'));
+        add_action('pre_get_posts', array($this, 'handle_club_post_query'));
         add_action('admin_menu', array($this, 'modify_admin_menu_for_org_managers'));
         add_action('admin_init', array($this, 'block_restricted_pages_for_org_managers'));
         add_action('admin_init', array($this, 'redirect_org_managers_from_dashboard'));
+        add_action('add_meta_boxes', array($this, 'remove_page_attributes_metabox'));
+        add_action('admin_head', array($this, 'hide_post_attributes_css'));
+        add_action('save_post', array($this, 'prevent_template_changes'), 1);
     }
 
     public function register_post_types() {
@@ -80,6 +87,38 @@ class UNBC_Events_Post_Types {
             'capability_type' => array('organization', 'organizations'),
             'map_meta_cap' => true
         ));
+        }
+
+        // Club Posts post type
+        if (!post_type_exists('club_post')) {
+            register_post_type('club_post', array(
+                'labels' => array(
+                    'name' => 'Club Posts',
+                    'singular_name' => 'Club Post',
+                    'add_new' => 'Add New Post',
+                    'add_new_item' => 'Add New Club Post',
+                    'edit_item' => 'Edit Club Post',
+                    'new_item' => 'New Club Post',
+                    'view_item' => 'View Club Post',
+                    'search_items' => 'Search Club Posts',
+                    'not_found' => 'No club posts found',
+                    'not_found_in_trash' => 'No club posts found in Trash',
+                    'menu_name' => 'Club Posts',
+                    'all_items' => 'All Club Posts'
+                ),
+                'public' => true,
+                'has_archive' => false,
+                'supports' => array('title', 'editor', 'thumbnail', 'excerpt', 'author'),
+                'show_in_rest' => true,
+                'rest_base' => 'club_posts',
+                'menu_icon' => 'dashicons-admin-post',
+                'publicly_queryable' => true,
+                'query_var' => true,
+                'rewrite' => false, // We'll handle custom URLs
+                'capability_type' => array('club_post', 'club_posts'),
+                'map_meta_cap' => true,
+                'show_in_menu' => false // We'll add it as submenu to organizations
+            ));
         }
     }
 
@@ -168,6 +207,41 @@ class UNBC_Events_Post_Types {
         return $permalink;
     }
     
+    public function custom_club_post_permalink($permalink, $post) {
+        if ($post->post_type !== 'club_post') {
+            return $permalink;
+        }
+        
+        $organization_id = get_post_meta($post->ID, 'club_post_organization', true);
+        if (!$organization_id) {
+            return $permalink;
+        }
+        
+        $organization = get_post($organization_id);
+        if (!$organization || $organization->post_type !== 'organization') {
+            return $permalink;
+        }
+        
+        // Create URL structure: /clubs/organization-name/post-name/
+        $permalink = home_url('/clubs/' . $organization->post_name . '/' . $post->post_name . '/');
+        
+        return $permalink;
+    }
+    
+    public function add_club_post_rewrite_rules() {
+        add_rewrite_rule(
+            '^clubs/([^/]+)/([^/]+)/?$',
+            'index.php?club_post_slug=$matches[2]&organization_slug=$matches[1]',
+            'top'
+        );
+    }
+    
+    public function add_club_post_query_vars($vars) {
+        $vars[] = 'club_post_slug';
+        $vars[] = 'organization_slug';
+        return $vars;
+    }
+    
     public function add_featured_image_support() {
         add_meta_box(
             'postimagediv',
@@ -227,6 +301,70 @@ class UNBC_Events_Post_Types {
                 $query->set('post__in', array(0));
             }
         }
+        
+        // Restrict club posts to only posts associated with their organization
+        if ($pagenow === 'edit.php' && isset($_GET['post_type']) && $_GET['post_type'] === 'club_post') {
+            // Find club posts that belong to this organization
+            $organization_posts = get_posts(array(
+                'post_type' => 'club_post',
+                'numberposts' => -1,
+                'meta_query' => array(
+                    array(
+                        'key' => 'club_post_organization',
+                        'value' => $assigned_org,
+                        'compare' => '='
+                    )
+                ),
+                'fields' => 'ids'
+            ));
+            
+            if (!empty($organization_posts)) {
+                $query->set('post__in', $organization_posts);
+            } else {
+                // If no posts found, return empty result
+                $query->set('post__in', array(0));
+            }
+        }
+    }
+    
+    public function handle_club_post_query($query) {
+        if (!$query->is_main_query() || is_admin()) {
+            return;
+        }
+        
+        $club_post_slug = get_query_var('club_post_slug');
+        $organization_slug = get_query_var('organization_slug');
+        
+        if ($club_post_slug && $organization_slug) {
+            // Find the organization by slug
+            $organization = get_page_by_path($organization_slug, OBJECT, 'organization');
+            if (!$organization) {
+                return;
+            }
+            
+            // Find the club post by slug and organization
+            $club_posts = get_posts(array(
+                'post_type' => 'club_post',
+                'name' => $club_post_slug,
+                'meta_query' => array(
+                    array(
+                        'key' => 'club_post_organization',
+                        'value' => $organization->ID,
+                        'compare' => '='
+                    )
+                ),
+                'numberposts' => 1
+            ));
+            
+            if (!empty($club_posts)) {
+                $query->set('post_type', 'club_post');
+                $query->set('p', $club_posts[0]->ID);
+                $query->is_single = true;
+                $query->is_singular = true;
+            } else {
+                $query->set_404();
+            }
+        }
     }
     
     public function modify_admin_menu_for_org_managers() {
@@ -279,6 +417,15 @@ class UNBC_Events_Post_Types {
             foreach ($submenu['edit.php?post_type=unbc_event'] as $key => $item) {
                 if ($item[2] === 'edit.php?post_type=unbc_event') {
                     $submenu['edit.php?post_type=unbc_event'][$key][0] = 'My Organization Events';
+                }
+            }
+        }
+        
+        // Modify club posts menu if accessible
+        if (isset($submenu['edit.php?post_type=club_post'])) {
+            foreach ($submenu['edit.php?post_type=club_post'] as $key => $item) {
+                if ($item[2] === 'edit.php?post_type=club_post') {
+                    $submenu['edit.php?post_type=club_post'][$key][0] = 'My Organization Posts';
                 }
             }
         }
@@ -339,7 +486,7 @@ class UNBC_Events_Post_Types {
                 $post_id = intval($_GET['post']);
                 $post = get_post($post_id);
                 
-                if ($post && ($post->post_type === 'organization' || $post->post_type === 'unbc_event')) {
+                if ($post && ($post->post_type === 'organization' || $post->post_type === 'unbc_event' || $post->post_type === 'club_post')) {
                     // Let the capability system handle this
                     return;
                 }
@@ -348,7 +495,7 @@ class UNBC_Events_Post_Types {
             // Allow new posts if it's for their allowed post types
             if ($pagenow === 'post-new.php' && isset($_GET['post_type'])) {
                 $post_type = $_GET['post_type'];
-                if ($post_type === 'unbc_event') {
+                if ($post_type === 'unbc_event' || $post_type === 'club_post') {
                     // Let the capability system handle this
                     return;
                 }
@@ -357,7 +504,7 @@ class UNBC_Events_Post_Types {
             // Allow edit.php for their allowed post types
             if ($pagenow === 'edit.php' && isset($_GET['post_type'])) {
                 $post_type = $_GET['post_type'];
-                if ($post_type === 'organization' || $post_type === 'unbc_event') {
+                if ($post_type === 'organization' || $post_type === 'unbc_event' || $post_type === 'club_post') {
                     // Let the capability system handle this
                     return;
                 }
@@ -425,6 +572,89 @@ class UNBC_Events_Post_Types {
                 // If no organization assigned, redirect to events page
                 wp_redirect(admin_url('edit.php?post_type=unbc_event'));
                 exit;
+            }
+        }
+    }
+    
+    public function remove_page_attributes_metabox() {
+        // Remove the page attributes metabox from organization post type
+        remove_meta_box('pageparentdiv', 'organization', 'side');
+        remove_meta_box('pageparentdiv', 'organization', 'normal');
+        remove_meta_box('pageparentdiv', 'organization', 'advanced');
+        
+        // Also remove any other page-related metaboxes that might appear
+        remove_meta_box('page-attributes', 'organization', 'side');
+        remove_meta_box('page-attributes', 'organization', 'normal');
+        remove_meta_box('page-attributes', 'organization', 'advanced');
+    }
+    
+    public function hide_post_attributes_css() {
+        global $post_type;
+        
+        // Only apply to organization post type
+        if ($post_type === 'organization') {
+            ?>
+            <style type="text/css">
+                /* Hide any Post Attributes metaboxes that might still appear */
+                #pageparentdiv,
+                #page-attributes,
+                .postbox[id*="pageparent"],
+                .postbox[id*="page-attributes"],
+                .page-template-selector,
+                select[name="page_template"],
+                #page_template,
+                .page-template-label-wrapper,
+                .post-attributes-label-wrapper.page-template-label-wrapper {
+                    display: none !important;
+                }
+                
+                /* Hide template-related fields in any form */
+                tr.page-template,
+                .form-field.page-template,
+                input[name="_wp_page_template"],
+                select[name="_wp_page_template"] {
+                    display: none !important;
+                }
+                
+                /* Hide any remaining page attribute elements */
+                .components-panel__body[aria-label*="Page attributes"],
+                .components-panel__body[aria-label*="Template"],
+                .editor-page-attributes,
+                .editor-post-template {
+                    display: none !important;
+                }
+            </style>
+            <?php
+        }
+    }
+    
+    public function prevent_template_changes($post_id) {
+        // Only apply to organization post type
+        if (get_post_type($post_id) !== 'organization') {
+            return;
+        }
+        
+        // Check if this is being called from our organization settings page
+        $current_page = isset($_GET['page']) ? $_GET['page'] : '';
+        $referer = wp_get_referer();
+        
+        // Allow changes from organization settings page or our AJAX call
+        if ($current_page === 'organization-settings' || 
+            (isset($_POST['action']) && $_POST['action'] === 'apply_template_to_all_orgs') ||
+            (strpos($referer, 'organization-settings') !== false)) {
+            return;
+        }
+        
+        // Prevent any template changes from other sources
+        if (isset($_POST['page_template']) || isset($_POST['_wp_page_template'])) {
+            // Remove the POST data to prevent template changes
+            unset($_POST['page_template']);
+            unset($_POST['_wp_page_template']);
+            
+            // Preserve the existing template
+            $existing_template = get_post_meta($post_id, '_wp_page_template', true);
+            if ($existing_template) {
+                update_post_meta($post_id, '_wp_page_template', $existing_template);
             }
         }
     }
