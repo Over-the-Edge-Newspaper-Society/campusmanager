@@ -1,0 +1,36 @@
+/**
+ * Frontend styles for Organization Field block
+ * Minimal styling to allow theme inheritance
+ */
+
+.wp-block-unbc-organization-field {
+    /* Inherit font family, size, and color from theme */
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    line-height: inherit;
+}
+
+.wp-block-unbc-organization-field .organization-field-label {
+    /* Inherit styling, just make label slightly bolder if theme supports it */
+    font-weight: inherit;
+}
+
+.wp-block-unbc-organization-field .organization-field-content {
+    /* Inherit all text styling from theme */
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+}
+
+.wp-block-unbc-organization-field .organization-field-content a {
+    /* Let theme handle link styling */
+    color: inherit;
+    text-decoration: inherit;
+}
+
+.wp-block-unbc-organization-field .organization-field-content a:hover {
+    /* Let theme handle link hover styling */
+    color: inherit;
+    text-decoration: inherit;
+}
