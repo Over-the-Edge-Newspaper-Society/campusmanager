@@ -1,0 +1,9 @@
+.unbc-calendar-container {
+    margin: 20px 0;
+}
+
+.unbc-calendar-loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}

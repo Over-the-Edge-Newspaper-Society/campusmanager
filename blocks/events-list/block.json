@@ -1,0 +1,36 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 2,
+    "name": "unbc/events-list",
+    "title": "UNBC Events List",
+    "category": "widgets",
+    "icon": "list-view",
+    "description": "Display a list of UNBC events with organization filtering.",
+    "keywords": ["events", "list", "unbc", "organization"],
+    "textdomain": "unbc-events",
+    "attributes": {
+        "organizationId": {
+            "type": "string",
+            "default": ""
+        },
+        "organizationName": {
+            "type": "string",
+            "default": ""
+        },
+        "limit": {
+            "type": "number",
+            "default": 5
+        },
+        "showPastEvents": {
+            "type": "boolean",
+            "default": false
+        }
+    },
+    "supports": {
+        "html": false,
+        "align": ["wide", "full"]
+    },
+    "editorScript": "file:./index.js",
+    "editorStyle": "file:./editor.css",
+    "style": "file:./style.css"
+}

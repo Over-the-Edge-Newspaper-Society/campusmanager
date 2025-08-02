@@ -2,6 +2,7 @@
 class UNBC_Events_REST_API {
     public function __construct() {
         add_action('rest_api_init', array($this, 'register_routes'));
+        add_action('rest_api_init', array($this, 'register_meta_fields'));
     }
 
     public function register_routes() {
@@ -184,5 +185,42 @@ class UNBC_Events_REST_API {
             'featured' => get_post_meta($event_id, 'featured', true) === '1',
             'permalink' => get_permalink($event_id)
         );
+    }
+    
+    public function register_meta_fields() {
+        // Register meta fields for the standard WordPress REST API
+        $meta_fields = array(
+            'start_date',
+            'end_date',
+            'start_time',
+            'end_time',
+            'location',
+            'building',
+            'room',
+            'organization',
+            'organization_id',
+            'category',
+            'cost',
+            'registration_required',
+            'registration_link',
+            'contact_email',
+            'is_virtual',
+            'virtual_link',
+            'capacity',
+            'featured'
+        );
+        
+        foreach ($meta_fields as $field) {
+            register_rest_field('unbc_event', $field, array(
+                'get_callback' => function($post) use ($field) {
+                    return get_post_meta($post['id'], $field, true);
+                },
+                'schema' => array(
+                    'description' => 'Event ' . $field,
+                    'type' => 'string',
+                    'context' => array('view', 'edit')
+                )
+            ));
+        }
     }
 }

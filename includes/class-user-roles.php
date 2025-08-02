@@ -174,7 +174,7 @@ class UNBC_Events_User_Roles {
             if ($post && $post->post_type === 'unbc_event') {
                 $user = get_user_by('id', $user_id);
                 
-                if (in_array('organization_manager', $user->roles)) {
+                if ($user && is_array($user->roles) && in_array('organization_manager', $user->roles)) {
                     $assigned_org = $this->get_user_organization($user_id);
                     $event_org_id = get_post_meta($post_id, 'organization_id', true);
                     

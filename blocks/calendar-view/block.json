@@ -1,0 +1,32 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 2,
+    "name": "unbc/calendar-view",
+    "title": "UNBC Calendar",
+    "category": "widgets",
+    "icon": "calendar-alt",
+    "description": "Display the UNBC events calendar with multiple view options.",
+    "keywords": ["calendar", "events", "unbc"],
+    "textdomain": "unbc-events",
+    "attributes": {
+        "view": {
+            "type": "string",
+            "default": "month"
+        },
+        "categoryFilter": {
+            "type": "string",
+            "default": "all"
+        },
+        "organizationFilter": {
+            "type": "string",
+            "default": "all"
+        }
+    },
+    "supports": {
+        "html": false,
+        "align": ["wide", "full"]
+    },
+    "editorScript": "file:./index.js",
+    "editorStyle": "file:./editor.css",
+    "style": "file:./style.css"
+}

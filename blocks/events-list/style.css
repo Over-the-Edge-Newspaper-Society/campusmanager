@@ -1,0 +1,9 @@
+.unbc-events-list-container {
+    margin: 20px 0;
+}
+
+.unbc-events-loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
