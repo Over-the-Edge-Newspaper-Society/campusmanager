@@ -19,7 +19,6 @@ export const organizationsService = {
       
       return await response.json();
     } catch (error) {
-      console.error('Error fetching organizations:', error);
       return [];
     }
   }

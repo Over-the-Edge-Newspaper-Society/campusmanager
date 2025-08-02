@@ -70,26 +70,14 @@ class EventsAPI {
       // Ensure proper URL construction
       const baseUrl = this.baseUrl.endsWith('/') ? this.baseUrl.slice(0, -1) : this.baseUrl;
       const url = `${baseUrl}/events${queryString.toString() ? '?' + queryString.toString() : ''}`;
-      console.log('Fetching events from:', url); // Debug log
       const response = await fetch(url);
       
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error Response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status} - ${errorText.substring(0, 200)}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const responseText = await response.text();
-      console.log('API Response (first 200 chars):', responseText.substring(0, 200));
-      
-      try {
-        return JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse JSON response:', responseText.substring(0, 500));
-        throw new Error('Invalid JSON response from API');
-      }
+      return await response.json();
     } catch (error) {
-      console.error('Error fetching events:', error);
       throw error;
     }
   }

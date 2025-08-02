@@ -24,7 +24,7 @@ class UNBC_Calendar_Blocks {
             'unbc-calendar-app',
             plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/unbc-calendar.umd.js',
             array(),
-            '3.1.4',
+            '3.1.6',
             true
         );
         
@@ -134,7 +134,7 @@ class UNBC_Calendar_Blocks {
                 'unbc-calendar-app',
                 plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/unbc-calendar.umd.js',
                 array(),
-                '3.1.4', // Increment version
+                '3.1.6', // Increment version
                 true
             );
             
@@ -280,20 +280,15 @@ class UNBC_Calendar_Blocks {
                 
                 function initCalendar() {
                     attempts++;
-                    console.log('Attempting to render UNBC Calendar (attempt ' + attempts + ')...');
                     
                     if (window.renderUNBCCalendar && typeof window.renderUNBCCalendar === 'function') {
-                        console.log('renderUNBCCalendar found, rendering calendar...');
                         try {
                             window.renderUNBCCalendar('<?php echo esc_js($unique_id); ?>');
                         } catch (e) {
                             console.error('Error rendering calendar:', e);
                         }
                     } else if (attempts < maxAttempts) {
-                        console.log('renderUNBCCalendar not found, retrying in 100ms...');
                         setTimeout(initCalendar, 100);
-                    } else {
-                        console.error('Failed to load UNBC Calendar after ' + maxAttempts + ' attempts');
                     }
                 }
                 
@@ -334,20 +329,15 @@ class UNBC_Calendar_Blocks {
                 
                 function initEventsList() {
                     attempts++;
-                    console.log('Attempting to render UNBC Events List (attempt ' + attempts + ')...');
                     
                     if (window.renderUNBCEventsList && typeof window.renderUNBCEventsList === 'function') {
-                        console.log('renderUNBCEventsList found, rendering events list...');
                         try {
                             window.renderUNBCEventsList('<?php echo esc_js($unique_id); ?>');
                         } catch (e) {
                             console.error('Error rendering events list:', e);
                         }
                     } else if (attempts < maxAttempts) {
-                        console.log('renderUNBCEventsList not found, retrying in 100ms...');
                         setTimeout(initEventsList, 100);
-                    } else {
-                        console.error('Failed to load UNBC Events List after ' + maxAttempts + ' attempts');
                     }
                 }
                 
@@ -388,20 +378,15 @@ class UNBC_Calendar_Blocks {
                 
                 function initOrganizationEvents() {
                     attempts++;
-                    console.log('Attempting to render UNBC Organization Events (attempt ' + attempts + ')...');
                     
                     if (window.renderUNBCOrganizationEvents && typeof window.renderUNBCOrganizationEvents === 'function') {
-                        console.log('renderUNBCOrganizationEvents found, rendering events...');
                         try {
                             window.renderUNBCOrganizationEvents('<?php echo esc_js($unique_id); ?>');
                         } catch (e) {
                             console.error('Error rendering organization events:', e);
                         }
                     } else if (attempts < maxAttempts) {
-                        console.log('renderUNBCOrganizationEvents not found, retrying in 100ms...');
                         setTimeout(initOrganizationEvents, 100);
-                    } else {
-                        console.error('Failed to load UNBC Organization Events after ' + maxAttempts + ' attempts');
                     }
                 }
                 

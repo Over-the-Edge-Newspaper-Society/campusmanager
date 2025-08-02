@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { eventsAPI, type EventFilters } from '@/services/eventsApi';
 import type { Event, EventMetadata } from '@/types';
-import { unbcEvents, eventMetadata } from '@/data/events';
 
 interface UseEventsResult {
   events: Event[];
@@ -46,13 +45,12 @@ export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
       setTotal(response.total);
       setPages(response.pages);
     } catch (err) {
-      // Fallback to static data on error
-      console.warn('Failed to fetch from WordPress, using static data:', err);
-      setEvents(unbcEvents);
-      setEventMetadata(eventMetadata);
-      setTotal(unbcEvents.length);
-      setPages(1);
-      setError('Using static data - WordPress connection failed');
+      // Set error state without fallback data
+      setEvents([]);
+      setEventMetadata({});
+      setTotal(0);
+      setPages(0);
+      setError(err instanceof Error ? err.message : 'Failed to load events');
     } finally {
       setLoading(false);
     }
