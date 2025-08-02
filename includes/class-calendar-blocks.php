@@ -24,7 +24,7 @@ class UNBC_Calendar_Blocks {
             'unbc-calendar-app',
             plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/unbc-calendar.umd.js',
             array(),
-            '3.0.1',
+            '3.1.3',
             true
         );
         
@@ -134,7 +134,7 @@ class UNBC_Calendar_Blocks {
                 'unbc-calendar-app',
                 plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/unbc-calendar.umd.js',
                 array(),
-                '3.0.1', // Increment version
+                '3.1.3', // Increment version
                 true
             );
             
@@ -142,7 +142,7 @@ class UNBC_Calendar_Blocks {
                 'unbc-calendar-styles',
                 plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/style.css',
                 array(),
-                '3.0.1' // Increment version
+                '3.1.0' // Increment version
             );
             
             // Provide WordPress REST API data to React
@@ -248,16 +248,13 @@ class UNBC_Calendar_Blocks {
         
         $show_past = ($atts['show_past'] === 'true' || $atts['show_past'] === '1');
         
-        // Disable wpautop for this shortcode to prevent extra p/br tags
-        $content = $this->render_php_events_list(
+        // Use the React component instead of PHP rendering
+        return $this->render_organization_events_react_component(
             $atts['organization_id'], 
             $atts['organization_name'], 
             intval($atts['limit']), 
             $show_past
         );
-        
-        // Wrap in a container that prevents wpautop from adding unwanted formatting
-        return '<div class="unbc-events-wrapper">' . $content . '</div>';
     }
     
     private function render_calendar_component($view = 'month', $category_filter = 'all', $organization_filter = 'all') {
@@ -361,6 +358,60 @@ class UNBC_Calendar_Blocks {
                     });
                 } else {
                     setTimeout(initEventsList, 100); // Give time for scripts to load
+                }
+            })();
+        </script>
+        <?php
+        return ob_get_clean();
+    }
+    
+    private function render_organization_events_react_component($organization_id = '', $organization_name = '', $limit = 5, $show_past = false) {
+        $unique_id = 'unbc-organization-events-' . uniqid();
+        
+        ob_start();
+        ?>
+        <div id="<?php echo esc_attr($unique_id); ?>" 
+             class="unbc-organization-events-container"
+             data-component="organization-events"
+             data-organization-id="<?php echo esc_attr($organization_id); ?>"
+             data-organization-name="<?php echo esc_attr($organization_name); ?>"
+             data-limit="<?php echo esc_attr($limit); ?>"
+             data-show-past="<?php echo esc_attr($show_past ? 'true' : 'false'); ?>">
+            <div class="unbc-events-loading">
+                <p>Loading events...</p>
+            </div>
+        </div>
+        <script>
+            (function() {
+                var attempts = 0;
+                var maxAttempts = 50; // 5 seconds max wait
+                
+                function initOrganizationEvents() {
+                    attempts++;
+                    console.log('Attempting to render UNBC Organization Events (attempt ' + attempts + ')...');
+                    
+                    if (window.renderUNBCOrganizationEvents && typeof window.renderUNBCOrganizationEvents === 'function') {
+                        console.log('renderUNBCOrganizationEvents found, rendering events...');
+                        try {
+                            window.renderUNBCOrganizationEvents('<?php echo esc_js($unique_id); ?>');
+                        } catch (e) {
+                            console.error('Error rendering organization events:', e);
+                        }
+                    } else if (attempts < maxAttempts) {
+                        console.log('renderUNBCOrganizationEvents not found, retrying in 100ms...');
+                        setTimeout(initOrganizationEvents, 100);
+                    } else {
+                        console.error('Failed to load UNBC Organization Events after ' + maxAttempts + ' attempts');
+                    }
+                }
+                
+                // Ensure we wait for both DOM and the React app
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', function() {
+                        setTimeout(initOrganizationEvents, 100); // Give time for scripts to load
+                    });
+                } else {
+                    setTimeout(initOrganizationEvents, 100); // Give time for scripts to load
                 }
             })();
         </script>

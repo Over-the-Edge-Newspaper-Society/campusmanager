@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import UNBCCalendar from './components/unbc-calendar.tsx';
 import { OrganizationEventsList } from './components/organization-events-list.tsx';
+import { OrganizationEventsWrapper } from './components/organization-events-wrapper.tsx';
 import './index.css';
 
 // WordPress integration functions
@@ -53,6 +54,34 @@ window.renderUNBCEventsList = function(containerId) {
   );
 };
 
+// WordPress integration function for organization events (using the shared React components)
+window.renderUNBCOrganizationEvents = function(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error('Organization events container not found:', containerId);
+    return;
+  }
+
+  const root = createRoot(container);
+  
+  // Get configuration from data attributes
+  const organizationId = container.dataset.organizationId || '';
+  const organizationName = container.dataset.organizationName || '';
+  const limit = parseInt(container.dataset.limit) || 5;
+  const showPast = container.dataset.showPast === 'true';
+
+  root.render(
+    <React.StrictMode>
+      <OrganizationEventsWrapper 
+        organizationId={organizationId}
+        organizationName={organizationName}
+        limit={limit}
+        showPastEvents={showPast}
+      />
+    </React.StrictMode>
+  );
+};
+
 // Wrapper component for events list with organization filtering
 function EventsListWrapper({ organizationId, organizationName, limit, showPastEvents }) {
   return (
@@ -82,6 +111,14 @@ document.addEventListener('DOMContentLoaded', function() {
   eventsListContainers.forEach(container => {
     if (container.id) {
       window.renderUNBCEventsList(container.id);
+    }
+  });
+
+  // Find all organization events containers and initialize them
+  const organizationEventsContainers = document.querySelectorAll('[data-component="organization-events"]');
+  organizationEventsContainers.forEach(container => {
+    if (container.id) {
+      window.renderUNBCOrganizationEvents(container.id);
     }
   });
 });

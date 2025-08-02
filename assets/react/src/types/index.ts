@@ -10,6 +10,7 @@ export interface Event {
 export interface EventMetadata {
   category: EventCategory;
   organization: string;
+  organization_id?: string;  // Add organization_id field
   location: string;
   cost: string;
   registrationRequired: boolean;

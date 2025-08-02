@@ -14,6 +14,7 @@ interface WordPressEvent {
   full_location: string;
   cost: string;
   organization: string;
+  organization_id: string;  // Add organization_id field
   categories: Array<{
     id: number;
     name: string;
@@ -51,7 +52,9 @@ class EventsAPI {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = '/wp-json/unbc-events/v1';
+    // Use WordPress localized data if available, otherwise fallback
+    const wpData = (window as any).unbcCalendarData;
+    this.baseUrl = wpData?.apiUrl || '/wp-json/unbc-events/v1';
   }
 
   async fetchEvents(filters: EventFilters = {}): Promise<EventsApiResponse> {
@@ -64,14 +67,27 @@ class EventsAPI {
         }
       });
 
-      const url = `${this.baseUrl}/events${queryString.toString() ? '?' + queryString.toString() : ''}`;
+      // Ensure proper URL construction
+      const baseUrl = this.baseUrl.endsWith('/') ? this.baseUrl.slice(0, -1) : this.baseUrl;
+      const url = `${baseUrl}/events${queryString.toString() ? '?' + queryString.toString() : ''}`;
+      console.log('Fetching events from:', url); // Debug log
       const response = await fetch(url);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText.substring(0, 200)}`);
       }
       
-      return await response.json();
+      const responseText = await response.text();
+      console.log('API Response (first 200 chars):', responseText.substring(0, 200));
+      
+      try {
+        return JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse JSON response:', responseText.substring(0, 500));
+        throw new Error('Invalid JSON response from API');
+      }
     } catch (error) {
       console.error('Error fetching events:', error);
       throw error;
@@ -96,6 +112,7 @@ class EventsAPI {
     return {
       category: this.mapWordPressCategory(wpEvent.categories),
       organization: wpEvent.organization,
+      organization_id: wpEvent.organization_id,  // Include organization_id
       location: wpEvent.full_location,
       cost: wpEvent.cost,
       registrationRequired: wpEvent.registration_required,

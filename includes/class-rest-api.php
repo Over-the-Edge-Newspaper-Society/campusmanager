@@ -174,6 +174,7 @@ class UNBC_Events_REST_API {
             'full_location' => $full_location,
             'cost' => get_post_meta($event_id, 'cost', true) ?: 'Free',
             'organization' => $organization_name,
+            'organization_id' => $organization_id,  // Add organization_id to response
             'categories' => $category_data,
             'featured_image' => get_the_post_thumbnail_url($event_id, 'large'),
             'registration_required' => get_post_meta($event_id, 'registration_required', true) === '1',
