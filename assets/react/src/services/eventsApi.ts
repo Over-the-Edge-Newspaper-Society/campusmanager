@@ -14,6 +14,7 @@ interface WordPressEvent {
   full_location: string;
   cost: string;
   organization: string;
+  organization_id: string;  // Add organization_id field
   categories: Array<{
     id: number;
     name: string;
@@ -51,7 +52,9 @@ class EventsAPI {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = '/wp-json/unbc-events/v1';
+    // Use WordPress localized data if available, otherwise fallback
+    const wpData = (window as any).unbcCalendarData;
+    this.baseUrl = wpData?.apiUrl || '/wp-json/unbc-events/v1';
   }
 
   async fetchEvents(filters: EventFilters = {}): Promise<EventsApiResponse> {
@@ -64,7 +67,9 @@ class EventsAPI {
         }
       });
 
-      const url = `${this.baseUrl}/events${queryString.toString() ? '?' + queryString.toString() : ''}`;
+      // Ensure proper URL construction
+      const baseUrl = this.baseUrl.endsWith('/') ? this.baseUrl.slice(0, -1) : this.baseUrl;
+      const url = `${baseUrl}/events${queryString.toString() ? '?' + queryString.toString() : ''}`;
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -73,7 +78,6 @@ class EventsAPI {
       
       return await response.json();
     } catch (error) {
-      console.error('Error fetching events:', error);
       throw error;
     }
   }
@@ -96,6 +100,7 @@ class EventsAPI {
     return {
       category: this.mapWordPressCategory(wpEvent.categories),
       organization: wpEvent.organization,
+      organization_id: wpEvent.organization_id,  // Include organization_id
       location: wpEvent.full_location,
       cost: wpEvent.cost,
       registrationRequired: wpEvent.registration_required,

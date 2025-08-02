@@ -24,12 +24,12 @@ class UNBC_Events_Post_Types {
 
     public function register_post_types() {
         // Check if post types already exist (from mu-plugins or theme)
-        $existing_event_type = post_type_exists('unbc_event');
+        $existing_event_type = post_type_exists('event');
         $existing_org_type = post_type_exists('organization');
         
         // Only register if doesn't exist, or re-register with compatible settings
         if (!$existing_event_type) {
-            register_post_type('unbc_event', array(
+            register_post_type('event', array(
             'labels' => array(
                 'name' => 'Events',
                 'singular_name' => 'Event',
@@ -53,7 +53,7 @@ class UNBC_Events_Post_Types {
             'show_in_rest' => true,          // Keep REST API access for React app
             'rest_base' => 'events',
             'menu_icon' => 'dashicons-calendar-alt', // Calendar icon for events
-            'capability_type' => array('unbc_event', 'unbc_events'),
+            'capability_type' => array('event', 'events'),
             'map_meta_cap' => true
         ));
         }
@@ -125,7 +125,7 @@ class UNBC_Events_Post_Types {
     public function register_taxonomies() {
         // Only register taxonomies if they don't exist
         if (!taxonomy_exists('event_category')) {
-            register_taxonomy('event_category', 'unbc_event', array(
+            register_taxonomy('event_category', 'event', array(
             'labels' => array(
                 'name' => 'Event Categories',
                 'singular_name' => 'Event Category'
@@ -183,7 +183,7 @@ class UNBC_Events_Post_Types {
     }
     
     public function disable_gutenberg_for_events($use_block_editor, $post_type) {
-        if ($post_type === 'unbc_event' || $post_type === 'organization') {
+        if ($post_type === 'event' || $post_type === 'organization') {
             return false; // Disable Gutenberg for events and organizations
         }
         return $use_block_editor;
@@ -277,12 +277,12 @@ class UNBC_Events_Post_Types {
         }
         
         // Restrict event posts to only events associated with their organization
-        if (($pagenow === 'edit.php' && isset($_GET['post_type']) && $_GET['post_type'] === 'unbc_event') ||
+        if (($pagenow === 'edit.php' && isset($_GET['post_type']) && $_GET['post_type'] === 'event') ||
             ($pagenow === 'edit.php' && !isset($_GET['post_type']))) {
             
             // Find events that belong to this organization
             $organization_events = get_posts(array(
-                'post_type' => 'unbc_event',
+                'post_type' => 'event',
                 'numberposts' => -1,
                 'meta_query' => array(
                     array(
@@ -413,10 +413,10 @@ class UNBC_Events_Post_Types {
             }
         }
         
-        if (isset($submenu['edit.php?post_type=unbc_event'])) {
-            foreach ($submenu['edit.php?post_type=unbc_event'] as $key => $item) {
-                if ($item[2] === 'edit.php?post_type=unbc_event') {
-                    $submenu['edit.php?post_type=unbc_event'][$key][0] = 'My Organization Events';
+        if (isset($submenu['edit.php?post_type=event'])) {
+            foreach ($submenu['edit.php?post_type=event'] as $key => $item) {
+                if ($item[2] === 'edit.php?post_type=event') {
+                    $submenu['edit.php?post_type=event'][$key][0] = 'My Organization Events';
                 }
             }
         }
@@ -486,7 +486,7 @@ class UNBC_Events_Post_Types {
                 $post_id = intval($_GET['post']);
                 $post = get_post($post_id);
                 
-                if ($post && ($post->post_type === 'organization' || $post->post_type === 'unbc_event' || $post->post_type === 'club_post')) {
+                if ($post && ($post->post_type === 'organization' || $post->post_type === 'event' || $post->post_type === 'club_post')) {
                     // Let the capability system handle this
                     return;
                 }
@@ -495,7 +495,7 @@ class UNBC_Events_Post_Types {
             // Allow new posts if it's for their allowed post types
             if ($pagenow === 'post-new.php' && isset($_GET['post_type'])) {
                 $post_type = $_GET['post_type'];
-                if ($post_type === 'unbc_event' || $post_type === 'club_post') {
+                if ($post_type === 'event' || $post_type === 'club_post') {
                     // Let the capability system handle this
                     return;
                 }
@@ -504,7 +504,7 @@ class UNBC_Events_Post_Types {
             // Allow edit.php for their allowed post types
             if ($pagenow === 'edit.php' && isset($_GET['post_type'])) {
                 $post_type = $_GET['post_type'];
-                if ($post_type === 'organization' || $post_type === 'unbc_event' || $post_type === 'club_post') {
+                if ($post_type === 'organization' || $post_type === 'event' || $post_type === 'club_post') {
                     // Let the capability system handle this
                     return;
                 }
@@ -570,7 +570,7 @@ class UNBC_Events_Post_Types {
                 exit;
             } else {
                 // If no organization assigned, redirect to events page
-                wp_redirect(admin_url('edit.php?post_type=unbc_event'));
+                wp_redirect(admin_url('edit.php?post_type=event'));
                 exit;
             }
         }

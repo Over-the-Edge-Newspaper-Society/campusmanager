@@ -41,7 +41,7 @@ class UNBC_Events_Plugin {
         
         // Update Events menu icon
         foreach ($menu as $key => $item) {
-            if (isset($item[5]) && $item[5] === 'menu-posts-unbc_event') {
+            if (isset($item[5]) && $item[5] === 'menu-posts-event') {
                 $menu[$key][6] = 'dashicons-calendar-alt';
             }
             if (isset($item[5]) && $item[5] === 'menu-posts-organization') {

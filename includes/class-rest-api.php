@@ -45,7 +45,7 @@ class UNBC_Events_REST_API {
         $params = $request->get_params();
         
         $args = array(
-            'post_type' => 'unbc_event',
+            'post_type' => 'event',
             'post_status' => 'publish',
             'posts_per_page' => $params['per_page'],
             'paged' => $params['page'],
@@ -174,6 +174,7 @@ class UNBC_Events_REST_API {
             'full_location' => $full_location,
             'cost' => get_post_meta($event_id, 'cost', true) ?: 'Free',
             'organization' => $organization_name,
+            'organization_id' => $organization_id,  // Add organization_id to response
             'categories' => $category_data,
             'featured_image' => get_the_post_thumbnail_url($event_id, 'large'),
             'registration_required' => get_post_meta($event_id, 'registration_required', true) === '1',
@@ -211,7 +212,7 @@ class UNBC_Events_REST_API {
         );
         
         foreach ($meta_fields as $field) {
-            register_rest_field('unbc_event', $field, array(
+            register_rest_field('event', $field, array(
                 'get_callback' => function($post) use ($field) {
                     return get_post_meta($post['id'], $field, true);
                 },

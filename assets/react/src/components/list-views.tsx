@@ -1,6 +1,6 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Clock, MapPin, Building2 } from "lucide-react";
 import type { Event, EventMetadata } from "@/types";
 
 interface ListViewProps {
@@ -89,20 +89,25 @@ export function EventListView({ events, eventMetadata, onEventClick }: ListViewP
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-grow min-w-0">
-                          <div className="font-medium text-gray-900 dark:text-gray-100">{event.title}</div>
-                          <div className="text-muted-foreground dark:text-gray-400 text-xs mt-1">
-                            {formatTime(event.startDate)} - {formatTime(event.endDate)}
+                          <div className="font-medium text-gray-900 dark:text-gray-100 mb-2">{event.title}</div>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1 text-muted-foreground dark:text-gray-400 text-xs">
+                              <Clock className="h-3 w-3" />
+                              <span>{formatTime(event.startDate)} - {formatTime(event.endDate)}</span>
+                            </div>
+                            {metadata?.location && (
+                              <div className="flex items-center gap-1 text-muted-foreground dark:text-gray-400 text-xs">
+                                <MapPin className="h-3 w-3" />
+                                <span>{metadata.location}</span>
+                              </div>
+                            )}
+                            {metadata?.organization && (
+                              <div className="flex items-center gap-1 text-muted-foreground dark:text-gray-400 text-xs">
+                                <Building2 className="h-3 w-3" />
+                                <span>{metadata.organization}</span>
+                              </div>
+                            )}
                           </div>
-                          {metadata && (
-                            <div className="text-muted-foreground dark:text-gray-400 text-xs mt-1">
-                              {metadata.location}
-                            </div>
-                          )}
-                          {metadata && (
-                            <div className="text-muted-foreground dark:text-gray-400 text-xs mt-1">
-                              {metadata.organization}
-                            </div>
-                          )}
                         </div>
                         {metadata && (
                           <div className="text-sm font-semibold text-green-600 dark:text-green-400 flex-shrink-0 ml-2">
@@ -207,20 +212,25 @@ export function MobileListView({ events, eventMetadata, onEventClick }: ListView
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-grow min-w-0">
-                          <div className="font-medium text-gray-900 dark:text-gray-100">{event.title}</div>
-                          <div className="text-muted-foreground dark:text-gray-400 text-xs mt-1">
-                            {formatTime(event.startDate)} - {formatTime(event.endDate)}
+                          <div className="font-medium text-gray-900 dark:text-gray-100 mb-2">{event.title}</div>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1 text-muted-foreground dark:text-gray-400 text-xs">
+                              <Clock className="h-3 w-3" />
+                              <span>{formatTime(event.startDate)} - {formatTime(event.endDate)}</span>
+                            </div>
+                            {metadata?.location && (
+                              <div className="flex items-center gap-1 text-muted-foreground dark:text-gray-400 text-xs">
+                                <MapPin className="h-3 w-3" />
+                                <span>{metadata.location}</span>
+                              </div>
+                            )}
+                            {metadata?.organization && (
+                              <div className="flex items-center gap-1 text-muted-foreground dark:text-gray-400 text-xs">
+                                <Building2 className="h-3 w-3" />
+                                <span>{metadata.organization}</span>
+                              </div>
+                            )}
                           </div>
-                          {metadata && (
-                            <div className="text-muted-foreground dark:text-gray-400 text-xs mt-1">
-                              {metadata.location}
-                            </div>
-                          )}
-                          {metadata && (
-                            <div className="text-muted-foreground dark:text-gray-400 text-xs mt-1">
-                              {metadata.organization}
-                            </div>
-                          )}
                         </div>
                         {metadata && (
                           <div className="text-sm font-semibold text-green-600 dark:text-green-400 flex-shrink-0 ml-2">

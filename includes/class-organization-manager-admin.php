@@ -529,18 +529,18 @@ class UNBC_Organization_Manager_Admin {
                 'assign_organization_terms' => false,
                 
                 // Event capabilities
-                'edit_unbc_events' => true,
-                'edit_published_unbc_events' => true,
-                'publish_unbc_events' => true,
-                'delete_unbc_events' => true,
-                'delete_published_unbc_events' => true,
-                'read_unbc_event' => true,
-                'edit_others_unbc_events' => false,
-                'delete_others_unbc_events' => false,
-                'manage_unbc_event_terms' => true,
-                'edit_unbc_event_terms' => true,
-                'delete_unbc_event_terms' => false,
-                'assign_unbc_event_terms' => true,
+                'edit_events' => true,
+                'edit_published_events' => true,
+                'publish_events' => true,
+                'delete_events' => true,
+                'delete_published_events' => true,
+                'read_event' => true,
+                'edit_others_events' => false,
+                'delete_others_events' => false,
+                'manage_event_terms' => true,
+                'edit_event_terms' => true,
+                'delete_event_terms' => false,
+                'assign_event_terms' => true,
                 
                 // Club post capabilities
                 'edit_club_posts' => true,
@@ -562,18 +562,18 @@ class UNBC_Organization_Manager_Admin {
         $admin_role = get_role('administrator');
         if ($admin_role) {
             // Event capabilities for administrators
-            $admin_role->add_cap('edit_unbc_events');
-            $admin_role->add_cap('edit_others_unbc_events');
-            $admin_role->add_cap('publish_unbc_events');
-            $admin_role->add_cap('read_unbc_event');
-            $admin_role->add_cap('delete_unbc_events');
-            $admin_role->add_cap('delete_others_unbc_events');
-            $admin_role->add_cap('delete_published_unbc_events');
-            $admin_role->add_cap('edit_published_unbc_events');
-            $admin_role->add_cap('manage_unbc_event_terms');
-            $admin_role->add_cap('edit_unbc_event_terms');
-            $admin_role->add_cap('delete_unbc_event_terms');
-            $admin_role->add_cap('assign_unbc_event_terms');
+            $admin_role->add_cap('edit_events');
+            $admin_role->add_cap('edit_others_events');
+            $admin_role->add_cap('publish_events');
+            $admin_role->add_cap('read_event');
+            $admin_role->add_cap('delete_events');
+            $admin_role->add_cap('delete_others_events');
+            $admin_role->add_cap('delete_published_events');
+            $admin_role->add_cap('edit_published_events');
+            $admin_role->add_cap('manage_event_terms');
+            $admin_role->add_cap('edit_event_terms');
+            $admin_role->add_cap('delete_event_terms');
+            $admin_role->add_cap('assign_event_terms');
             
             // Organization capabilities for administrators
             $admin_role->add_cap('edit_organizations');

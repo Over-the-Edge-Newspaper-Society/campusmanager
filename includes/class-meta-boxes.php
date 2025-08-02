@@ -31,7 +31,7 @@ class UNBC_Events_Meta_Boxes {
             'event_details',
             'Event Details',
             array($this, 'event_details_callback'),
-            'unbc_event',
+            'event',
             'normal',
             'high'
         );
@@ -582,7 +582,7 @@ class UNBC_Events_Meta_Boxes {
         }
 
         // Save event meta
-        if (get_post_type($post_id) === 'unbc_event') {
+        if (get_post_type($post_id) === 'event') {
             $meta_fields = array(
                 'event_date', 'start_time', 'end_time', 'location', 'building', 'room',
                 'cost', 'organization_id', 'registration_link', 'contact_email',

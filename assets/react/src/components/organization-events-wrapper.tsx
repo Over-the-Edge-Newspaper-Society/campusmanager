@@ -1,0 +1,83 @@
+import React, { useState } from "react";
+import { OrganizationEventsList } from "./organization-events-list";
+import { EventDialog } from "./event-dialog";
+import { useEvents } from "@/hooks/useEvents";
+import { Loader2 } from "lucide-react";
+import type { Event } from "@/types";
+
+interface OrganizationEventsWrapperProps {
+  organizationId?: string;
+  organizationName?: string;
+  limit?: number;
+  showPastEvents?: boolean;
+}
+
+export function OrganizationEventsWrapper({ 
+  organizationId,
+  organizationName,
+  limit = 5,
+  showPastEvents = false
+}: OrganizationEventsWrapperProps) {
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [showEventDialog, setShowEventDialog] = useState(false);
+
+  // Load events using the same hook as the calendar
+  const { 
+    events: allEvents, 
+    eventMetadata, 
+    loading, 
+    error 
+  } = useEvents({
+    per_page: 1000, // Get all events to filter client-side
+  });
+
+  const handleEventClick = (event: Event) => {
+    setSelectedEvent(event);
+    setShowEventDialog(true);
+  };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="w-full flex items-center justify-center py-8">
+        <div className="text-center">
+          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+          <p className="text-gray-600 text-sm">Loading events...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="w-full py-8">
+        <div className="max-w-md mx-auto bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-600 text-sm">Error loading events: {error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="unbc-organization-events">
+      <OrganizationEventsList
+        events={allEvents}
+        eventMetadata={eventMetadata}
+        organizationId={organizationId}
+        organizationName={organizationName}
+        limit={limit}
+        showPastEvents={showPastEvents}
+        onEventClick={handleEventClick}
+      />
+
+      {/* Reuse the same event dialog as the calendar */}
+      <EventDialog 
+        event={selectedEvent}
+        eventMetadata={eventMetadata}
+        open={showEventDialog}
+        onOpenChange={setShowEventDialog}
+      />
+    </div>
+  );
+}

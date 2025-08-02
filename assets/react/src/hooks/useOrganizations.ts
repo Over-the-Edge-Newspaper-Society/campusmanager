@@ -15,7 +15,6 @@ export function useOrganizations() {
         setError(null);
       } catch (err) {
         setError('Failed to load organizations');
-        console.error('Error fetching organizations:', err);
       } finally {
         setLoading(false);
       }
