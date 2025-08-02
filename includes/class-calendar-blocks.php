@@ -39,7 +39,7 @@ class UNBC_Calendar_Blocks {
         wp_localize_script('unbc-calendar-app', 'unbcCalendarData', array(
             'apiUrl' => rest_url('unbc-events/v1/'),
             'nonce' => wp_create_nonce('wp_rest'),
-            'eventPostType' => 'unbc_event',
+            'eventPostType' => 'event',
             'organizationPostType' => 'organization',
             'categoriesEndpoint' => rest_url('wp/v2/event-category/'),
             'eventsEndpoint' => rest_url('unbc-events/v1/events/'),
@@ -149,7 +149,7 @@ class UNBC_Calendar_Blocks {
             wp_localize_script('unbc-calendar-app', 'unbcCalendarData', array(
                 'apiUrl' => rest_url('unbc-events/v1/'),
                 'nonce' => wp_create_nonce('wp_rest'),
-                'eventPostType' => 'unbc_event',
+                'eventPostType' => 'event',
                 'organizationPostType' => 'organization',
                 'categoriesEndpoint' => rest_url('wp/v2/event-category/'),
                 'eventsEndpoint' => rest_url('unbc-events/v1/events/'),
@@ -407,7 +407,7 @@ class UNBC_Calendar_Blocks {
     private function render_php_events_list($organization_id = '', $organization_name = '', $limit = 5, $show_past = false) {
         // Query events from WordPress
         $args = array(
-            'post_type' => 'unbc_event',
+            'post_type' => 'event',
             'post_status' => 'publish',
             'posts_per_page' => $limit > 0 ? $limit : 10,
             'meta_query' => array(),

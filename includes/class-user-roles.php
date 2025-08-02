@@ -45,18 +45,18 @@ class UNBC_Events_User_Roles {
             'assign_organization_terms' => false,
             
             // Event capabilities
-            'edit_unbc_events' => true,
-            'edit_published_unbc_events' => true,
-            'publish_unbc_events' => true,
-            'delete_unbc_events' => true,
-            'delete_published_unbc_events' => true,
-            'read_unbc_event' => true,
-            'edit_others_unbc_events' => false, // Cannot edit other organizations' events
-            'delete_others_unbc_events' => false, // Cannot delete other organizations' events
-            'manage_unbc_event_terms' => true, // Can manage event categories for their events
-            'edit_unbc_event_terms' => true,
-            'delete_unbc_event_terms' => false,
-            'assign_unbc_event_terms' => true,
+            'edit_events' => true,
+            'edit_published_events' => true,
+            'publish_events' => true,
+            'delete_events' => true,
+            'delete_published_events' => true,
+            'read_event' => true,
+            'edit_others_events' => false, // Cannot edit other organizations' events
+            'delete_others_events' => false, // Cannot delete other organizations' events
+            'manage_event_terms' => true, // Can manage event categories for their events
+            'edit_event_terms' => true,
+            'delete_event_terms' => false,
+            'assign_event_terms' => true,
         ));
     }
     
@@ -74,18 +74,18 @@ class UNBC_Events_User_Roles {
         $admin_role = get_role('administrator');
         if ($admin_role) {
             // Event capabilities for administrators
-            $admin_role->add_cap('edit_unbc_events');
-            $admin_role->add_cap('edit_others_unbc_events');
-            $admin_role->add_cap('publish_unbc_events');
-            $admin_role->add_cap('read_unbc_event');
-            $admin_role->add_cap('delete_unbc_events');
-            $admin_role->add_cap('delete_others_unbc_events');
-            $admin_role->add_cap('delete_published_unbc_events');
-            $admin_role->add_cap('edit_published_unbc_events');
-            $admin_role->add_cap('manage_unbc_event_terms');
-            $admin_role->add_cap('edit_unbc_event_terms');
-            $admin_role->add_cap('delete_unbc_event_terms');
-            $admin_role->add_cap('assign_unbc_event_terms');
+            $admin_role->add_cap('edit_events');
+            $admin_role->add_cap('edit_others_events');
+            $admin_role->add_cap('publish_events');
+            $admin_role->add_cap('read_event');
+            $admin_role->add_cap('delete_events');
+            $admin_role->add_cap('delete_others_events');
+            $admin_role->add_cap('delete_published_events');
+            $admin_role->add_cap('edit_published_events');
+            $admin_role->add_cap('manage_event_terms');
+            $admin_role->add_cap('edit_event_terms');
+            $admin_role->add_cap('delete_event_terms');
+            $admin_role->add_cap('assign_event_terms');
             
             // Organization capabilities for administrators
             $admin_role->add_cap('edit_organizations');
@@ -122,7 +122,7 @@ class UNBC_Events_User_Roles {
             $post_id = $args[0];
             $post = get_post($post_id);
             
-            if ($post && ($post->post_type === 'organization' || $post->post_type === 'unbc_event')) {
+            if ($post && ($post->post_type === 'organization' || $post->post_type === 'event')) {
                 $user = get_user_by('id', $user_id);
                 
                 if ($user && !empty($user->roles) && in_array('organization_manager', $user->roles)) {
@@ -135,16 +135,16 @@ class UNBC_Events_User_Roles {
                         } else {
                             return array('do_not_allow');
                         }
-                    } elseif ($post->post_type === 'unbc_event') {
+                    } elseif ($post->post_type === 'event') {
                         // For new events (post_id = 0), allow if user has organization assigned
                         if ($post_id == 0 && $assigned_org) {
-                            return array('edit_unbc_events');
+                            return array('edit_events');
                         }
                         
                         // For existing events, check if it belongs to their organization
                         $event_org_id = get_post_meta($post_id, 'organization_id', true);
                         if ($assigned_org && ($assigned_org == $event_org_id || empty($event_org_id))) {
-                            return array('edit_unbc_events');
+                            return array('edit_events');
                         } else {
                             return array('do_not_allow');
                         }
@@ -159,9 +159,9 @@ class UNBC_Events_User_Roles {
             if ($user && !empty($user->roles) && in_array('organization_manager', $user->roles)) {
                 // Check if this is for events
                 global $pagenow, $typenow;
-                if (($pagenow === 'post-new.php' && $typenow === 'unbc_event') || 
-                    (isset($_GET['post_type']) && $_GET['post_type'] === 'unbc_event')) {
-                    return array('edit_unbc_events');
+                if (($pagenow === 'post-new.php' && $typenow === 'event') || 
+                    (isset($_GET['post_type']) && $_GET['post_type'] === 'event')) {
+                    return array('edit_events');
                 }
             }
         }
@@ -171,7 +171,7 @@ class UNBC_Events_User_Roles {
             $post_id = $args[0];
             $post = get_post($post_id);
             
-            if ($post && $post->post_type === 'unbc_event') {
+            if ($post && $post->post_type === 'event') {
                 $user = get_user_by('id', $user_id);
                 
                 if ($user && is_array($user->roles) && in_array('organization_manager', $user->roles)) {
@@ -179,7 +179,7 @@ class UNBC_Events_User_Roles {
                     $event_org_id = get_post_meta($post_id, 'organization_id', true);
                     
                     if ($assigned_org && $assigned_org == $event_org_id) {
-                        return array('delete_unbc_events');
+                        return array('delete_events');
                     } else {
                         return array('do_not_allow');
                     }

@@ -45,7 +45,7 @@ class UNBC_Events_REST_API {
         $params = $request->get_params();
         
         $args = array(
-            'post_type' => 'unbc_event',
+            'post_type' => 'event',
             'post_status' => 'publish',
             'posts_per_page' => $params['per_page'],
             'paged' => $params['page'],
@@ -212,7 +212,7 @@ class UNBC_Events_REST_API {
         );
         
         foreach ($meta_fields as $field) {
-            register_rest_field('unbc_event', $field, array(
+            register_rest_field('event', $field, array(
                 'get_callback' => function($post) use ($field) {
                     return get_post_meta($post['id'], $field, true);
                 },

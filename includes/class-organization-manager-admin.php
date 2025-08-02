@@ -8,6 +8,7 @@ class UNBC_Organization_Manager_Admin {
         add_action('edit_user_profile_update', array($this, 'save_organization_assignment_field'));
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
+        add_action('wp_ajax_export_organization_templates', array($this, 'ajax_export_templates'));
         add_action('wp_ajax_apply_template_to_all_orgs', array($this, 'apply_template_to_all_organizations'));
     }
     
@@ -277,6 +278,12 @@ class UNBC_Organization_Manager_Admin {
             echo '<div class="notice notice-success"><p>Settings saved successfully!</p></div>';
         }
         
+        
+        // Handle template import
+        if (isset($_POST['import_templates']) && wp_verify_nonce($_POST['import_nonce'], 'import_templates')) {
+            $this->handle_template_import();
+        }
+        
         $current_template = get_option('campus_manager_default_org_template', 'default');
         $templates = $this->get_available_templates();
         
@@ -284,55 +291,138 @@ class UNBC_Organization_Manager_Admin {
         <div class="wrap">
             <h1>Organization Settings</h1>
             
-            <form method="post" action="">
-                <?php wp_nonce_field('organization_settings'); ?>
+            <div class="card">
+                <h2>Organization Templates</h2>
+                <p>Configure template settings for organizations and clubs.</p>
                 
-                <div class="card">
-                    <h2>Organization Templates</h2>
-                    <p>Configure template settings for organizations and clubs.</p>
+                <form method="post" action="">
+                    <?php wp_nonce_field('organization_settings'); ?>
                     
-                    <div id="template-selection-metabox" class="postbox">
-                        <div class="postbox-header">
-                            <h2 class="hndle ui-sortable-handle">Post Attributes</h2>
-                            <div class="handle-actions hide-if-no-js">
-                                <button type="button" class="handle-order-higher" aria-disabled="false" aria-describedby="pageparentdiv-handle-order-higher-description">
-                                    <span class="screen-reader-text">Move up</span>
-                                    <span class="order-higher-indicator" aria-hidden="true"></span>
-                                </button>
-                                <span class="hidden" id="pageparentdiv-handle-order-higher-description">Move Post Attributes box up</span>
-                                <button type="button" class="handle-order-lower" aria-disabled="false" aria-describedby="pageparentdiv-handle-order-lower-description">
-                                    <span class="screen-reader-text">Move down</span>
-                                    <span class="order-lower-indicator" aria-hidden="true"></span>
-                                </button>
-                                <span class="hidden" id="pageparentdiv-handle-order-lower-description">Move Post Attributes box down</span>
-                                <button type="button" class="handlediv" aria-expanded="true">
-                                    <span class="screen-reader-text">Toggle panel: Post Attributes</span>
-                                    <span class="toggle-indicator" aria-hidden="true"></span>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="inside">
-                            <p class="post-attributes-label-wrapper page-template-label-wrapper">
-                                <label class="post-attributes-label" for="campus_manager_default_org_template">Template</label>
-                            </p>
-                            <select name="campus_manager_default_org_template" id="campus_manager_default_org_template">
-                                <?php foreach ($templates as $template_file => $template_name): ?>
-                                    <option value="<?php echo esc_attr($template_file); ?>" <?php selected($current_template, $template_file); ?>>
-                                        <?php echo esc_html($template_name); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <p class="description">Select the default template to apply to all organization pages.</p>
-                            <div style="margin-top: 15px;">
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row">
+                                <label for="campus_manager_default_org_template">Default Template</label>
+                            </th>
+                            <td>
+                                <select name="campus_manager_default_org_template" id="campus_manager_default_org_template" class="regular-text">
+                                    <?php foreach ($templates as $template_file => $template_name): ?>
+                                        <option value="<?php echo esc_attr($template_file); ?>" <?php selected($current_template, $template_file); ?>>
+                                            <?php echo esc_html($template_name); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="description">Select the default template to apply to all organization pages.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Actions</th>
+                            <td>
                                 <button type="button" id="apply-template-to-all" class="button button-secondary">Apply Template to All Organizations</button>
                                 <span id="apply-template-status" style="margin-left: 10px;"></span>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <?php submit_button('Save Template Settings'); ?>
+                </form>
+            </div>
+            
+            <div class="card">
+                <h2>Template Import/Export</h2>
+                <p>Export current template settings or import from another site.</p>
+                
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 300px;">
+                        <h3>Export Templates</h3>
+                        <p>Select which organizations and templates to export for transfer to another site.</p>
+                        
+                        <div id="export-options">
+                            <p><strong>What to export:</strong></p>
+                            <label style="display: block; margin-bottom: 10px;">
+                                <input type="checkbox" id="export_default_template" checked> Default template setting
+                            </label>
+                            <label style="display: block; margin-bottom: 10px;">
+                                <input type="checkbox" id="export_block_templates" checked> Block templates from theme
+                            </label>
+                            
+                            <p><strong>Templates to export:</strong></p>
+                            <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px;">
+                                    <input type="checkbox" id="select_all_templates" onchange="toggleAllTemplates(this)"> <strong>Select All Templates</strong>
+                                </label>
+                                <hr style="margin: 10px 0;">
+                                <?php
+                                // Get all available templates
+                                $available_templates = $this->get_available_templates();
+                                
+                                // Get count of organizations using each template
+                                $template_usage = array();
+                                $all_organizations = get_posts(array(
+                                    'post_type' => 'organization',
+                                    'post_status' => 'any',
+                                    'numberposts' => -1,
+                                ));
+                                
+                                foreach ($all_organizations as $org) {
+                                    $template = get_post_meta($org->ID, '_wp_page_template', true);
+                                    if (empty($template)) {
+                                        $template = 'default';
+                                    }
+                                    if (!isset($template_usage[$template])) {
+                                        $template_usage[$template] = array('count' => 0, 'orgs' => array());
+                                    }
+                                    $template_usage[$template]['count']++;
+                                    $template_usage[$template]['orgs'][] = $org->post_title;
+                                }
+                                
+                                foreach ($available_templates as $template_file => $template_name):
+                                    $usage_count = isset($template_usage[$template_file]) ? $template_usage[$template_file]['count'] : 0;
+                                    $org_names = isset($template_usage[$template_file]) ? $template_usage[$template_file]['orgs'] : array();
+                                ?>
+                                <label style="display: block; margin-bottom: 8px;">
+                                    <input type="checkbox" class="template-checkbox" value="<?php echo esc_attr($template_file); ?>" 
+                                           <?php echo ($usage_count > 0) ? 'checked' : ''; ?>>
+                                    <strong><?php echo esc_html($template_name); ?></strong>
+                                    <?php if ($usage_count > 0): ?>
+                                        <small style="color: #0073aa;"> (<?php echo $usage_count; ?> organization<?php echo $usage_count > 1 ? 's' : ''; ?>)</small>
+                                        <br><small style="color: #666; margin-left: 20px;">
+                                            Used by: <?php echo esc_html(implode(', ', array_slice($org_names, 0, 3))); ?>
+                                            <?php if (count($org_names) > 3): ?>
+                                                and <?php echo count($org_names) - 3; ?> more
+                                            <?php endif; ?>
+                                        </small>
+                                    <?php else: ?>
+                                        <small style="color: #999;"> (Not used)</small>
+                                    <?php endif; ?>
+                                </label>
+                                <?php endforeach; ?>
                             </div>
+                            
+                            <button type="button" id="export-templates-btn" class="button button-secondary">Export Selected Templates</button>
+                            <span id="export-status" style="margin-left: 10px;"></span>
                         </div>
                     </div>
+                    
+                    <div style="flex: 1; min-width: 300px;">
+                        <h3>Import Templates</h3>
+                        <p>Import template settings from an exported file. This will update template assignments for all organizations.</p>
+                        <form method="post" action="" enctype="multipart/form-data">
+                            <?php wp_nonce_field('import_templates', 'import_nonce'); ?>
+                            <p>
+                                <input type="file" name="import_file" accept=".json" required />
+                                <br><small>Select a JSON file exported from another Campus Manager installation.</small>
+                            </p>
+                            <p>
+                                <label>
+                                    <input type="checkbox" name="overwrite_existing" value="1" />
+                                    Overwrite existing template assignments
+                                </label>
+                            </p>
+                            <input type="submit" name="import_templates" value="Import Templates" class="button button-secondary" />
+                        </form>
+                    </div>
                 </div>
-                
-                <?php submit_button(); ?>
-            </form>
+            </div>
             
             <div class="card">
                 <h2>Club Posts</h2>
@@ -353,6 +443,21 @@ class UNBC_Organization_Manager_Admin {
         </div>
         
         <script type="text/javascript">
+        function toggleAllTemplates(checkbox) {
+            var checkboxes = document.querySelectorAll('.template-checkbox');
+            for (var i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = checkbox.checked;
+            }
+        }
+        
+        function downloadFile(content, filename, contentType) {
+            var a = document.createElement('a');
+            var file = new Blob([content], {type: contentType});
+            a.href = URL.createObjectURL(file);
+            a.download = filename;
+            a.click();
+        }
+        
         jQuery(document).ready(function($) {
             $('#apply-template-to-all').on('click', function() {
                 var template = $('#campus_manager_default_org_template').val();
@@ -385,6 +490,53 @@ class UNBC_Organization_Manager_Admin {
                 }).fail(function() {
                     status.html('<span style="color: red;">Error: Failed to apply template</span>');
                     button.prop('disabled', false).text('Apply Template to All Organizations');
+                });
+            });
+            
+            $('#export-templates-btn').on('click', function() {
+                var button = $(this);
+                var status = $('#export-status');
+                
+                // Get selected options
+                var selectedTemplates = [];
+                $('.template-checkbox:checked').each(function() {
+                    selectedTemplates.push($(this).val());
+                });
+                
+                var exportDefault = $('#export_default_template').is(':checked');
+                var exportBlockTemplates = $('#export_block_templates').is(':checked');
+                
+                if (selectedTemplates.length === 0 && !exportDefault && !exportBlockTemplates) {
+                    status.html('<span style="color: red;">Please select at least one item to export.</span>');
+                    return;
+                }
+                
+                button.prop('disabled', true).text('Exporting...');
+                status.html('<span style="color: blue;">Preparing export...</span>');
+                
+                $.post(ajaxurl, {
+                    action: 'export_organization_templates',
+                    selected_templates: selectedTemplates,
+                    export_default: exportDefault ? 1 : 0,
+                    export_block_templates: exportBlockTemplates ? 1 : 0,
+                    nonce: '<?php echo wp_create_nonce('export_templates_nonce'); ?>'
+                }, function(response) {
+                    if (response.success) {
+                        // Download the file
+                        var filename = 'campus-manager-templates-' + new Date().toISOString().slice(0,19).replace(/:/g, '-') + '.json';
+                        downloadFile(JSON.stringify(response.data.content, null, 2), filename, 'application/json');
+                        status.html('<span style="color: green;">✓ Export completed! File downloaded.</span>');
+                    } else {
+                        status.html('<span style="color: red;">Error: ' + response.data.message + '</span>');
+                    }
+                    button.prop('disabled', false).text('Export Selected Templates');
+                    
+                    setTimeout(function() {
+                        status.html('');
+                    }, 5000);
+                }).fail(function() {
+                    status.html('<span style="color: red;">Error: Failed to export templates</span>');
+                    button.prop('disabled', false).text('Export Selected Templates');
                 });
             });
         });
@@ -529,18 +681,18 @@ class UNBC_Organization_Manager_Admin {
                 'assign_organization_terms' => false,
                 
                 // Event capabilities
-                'edit_unbc_events' => true,
-                'edit_published_unbc_events' => true,
-                'publish_unbc_events' => true,
-                'delete_unbc_events' => true,
-                'delete_published_unbc_events' => true,
-                'read_unbc_event' => true,
-                'edit_others_unbc_events' => false,
-                'delete_others_unbc_events' => false,
-                'manage_unbc_event_terms' => true,
-                'edit_unbc_event_terms' => true,
-                'delete_unbc_event_terms' => false,
-                'assign_unbc_event_terms' => true,
+                'edit_events' => true,
+                'edit_published_events' => true,
+                'publish_events' => true,
+                'delete_events' => true,
+                'delete_published_events' => true,
+                'read_event' => true,
+                'edit_others_events' => false,
+                'delete_others_events' => false,
+                'manage_event_terms' => true,
+                'edit_event_terms' => true,
+                'delete_event_terms' => false,
+                'assign_event_terms' => true,
                 
                 // Club post capabilities
                 'edit_club_posts' => true,
@@ -562,18 +714,18 @@ class UNBC_Organization_Manager_Admin {
         $admin_role = get_role('administrator');
         if ($admin_role) {
             // Event capabilities for administrators
-            $admin_role->add_cap('edit_unbc_events');
-            $admin_role->add_cap('edit_others_unbc_events');
-            $admin_role->add_cap('publish_unbc_events');
-            $admin_role->add_cap('read_unbc_event');
-            $admin_role->add_cap('delete_unbc_events');
-            $admin_role->add_cap('delete_others_unbc_events');
-            $admin_role->add_cap('delete_published_unbc_events');
-            $admin_role->add_cap('edit_published_unbc_events');
-            $admin_role->add_cap('manage_unbc_event_terms');
-            $admin_role->add_cap('edit_unbc_event_terms');
-            $admin_role->add_cap('delete_unbc_event_terms');
-            $admin_role->add_cap('assign_unbc_event_terms');
+            $admin_role->add_cap('edit_events');
+            $admin_role->add_cap('edit_others_events');
+            $admin_role->add_cap('publish_events');
+            $admin_role->add_cap('read_event');
+            $admin_role->add_cap('delete_events');
+            $admin_role->add_cap('delete_others_events');
+            $admin_role->add_cap('delete_published_events');
+            $admin_role->add_cap('edit_published_events');
+            $admin_role->add_cap('manage_event_terms');
+            $admin_role->add_cap('edit_event_terms');
+            $admin_role->add_cap('delete_event_terms');
+            $admin_role->add_cap('assign_event_terms');
             
             // Organization capabilities for administrators
             $admin_role->add_cap('edit_organizations');
@@ -700,5 +852,278 @@ class UNBC_Organization_Manager_Admin {
             'count' => $count,
             'template' => $template
         ));
+    }
+    
+    public function ajax_export_templates() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'export_templates_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+        
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+        
+        $selected_templates = isset($_POST['selected_templates']) ? array_map('sanitize_text_field', $_POST['selected_templates']) : array();
+        $export_default = isset($_POST['export_default']) && $_POST['export_default'] == '1';
+        $export_block_templates = isset($_POST['export_block_templates']) && $_POST['export_block_templates'] == '1';
+        
+        $template_data = array(
+            'export_date' => current_time('mysql'),
+            'export_site' => get_site_url(),
+            'plugin_version' => '1.0.0'
+        );
+        
+        // Export default template setting
+        if ($export_default) {
+            $template_data['default_template'] = get_option('campus_manager_default_org_template', 'default');
+        }
+        
+        // Export organizations that use selected templates
+        if (!empty($selected_templates)) {
+            $template_data['organization_templates'] = array();
+            
+            // Get all organizations
+            $all_organizations = get_posts(array(
+                'post_type' => 'organization',
+                'post_status' => 'any',
+                'numberposts' => -1
+            ));
+            
+            foreach ($all_organizations as $org) {
+                $org_template = get_post_meta($org->ID, '_wp_page_template', true);
+                if (empty($org_template)) {
+                    $org_template = 'default';
+                }
+                
+                // Only include organizations that use one of the selected templates
+                if (in_array($org_template, $selected_templates)) {
+                    $org_data = array(
+                        'post_title' => $org->post_title,
+                        'post_slug' => $org->post_name,
+                        'content' => $org->post_content,
+                        'template' => $org_template
+                    );
+                    
+                    $template_data['organization_templates'][] = $org_data;
+                }
+            }
+        }
+        
+        // Export block templates
+        if ($export_block_templates) {
+            $template_data['block_templates'] = array();
+            
+            // Get all block templates including custom ones
+            if (function_exists('get_block_templates')) {
+                $all_templates = get_block_templates(array(), 'wp_template');
+                
+                foreach ($all_templates as $template) {
+                    // Include organization-related templates and the specific club-homepage template
+                    if (strpos($template->slug, 'organization') !== false || 
+                        strpos($template->slug, 'single-organization') !== false ||
+                        strpos($template->slug, 'club') !== false ||
+                        strpos($template->slug, 'wp-custom-template-club-homepage') !== false) {
+                        
+                        $template_data['block_templates'][] = array(
+                            'slug' => $template->slug,
+                            'title' => $template->title,
+                            'content' => $template->content,
+                            'theme' => $template->theme,
+                            'type' => $template->type,
+                            'source' => $template->source,
+                            'description' => isset($template->description) ? $template->description : '',
+                            'status' => isset($template->status) ? $template->status : 'publish',
+                            'has_theme_file' => isset($template->has_theme_file) ? $template->has_theme_file : false,
+                            'is_custom' => isset($template->is_custom) ? $template->is_custom : false,
+                            'author' => isset($template->author) ? $template->author : null,
+                            'area' => isset($template->area) ? $template->area : '',
+                        );
+                    }
+                }
+            }
+            
+            // Also try to get custom templates from wp_posts table
+            $custom_templates = get_posts(array(
+                'post_type' => 'wp_template',
+                'post_status' => 'any',
+                'numberposts' => -1,
+                'meta_query' => array(
+                    array(
+                        'key' => 'theme',
+                        'value' => get_stylesheet(),
+                        'compare' => '='
+                    )
+                )
+            ));
+            
+            foreach ($custom_templates as $custom_template) {
+                // Check if this template is related to organizations/clubs
+                if (strpos($custom_template->post_name, 'club-homepage') !== false ||
+                    strpos($custom_template->post_name, 'organization') !== false) {
+                    
+                    $template_data['block_templates'][] = array(
+                        'slug' => $custom_template->post_name,
+                        'title' => $custom_template->post_title,
+                        'content' => $custom_template->post_content,
+                        'theme' => get_post_meta($custom_template->ID, 'theme', true) ?: get_stylesheet(),
+                        'type' => 'wp_template',
+                        'source' => 'custom',
+                        'description' => $custom_template->post_excerpt,
+                        'status' => $custom_template->post_status,
+                        'has_theme_file' => false,
+                        'is_custom' => true,
+                        'author' => $custom_template->post_author,
+                        'area' => get_post_meta($custom_template->ID, 'area', true) ?: '',
+                        'post_id' => $custom_template->ID
+                    );
+                }
+            }
+        }
+        
+        $org_count = isset($template_data['organization_templates']) ? count($template_data['organization_templates']) : 0;
+        
+        wp_send_json_success(array(
+            'content' => $template_data,
+            'count' => $org_count,
+            'template_count' => count($selected_templates)
+        ));
+    }
+    
+    private function handle_template_import() {
+        if (!current_user_can('manage_options')) {
+            echo '<div class="notice notice-error"><p>Insufficient permissions.</p></div>';
+            return;
+        }
+        
+        if (!isset($_FILES['import_file']) || $_FILES['import_file']['error'] !== UPLOAD_ERR_OK) {
+            echo '<div class="notice notice-error"><p>Error uploading file. Please try again.</p></div>';
+            return;
+        }
+        
+        $file_content = file_get_contents($_FILES['import_file']['tmp_name']);
+        $template_data = json_decode($file_content, true);
+        
+        if (!$template_data || !isset($template_data['default_template']) || !isset($template_data['organization_templates'])) {
+            echo '<div class="notice notice-error"><p>Invalid import file format. Please ensure you are importing a valid Campus Manager template export file.</p></div>';
+            return;
+        }
+        
+        $overwrite_existing = isset($_POST['overwrite_existing']) && $_POST['overwrite_existing'] === '1';
+        $imported_count = 0;
+        $skipped_count = 0;
+        $updated_default = false;
+        
+        // Import default template setting
+        if (!empty($template_data['default_template'])) {
+            update_option('campus_manager_default_org_template', sanitize_text_field($template_data['default_template']));
+            $updated_default = true;
+        }
+        
+        // Import organization template assignments and content
+        foreach ($template_data['organization_templates'] as $org_template) {
+            if (empty($org_template['post_slug']) || empty($org_template['template'])) {
+                continue;
+            }
+            
+            // Try to find organization by slug first, then by title
+            $org = get_page_by_path($org_template['post_slug'], OBJECT, 'organization');
+            if (!$org && !empty($org_template['post_title'])) {
+                $orgs = get_posts(array(
+                    'post_type' => 'organization',
+                    'title' => $org_template['post_title'],
+                    'numberposts' => 1,
+                    'post_status' => 'any'
+                ));
+                $org = !empty($orgs) ? $orgs[0] : null;
+            }
+            
+            if ($org) {
+                $existing_template = get_post_meta($org->ID, '_wp_page_template', true);
+                
+                if ($overwrite_existing || empty($existing_template)) {
+                    update_post_meta($org->ID, '_wp_page_template', sanitize_text_field($org_template['template']));
+                    
+                    // Import block content if available
+                    if (!empty($org_template['content']) && ($overwrite_existing || empty($org->post_content))) {
+                        wp_update_post(array(
+                            'ID' => $org->ID,
+                            'post_content' => wp_kses_post($org_template['content'])
+                        ));
+                    }
+                    
+                    $imported_count++;
+                } else {
+                    $skipped_count++;
+                }
+            }
+        }
+        
+        // Import block templates if available
+        if (!empty($template_data['block_templates'])) {
+            foreach ($template_data['block_templates'] as $block_template) {
+                if (empty($block_template['slug']) || empty($block_template['content'])) {
+                    continue;
+                }
+                
+                // Check if template already exists in wp_posts
+                $existing_post = get_posts(array(
+                    'post_type' => 'wp_template',
+                    'post_name' => $block_template['slug'],
+                    'post_status' => 'any',
+                    'numberposts' => 1
+                ));
+                
+                if ($overwrite_existing || empty($existing_post)) {
+                    $template_post_data = array(
+                        'post_type' => 'wp_template',
+                        'post_status' => isset($block_template['status']) ? $block_template['status'] : 'publish',
+                        'post_title' => $block_template['title'],
+                        'post_name' => $block_template['slug'],
+                        'post_content' => $block_template['content'],
+                        'post_excerpt' => isset($block_template['description']) ? $block_template['description'] : '',
+                        'post_author' => isset($block_template['author']) ? $block_template['author'] : get_current_user_id(),
+                    );
+                    
+                    if (!empty($existing_post)) {
+                        // Update existing template
+                        $template_post_data['ID'] = $existing_post[0]->ID;
+                        $post_id = wp_update_post($template_post_data);
+                    } else {
+                        // Create new template
+                        $post_id = wp_insert_post($template_post_data);
+                    }
+                    
+                    if ($post_id && !is_wp_error($post_id)) {
+                        // Add template metadata
+                        update_post_meta($post_id, 'theme', get_stylesheet());
+                        
+                        if (isset($block_template['area'])) {
+                            update_post_meta($post_id, 'area', $block_template['area']);
+                        }
+                        
+                        // Add any other custom metadata
+                        if (isset($block_template['is_custom'])) {
+                            update_post_meta($post_id, 'is_custom', $block_template['is_custom']);
+                        }
+                        
+                        $imported_count++;
+                    }
+                }
+            }
+        }
+        
+        $message = sprintf(
+            'Import completed! %d template assignments imported%s%s%s',
+            $imported_count,
+            $skipped_count > 0 ? ", {$skipped_count} skipped (already assigned)" : '',
+            $updated_default ? ', default template updated' : '',
+            !empty($template_data['export_site']) ? ' from ' . esc_html($template_data['export_site']) : ''
+        );
+        
+        echo '<div class="notice notice-success"><p>' . $message . '</p></div>';
     }
 }
