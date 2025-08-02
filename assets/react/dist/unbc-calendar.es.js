@@ -18632,8 +18632,8 @@ function g2() {
     )
   ] }) }) }) : /* @__PURE__ */ p.jsxs("div", { className: "w-full space-y-6", children: [
     /* @__PURE__ */ p.jsx("div", { className: "bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm unbc-calendar-view", children: /* @__PURE__ */ p.jsxs(xE, { value: e, onValueChange: t, className: "w-full", children: [
-      /* @__PURE__ */ p.jsxs("div", { className: "hidden md:flex p-6 pb-0 justify-between items-start gap-6", children: [
-        /* @__PURE__ */ p.jsxs(Wp, { className: "h-9 bg-gray-100 dark:bg-gray-700 p-1", children: [
+      /* @__PURE__ */ p.jsxs("div", { className: "hidden md:block p-6 pb-0", children: [
+        /* @__PURE__ */ p.jsx("div", { className: "flex justify-center mb-4", children: /* @__PURE__ */ p.jsxs(Wp, { className: "h-9 bg-gray-100 dark:bg-gray-700 p-1", children: [
           /* @__PURE__ */ p.jsxs(Bn, { value: "day", className: "text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300", children: [
             /* @__PURE__ */ p.jsx(mn, { className: "h-3 w-3" }),
             "Day"
@@ -18650,8 +18650,8 @@ function g2() {
             /* @__PURE__ */ p.jsx(Up, { className: "h-3 w-3" }),
             "List"
           ] })
-        ] }),
-        /* @__PURE__ */ p.jsxs("div", { className: "flex items-center gap-3", children: [
+        ] }) }),
+        /* @__PURE__ */ p.jsxs("div", { className: "flex flex-wrap items-center justify-center gap-3", children: [
           /* @__PURE__ */ p.jsxs(ti, { onValueChange: u, children: [
             /* @__PURE__ */ p.jsx(ri, { className: "w-40 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100", children: /* @__PURE__ */ p.jsx(ni, { placeholder: "All Categories" }) }),
             /* @__PURE__ */ p.jsxs(oi, { className: "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600", children: [

@@ -24,7 +24,7 @@ class UNBC_Calendar_Blocks {
             'unbc-calendar-app',
             plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/unbc-calendar.umd.js',
             array(),
-            '3.1.3',
+            '3.1.4',
             true
         );
         
@@ -134,7 +134,7 @@ class UNBC_Calendar_Blocks {
                 'unbc-calendar-app',
                 plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/unbc-calendar.umd.js',
                 array(),
-                '3.1.3', // Increment version
+                '3.1.4', // Increment version
                 true
             );
             
