@@ -10,6 +10,12 @@ class UNBC_Organization_Manager_Admin {
         add_action('admin_init', array($this, 'register_settings'));
         add_action('wp_ajax_export_organization_templates', array($this, 'ajax_export_templates'));
         add_action('wp_ajax_apply_template_to_all_orgs', array($this, 'apply_template_to_all_organizations'));
+        add_action('wp_ajax_export_clubs_data', array($this, 'ajax_export_clubs_data'));
+        add_action('wp_ajax_import_clubs_data', array($this, 'ajax_import_clubs_data'));
+        add_action('wp_ajax_export_events_data', array($this, 'ajax_export_events_data'));
+        add_action('wp_ajax_import_events_data', array($this, 'ajax_import_events_data'));
+        add_action('wp_ajax_export_complete_data', array($this, 'ajax_export_complete_data'));
+        add_action('wp_ajax_import_complete_data', array($this, 'ajax_import_complete_data'));
     }
     
     public function add_organization_assignment_field($user) {
@@ -425,6 +431,121 @@ class UNBC_Organization_Manager_Admin {
             </div>
             
             <div class="card">
+                <h2>Clubs & Events Import/Export</h2>
+                <p>Import and export clubs (organizations), their images, and events data for backup or transfer purposes.</p>
+                
+                <div style="margin-bottom: 30px; padding: 15px; background: #f0f8ff; border: 1px solid #0073aa; border-radius: 5px;">
+                    <h3 style="margin-top: 0; color: #0073aa;">📦 Complete Campus Manager Export</h3>
+                    <p><strong>Recommended:</strong> Export everything in one comprehensive package including all clubs, events, and media files.</p>
+                    
+                    <div id="complete-export-options" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 10px;">
+                            <input type="checkbox" id="export_complete_content" checked> Include all content and descriptions
+                        </label>
+                        <label style="display: block; margin-bottom: 10px;">
+                            <input type="checkbox" id="export_complete_images" checked> Include all images (featured images, flyers, content media)
+                        </label>
+                        <label style="display: block; margin-bottom: 10px;">
+                            <input type="checkbox" id="export_complete_meta" checked> Include all metadata and custom fields
+                        </label>
+                        <label style="display: block; margin-bottom: 10px;">
+                            <input type="checkbox" id="export_complete_relations" checked> Include organization-event relationships
+                        </label>
+                    </div>
+                    
+                    <button type="button" id="export-complete-btn" class="button button-primary" style="margin-right: 10px;">Export Complete Campus Manager Data</button>
+                    <span id="export-complete-status" style="margin-left: 10px;"></span>
+                </div>
+                
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px;">
+                    <div style="flex: 1; min-width: 300px;">
+                        <h3>Export Clubs Only</h3>
+                        <p>Export only clubs (organizations) with their metadata and featured images.</p>
+                        
+                        <div id="clubs-export-options" style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 10px;">
+                                <input type="checkbox" id="export_clubs_content" checked> Include club content and descriptions
+                            </label>
+                            <label style="display: block; margin-bottom: 10px;">
+                                <input type="checkbox" id="export_clubs_images" checked> Include club featured images
+                            </label>
+                            <label style="display: block; margin-bottom: 10px;">
+                                <input type="checkbox" id="export_clubs_meta" checked> Include club metadata (custom fields)
+                            </label>
+                        </div>
+                        
+                        <button type="button" id="export-clubs-btn" class="button button-secondary">Export Clubs Data</button>
+                        <span id="export-clubs-status" style="margin-left: 10px;"></span>
+                    </div>
+                    
+                    <div style="flex: 1; min-width: 300px;">
+                        <h3>Import Clubs Data</h3>
+                        <p>Import clubs data from a previously exported file.</p>
+                        <form id="import-clubs-form" enctype="multipart/form-data">
+                            <p>
+                                <input type="file" id="clubs-import-file" name="clubs_import_file" accept=".json,.zip" required />
+                                <br><small>Select a JSON or ZIP file exported from Campus Manager.</small>
+                            </p>
+                            <p>
+                                <label>
+                                    <input type="checkbox" id="overwrite_existing_clubs" value="1" />
+                                    Overwrite existing clubs with same slug
+                                </label>
+                            </p>
+                            <button type="button" id="import-clubs-btn" class="button button-secondary">Import Clubs Data</button>
+                            <span id="import-clubs-status" style="margin-left: 10px;"></span>
+                        </form>
+                    </div>
+                </div>
+                
+                <hr style="margin: 30px 0;">
+                
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 300px;">
+                        <h3>Export Events Only</h3>
+                        <p>Export only events with their metadata and flyer images.</p>
+                        
+                        <div id="events-export-options" style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 10px;">
+                                <input type="checkbox" id="export_events_content" checked> Include event content and descriptions
+                            </label>
+                            <label style="display: block; margin-bottom: 10px;">
+                                <input type="checkbox" id="export_events_images" checked> Include event flyer images
+                            </label>
+                            <label style="display: block; margin-bottom: 10px;">
+                                <input type="checkbox" id="export_events_meta" checked> Include event metadata (dates, locations, etc.)
+                            </label>
+                            <label style="display: block; margin-bottom: 10px;">
+                                <input type="checkbox" id="export_events_organizations" checked> Include organization associations
+                            </label>
+                        </div>
+                        
+                        <button type="button" id="export-events-btn" class="button button-secondary">Export Events Data</button>
+                        <span id="export-events-status" style="margin-left: 10px;"></span>
+                    </div>
+                    
+                    <div style="flex: 1; min-width: 300px;">
+                        <h3>Import Campus Manager Data</h3>
+                        <p>Import clubs and/or events data from a previously exported file.</p>
+                        <form id="import-complete-form" enctype="multipart/form-data">
+                            <p>
+                                <input type="file" id="complete-import-file" name="complete_import_file" accept=".json,.zip" required />
+                                <br><small>Select a JSON or ZIP file exported from Campus Manager.</small>
+                            </p>
+                            <p>
+                                <label>
+                                    <input type="checkbox" id="overwrite_existing_complete" value="1" />
+                                    Overwrite existing clubs/events with same slug
+                                </label>
+                            </p>
+                            <button type="button" id="import-complete-btn" class="button button-primary">Import Campus Manager Data</button>
+                            <span id="import-complete-status" style="margin-left: 10px;"></span>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
                 <h2>Club Posts</h2>
                 <p>Organizations can now create posts that are linked to their organization. These posts will have URLs like:</p>
                 <code>/clubs/organization-name/post-name/</code>
@@ -537,6 +658,335 @@ class UNBC_Organization_Manager_Admin {
                 }).fail(function() {
                     status.html('<span style="color: red;">Error: Failed to export templates</span>');
                     button.prop('disabled', false).text('Export Selected Templates');
+                });
+            });
+            
+            // Complete Export
+            $('#export-complete-btn').on('click', function() {
+                var button = $(this);
+                var status = $('#export-complete-status');
+                
+                var exportContent = $('#export_complete_content').is(':checked');
+                var exportImages = $('#export_complete_images').is(':checked');
+                var exportMeta = $('#export_complete_meta').is(':checked');
+                var exportRelations = $('#export_complete_relations').is(':checked');
+                
+                if (!exportContent && !exportImages && !exportMeta && !exportRelations) {
+                    status.html('<span style="color: red;">Please select at least one export option.</span>');
+                    return;
+                }
+                
+                button.prop('disabled', true).text('Exporting...');
+                status.html('<span style="color: blue;">Preparing complete export...</span>');
+                
+                $.post(ajaxurl, {
+                    action: 'export_complete_data',
+                    export_content: exportContent ? 1 : 0,
+                    export_images: exportImages ? 1 : 0,
+                    export_meta: exportMeta ? 1 : 0,
+                    export_relations: exportRelations ? 1 : 0,
+                    nonce: '<?php echo wp_create_nonce('export_complete_nonce'); ?>'
+                }, function(response) {
+                    if (response.success) {
+                        if (response.data.download_url) {
+                            // ZIP file created - trigger download
+                            var downloadLink = document.createElement('a');
+                            downloadLink.href = response.data.download_url;
+                            downloadLink.download = response.data.filename;
+                            document.body.appendChild(downloadLink);
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                            
+                            var message = '✓ Export completed! ' + response.data.clubs_count + ' clubs and ' + response.data.events_count + ' events exported';
+                            if (response.data.images_count) {
+                                message += ' with ' + response.data.images_count + ' media files';
+                            }
+                            message += ' as ZIP file.';
+                            status.html('<span style="color: green;">' + message + '</span>');
+                        } else {
+                            // JSON only export
+                            var filename = 'campus-manager-complete-' + new Date().toISOString().slice(0,19).replace(/:/g, '-') + '.json';
+                            downloadFile(JSON.stringify(response.data.content, null, 2), filename, 'application/json');
+                            status.html('<span style="color: green;">✓ Export completed! ' + response.data.clubs_count + ' clubs and ' + response.data.events_count + ' events exported.</span>');
+                        }
+                    } else {
+                        status.html('<span style="color: red;">Error: ' + response.data.message + '</span>');
+                    }
+                    button.prop('disabled', false).text('Export Complete Campus Manager Data');
+                    
+                    setTimeout(function() {
+                        status.html('');
+                    }, 5000);
+                }).fail(function() {
+                    status.html('<span style="color: red;">Error: Failed to export complete data</span>');
+                    button.prop('disabled', false).text('Export Complete Campus Manager Data');
+                });
+            });
+            
+            // Clubs Export
+            $('#export-clubs-btn').on('click', function() {
+                var button = $(this);
+                var status = $('#export-clubs-status');
+                
+                var exportContent = $('#export_clubs_content').is(':checked');
+                var exportImages = $('#export_clubs_images').is(':checked');
+                var exportMeta = $('#export_clubs_meta').is(':checked');
+                
+                if (!exportContent && !exportImages && !exportMeta) {
+                    status.html('<span style="color: red;">Please select at least one export option.</span>');
+                    return;
+                }
+                
+                button.prop('disabled', true).text('Exporting...');
+                status.html('<span style="color: blue;">Preparing clubs export...</span>');
+                
+                $.post(ajaxurl, {
+                    action: 'export_clubs_data',
+                    export_content: exportContent ? 1 : 0,
+                    export_images: exportImages ? 1 : 0,
+                    export_meta: exportMeta ? 1 : 0,
+                    nonce: '<?php echo wp_create_nonce('export_clubs_nonce'); ?>'
+                }, function(response) {
+                    if (response.success) {
+                        if (response.data.download_url) {
+                            // ZIP file created - trigger download
+                            var downloadLink = document.createElement('a');
+                            downloadLink.href = response.data.download_url;
+                            downloadLink.download = response.data.filename;
+                            document.body.appendChild(downloadLink);
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                            
+                            var message = '✓ Export completed! ' + response.data.count + ' clubs exported';
+                            if (response.data.images_count) {
+                                message += ' with ' + response.data.images_count + ' images';
+                            }
+                            message += ' as ZIP file.';
+                            status.html('<span style="color: green;">' + message + '</span>');
+                        } else {
+                            // JSON only export
+                            var filename = 'campus-manager-clubs-' + new Date().toISOString().slice(0,19).replace(/:/g, '-') + '.json';
+                            downloadFile(JSON.stringify(response.data.content, null, 2), filename, 'application/json');
+                            status.html('<span style="color: green;">✓ Export completed! ' + response.data.count + ' clubs exported.</span>');
+                        }
+                    } else {
+                        status.html('<span style="color: red;">Error: ' + response.data.message + '</span>');
+                    }
+                    button.prop('disabled', false).text('Export Clubs Data');
+                    
+                    setTimeout(function() {
+                        status.html('');
+                    }, 5000);
+                }).fail(function() {
+                    status.html('<span style="color: red;">Error: Failed to export clubs data</span>');
+                    button.prop('disabled', false).text('Export Clubs Data');
+                });
+            });
+            
+            // Clubs Import
+            $('#import-clubs-btn').on('click', function() {
+                var button = $(this);
+                var status = $('#import-clubs-status');
+                var fileInput = $('#clubs-import-file')[0];
+                
+                if (!fileInput.files[0]) {
+                    status.html('<span style="color: red;">Please select a file to import.</span>');
+                    return;
+                }
+                
+                var formData = new FormData();
+                formData.append('action', 'import_clubs_data');
+                formData.append('clubs_import_file', fileInput.files[0]);
+                formData.append('overwrite_existing', $('#overwrite_existing_clubs').is(':checked') ? 1 : 0);
+                formData.append('nonce', '<?php echo wp_create_nonce('import_clubs_nonce'); ?>');
+                
+                button.prop('disabled', true).text('Importing...');
+                status.html('<span style="color: blue;">Processing clubs import...</span>');
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.success) {
+                            status.html('<span style="color: green;">✓ Import completed! ' + response.data.imported + ' clubs imported.</span>');
+                            $('#clubs-import-file').val('');
+                        } else {
+                            status.html('<span style="color: red;">Error: ' + response.data.message + '</span>');
+                        }
+                        button.prop('disabled', false).text('Import Clubs Data');
+                        
+                        setTimeout(function() {
+                            status.html('');
+                        }, 5000);
+                    },
+                    error: function() {
+                        status.html('<span style="color: red;">Error: Failed to import clubs data</span>');
+                        button.prop('disabled', false).text('Import Clubs Data');
+                    }
+                });
+            });
+            
+            // Events Export
+            $('#export-events-btn').on('click', function() {
+                var button = $(this);
+                var status = $('#export-events-status');
+                
+                var exportContent = $('#export_events_content').is(':checked');
+                var exportImages = $('#export_events_images').is(':checked');
+                var exportMeta = $('#export_events_meta').is(':checked');
+                var exportOrganizations = $('#export_events_organizations').is(':checked');
+                
+                if (!exportContent && !exportImages && !exportMeta && !exportOrganizations) {
+                    status.html('<span style="color: red;">Please select at least one export option.</span>');
+                    return;
+                }
+                
+                button.prop('disabled', true).text('Exporting...');
+                status.html('<span style="color: blue;">Preparing events export...</span>');
+                
+                $.post(ajaxurl, {
+                    action: 'export_events_data',
+                    export_content: exportContent ? 1 : 0,
+                    export_images: exportImages ? 1 : 0,
+                    export_meta: exportMeta ? 1 : 0,
+                    export_organizations: exportOrganizations ? 1 : 0,
+                    nonce: '<?php echo wp_create_nonce('export_events_nonce'); ?>'
+                }, function(response) {
+                    if (response.success) {
+                        if (response.data.download_url) {
+                            // ZIP file created - trigger download
+                            var downloadLink = document.createElement('a');
+                            downloadLink.href = response.data.download_url;
+                            downloadLink.download = response.data.filename;
+                            document.body.appendChild(downloadLink);
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                            
+                            var message = '✓ Export completed! ' + response.data.count + ' events exported';
+                            if (response.data.images_count) {
+                                message += ' with ' + response.data.images_count + ' images';
+                            }
+                            message += ' as ZIP file.';
+                            status.html('<span style="color: green;">' + message + '</span>');
+                        } else {
+                            // JSON only export
+                            var filename = 'campus-manager-events-' + new Date().toISOString().slice(0,19).replace(/:/g, '-') + '.json';
+                            downloadFile(JSON.stringify(response.data.content, null, 2), filename, 'application/json');
+                            status.html('<span style="color: green;">✓ Export completed! ' + response.data.count + ' events exported.</span>');
+                        }
+                    } else {
+                        status.html('<span style="color: red;">Error: ' + response.data.message + '</span>');
+                    }
+                    button.prop('disabled', false).text('Export Events Data');
+                    
+                    setTimeout(function() {
+                        status.html('');
+                    }, 5000);
+                }).fail(function() {
+                    status.html('<span style="color: red;">Error: Failed to export events data</span>');
+                    button.prop('disabled', false).text('Export Events Data');
+                });
+            });
+            
+            // Events Import
+            $('#import-events-btn').on('click', function() {
+                var button = $(this);
+                var status = $('#import-events-status');
+                var fileInput = $('#events-import-file')[0];
+                
+                if (!fileInput.files[0]) {
+                    status.html('<span style="color: red;">Please select a file to import.</span>');
+                    return;
+                }
+                
+                var formData = new FormData();
+                formData.append('action', 'import_events_data');
+                formData.append('events_import_file', fileInput.files[0]);
+                formData.append('overwrite_existing', $('#overwrite_existing_events').is(':checked') ? 1 : 0);
+                formData.append('nonce', '<?php echo wp_create_nonce('import_events_nonce'); ?>');
+                
+                button.prop('disabled', true).text('Importing...');
+                status.html('<span style="color: blue;">Processing events import...</span>');
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.success) {
+                            status.html('<span style="color: green;">✓ Import completed! ' + response.data.imported + ' events imported.</span>');
+                            $('#events-import-file').val('');
+                        } else {
+                            status.html('<span style="color: red;">Error: ' + response.data.message + '</span>');
+                        }
+                        button.prop('disabled', false).text('Import Events Data');
+                        
+                        setTimeout(function() {
+                            status.html('');
+                        }, 5000);
+                    },
+                    error: function() {
+                        status.html('<span style="color: red;">Error: Failed to import events data</span>');
+                        button.prop('disabled', false).text('Import Events Data');
+                    }
+                });
+            });
+            
+            // Complete Import
+            $('#import-complete-btn').on('click', function() {
+                var button = $(this);
+                var status = $('#import-complete-status');
+                var fileInput = $('#complete-import-file')[0];
+                
+                if (!fileInput.files[0]) {
+                    status.html('<span style="color: red;">Please select a file to import.</span>');
+                    return;
+                }
+                
+                var formData = new FormData();
+                formData.append('action', 'import_complete_data');
+                formData.append('complete_import_file', fileInput.files[0]);
+                formData.append('overwrite_existing', $('#overwrite_existing_complete').is(':checked') ? 1 : 0);
+                formData.append('nonce', '<?php echo wp_create_nonce('import_complete_nonce'); ?>');
+                
+                button.prop('disabled', true).text('Importing...');
+                status.html('<span style="color: blue;">Processing complete import...</span>');
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.success) {
+                            var message = '✓ Import completed!';
+                            if (response.data.clubs_imported) {
+                                message += ' ' + response.data.clubs_imported + ' clubs imported.';
+                            }
+                            if (response.data.events_imported) {
+                                message += ' ' + response.data.events_imported + ' events imported.';
+                            }
+                            status.html('<span style="color: green;">' + message + '</span>');
+                            $('#complete-import-file').val('');
+                        } else {
+                            status.html('<span style="color: red;">Error: ' + response.data.message + '</span>');
+                        }
+                        button.prop('disabled', false).text('Import Campus Manager Data');
+                        
+                        setTimeout(function() {
+                            status.html('');
+                        }, 5000);
+                    },
+                    error: function() {
+                        status.html('<span style="color: red;">Error: Failed to import complete data</span>');
+                        button.prop('disabled', false).text('Import Campus Manager Data');
+                    }
                 });
             });
         });
@@ -1125,5 +1575,1572 @@ class UNBC_Organization_Manager_Admin {
         );
         
         echo '<div class="notice notice-success"><p>' . $message . '</p></div>';
+    }
+    
+    public function ajax_export_clubs_data() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'export_clubs_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+        
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+        
+        $export_content = isset($_POST['export_content']) && $_POST['export_content'] == '1';
+        $export_images = isset($_POST['export_images']) && $_POST['export_images'] == '1';
+        $export_meta = isset($_POST['export_meta']) && $_POST['export_meta'] == '1';
+        
+        // Create ZIP file if images are included
+        if ($export_images) {
+            $this->export_clubs_as_zip($export_content, $export_images, $export_meta);
+        } else {
+            $this->export_clubs_as_json($export_content, $export_images, $export_meta);
+        }
+    }
+    
+    private function export_clubs_as_zip($export_content, $export_images, $export_meta) {
+        // Check if ZipArchive is available
+        if (!class_exists('ZipArchive')) {
+            wp_send_json_error(array('message' => 'ZIP functionality not available on this server'));
+            return;
+        }
+        
+        // Get all organizations (clubs)
+        $organizations = get_posts(array(
+            'post_type' => 'organization',
+            'post_status' => 'any',
+            'numberposts' => -1
+        ));
+        
+        // Create temporary directory for export
+        $upload_dir = wp_upload_dir();
+        $temp_dir = $upload_dir['basedir'] . '/campus-manager-export-' . time();
+        $images_dir = $temp_dir . '/images';
+        
+        if (!wp_mkdir_p($temp_dir) || !wp_mkdir_p($images_dir)) {
+            wp_send_json_error(array('message' => 'Could not create temporary directory'));
+            return;
+        }
+        
+        $clubs_data = array(
+            'export_date' => current_time('mysql'),
+            'export_site' => get_site_url(),
+            'plugin_version' => '1.0.0',
+            'clubs' => array()
+        );
+        
+        $copied_images = array();
+        
+        foreach ($organizations as $org) {
+            $club_data = array(
+                'post_title' => $org->post_title,
+                'post_slug' => $org->post_name,
+                'post_status' => $org->post_status,
+                'post_date' => $org->post_date,
+                'post_author' => $org->post_author
+            );
+            
+            // Include content if requested
+            if ($export_content) {
+                $club_data['post_content'] = $org->post_content;
+                $club_data['post_excerpt'] = $org->post_excerpt;
+            }
+            
+            // Include images if requested
+            if ($export_images) {
+                $featured_image_id = get_post_thumbnail_id($org->ID);
+                if ($featured_image_id) {
+                    $image_path = get_attached_file($featured_image_id);
+                    if ($image_path && file_exists($image_path)) {
+                        $image_filename = basename($image_path);
+                        $unique_filename = $org->post_name . '_' . $image_filename;
+                        $new_image_path = $images_dir . '/' . $unique_filename;
+                        
+                        if (copy($image_path, $new_image_path)) {
+                            $club_data['featured_image'] = array(
+                                'filename' => $unique_filename,
+                                'original_filename' => $image_filename,
+                                'alt' => get_post_meta($featured_image_id, '_wp_attachment_image_alt', true),
+                                'title' => get_the_title($featured_image_id),
+                                'caption' => wp_get_attachment_caption($featured_image_id)
+                            );
+                            $copied_images[] = $unique_filename;
+                        }
+                    }
+                }
+            }
+            
+            // Include metadata if requested
+            if ($export_meta) {
+                $meta_data = get_post_meta($org->ID);
+                $filtered_meta = array();
+                foreach ($meta_data as $key => $value) {
+                    // Skip WordPress internal meta fields
+                    if (!str_starts_with($key, '_') || in_array($key, ['_wp_page_template'])) {
+                        $filtered_meta[$key] = is_array($value) && count($value) == 1 ? $value[0] : $value;
+                    }
+                }
+                $club_data['meta'] = $filtered_meta;
+            }
+            
+            $clubs_data['clubs'][] = $club_data;
+        }
+        
+        // Save JSON data
+        $json_file = $temp_dir . '/clubs-data.json';
+        file_put_contents($json_file, json_encode($clubs_data, JSON_PRETTY_PRINT));
+        
+        // Create ZIP file
+        $zip_filename = 'campus-manager-clubs-' . date('Y-m-d-H-i-s') . '.zip';
+        $zip_path = $upload_dir['basedir'] . '/' . $zip_filename;
+        
+        $zip = new ZipArchive();
+        if ($zip->open($zip_path, ZipArchive::CREATE) !== TRUE) {
+            $this->cleanup_temp_dir($temp_dir);
+            wp_send_json_error(array('message' => 'Could not create ZIP file'));
+            return;
+        }
+        
+        // Add JSON file to ZIP
+        $zip->addFile($json_file, 'clubs-data.json');
+        
+        // Add images to ZIP
+        if ($export_images && !empty($copied_images)) {
+            foreach ($copied_images as $image_filename) {
+                $image_path = $images_dir . '/' . $image_filename;
+                if (file_exists($image_path)) {
+                    $zip->addFile($image_path, 'images/' . $image_filename);
+                }
+            }
+        }
+        
+        $zip->close();
+        
+        // Clean up temporary directory
+        $this->cleanup_temp_dir($temp_dir);
+        
+        // Generate download URL
+        $zip_url = $upload_dir['baseurl'] . '/' . $zip_filename;
+        
+        wp_send_json_success(array(
+            'download_url' => $zip_url,
+            'filename' => $zip_filename,
+            'count' => count($organizations),
+            'images_count' => count($copied_images)
+        ));
+    }
+    
+    private function export_clubs_as_json($export_content, $export_images, $export_meta) {
+        // Get all organizations (clubs)
+        $organizations = get_posts(array(
+            'post_type' => 'organization',
+            'post_status' => 'any',
+            'numberposts' => -1
+        ));
+        
+        $clubs_data = array(
+            'export_date' => current_time('mysql'),
+            'export_site' => get_site_url(),
+            'plugin_version' => '1.0.0',
+            'clubs' => array()
+        );
+        
+        foreach ($organizations as $org) {
+            $club_data = array(
+                'post_title' => $org->post_title,
+                'post_slug' => $org->post_name,
+                'post_status' => $org->post_status,
+                'post_date' => $org->post_date,
+                'post_author' => $org->post_author
+            );
+            
+            // Include content if requested
+            if ($export_content) {
+                $club_data['post_content'] = $org->post_content;
+                $club_data['post_excerpt'] = $org->post_excerpt;
+            }
+            
+            // Include metadata if requested
+            if ($export_meta) {
+                $meta_data = get_post_meta($org->ID);
+                $filtered_meta = array();
+                foreach ($meta_data as $key => $value) {
+                    // Skip WordPress internal meta fields
+                    if (!str_starts_with($key, '_') || in_array($key, ['_wp_page_template'])) {
+                        $filtered_meta[$key] = is_array($value) && count($value) == 1 ? $value[0] : $value;
+                    }
+                }
+                $club_data['meta'] = $filtered_meta;
+            }
+            
+            $clubs_data['clubs'][] = $club_data;
+        }
+        
+        wp_send_json_success(array(
+            'content' => $clubs_data,
+            'count' => count($organizations)
+        ));
+    }
+    
+    private function cleanup_temp_dir($dir) {
+        if (!is_dir($dir)) {
+            return;
+        }
+        
+        $files = array_diff(scandir($dir), array('.', '..'));
+        foreach ($files as $file) {
+            $file_path = $dir . '/' . $file;
+            if (is_dir($file_path)) {
+                $this->cleanup_temp_dir($file_path);
+            } else {
+                unlink($file_path);
+            }
+        }
+        rmdir($dir);
+    }
+    
+    public function ajax_import_clubs_data() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'import_clubs_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+        
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+        
+        if (!isset($_FILES['clubs_import_file']) || $_FILES['clubs_import_file']['error'] !== UPLOAD_ERR_OK) {
+            wp_send_json_error(array('message' => 'Error uploading file. Please try again.'));
+            return;
+        }
+        
+        $uploaded_file = $_FILES['clubs_import_file'];
+        $file_extension = strtolower(pathinfo($uploaded_file['name'], PATHINFO_EXTENSION));
+        
+        if ($file_extension === 'zip') {
+            $this->import_clubs_from_zip($uploaded_file);
+        } else if ($file_extension === 'json') {
+            $this->import_clubs_from_json($uploaded_file);
+        } else {
+            wp_send_json_error(array('message' => 'Invalid file format. Please upload a JSON or ZIP file.'));
+        }
+    }
+    
+    private function import_clubs_from_zip($uploaded_file) {
+        // Check if ZipArchive is available
+        if (!class_exists('ZipArchive')) {
+            wp_send_json_error(array('message' => 'ZIP functionality not available on this server'));
+            return;
+        }
+        
+        $upload_dir = wp_upload_dir();
+        $temp_dir = $upload_dir['basedir'] . '/campus-manager-import-' . time();
+        
+        if (!wp_mkdir_p($temp_dir)) {
+            wp_send_json_error(array('message' => 'Could not create temporary directory'));
+            return;
+        }
+        
+        $zip = new ZipArchive();
+        if ($zip->open($uploaded_file['tmp_name']) !== TRUE) {
+            $this->cleanup_temp_dir($temp_dir);
+            wp_send_json_error(array('message' => 'Could not open ZIP file'));
+            return;
+        }
+        
+        // Extract ZIP contents
+        $zip->extractTo($temp_dir);
+        $zip->close();
+        
+        // Look for clubs-data.json
+        $json_file = $temp_dir . '/clubs-data.json';
+        if (!file_exists($json_file)) {
+            $this->cleanup_temp_dir($temp_dir);
+            wp_send_json_error(array('message' => 'Invalid ZIP file format. clubs-data.json not found.'));
+            return;
+        }
+        
+        $file_content = file_get_contents($json_file);
+        $import_data = json_decode($file_content, true);
+        
+        if (!$import_data || !isset($import_data['clubs'])) {
+            $this->cleanup_temp_dir($temp_dir);
+            wp_send_json_error(array('message' => 'Invalid import file format. Please ensure you are importing a valid Campus Manager clubs export file.'));
+            return;
+        }
+        
+        $overwrite_existing = isset($_POST['overwrite_existing']) && $_POST['overwrite_existing'] === '1';
+        $imported_count = 0;
+        $skipped_count = 0;
+        $images_dir = $temp_dir . '/images';
+        
+        foreach ($import_data['clubs'] as $club_data) {
+            if (empty($club_data['post_slug']) || empty($club_data['post_title'])) {
+                continue;
+            }
+            
+            // Check if club already exists
+            $existing_club = get_page_by_path($club_data['post_slug'], OBJECT, 'organization');
+            
+            if ($existing_club && !$overwrite_existing) {
+                $skipped_count++;
+                continue;
+            }
+            
+            $post_data = array(
+                'post_type' => 'organization',
+                'post_title' => sanitize_text_field($club_data['post_title']),
+                'post_name' => sanitize_title($club_data['post_slug']),
+                'post_status' => isset($club_data['post_status']) ? $club_data['post_status'] : 'publish',
+                'post_content' => isset($club_data['post_content']) ? wp_kses_post($club_data['post_content']) : '',
+                'post_excerpt' => isset($club_data['post_excerpt']) ? wp_kses_post($club_data['post_excerpt']) : '',
+                'post_author' => isset($club_data['post_author']) ? intval($club_data['post_author']) : get_current_user_id()
+            );
+            
+            if ($existing_club) {
+                // Update existing club
+                $post_data['ID'] = $existing_club->ID;
+                $post_id = wp_update_post($post_data);
+            } else {
+                // Create new club
+                $post_id = wp_insert_post($post_data);
+            }
+            
+            if ($post_id && !is_wp_error($post_id)) {
+                // Import metadata
+                if (!empty($club_data['meta'])) {
+                    foreach ($club_data['meta'] as $meta_key => $meta_value) {
+                        update_post_meta($post_id, $meta_key, $meta_value);
+                    }
+                }
+                
+                // Import featured image if available from ZIP
+                if (!empty($club_data['featured_image']) && is_dir($images_dir)) {
+                    $this->import_featured_image_from_zip($post_id, $club_data['featured_image'], $images_dir);
+                }
+                
+                $imported_count++;
+            }
+        }
+        
+        // Clean up temporary directory
+        $this->cleanup_temp_dir($temp_dir);
+        
+        wp_send_json_success(array(
+            'imported' => $imported_count,
+            'skipped' => $skipped_count
+        ));
+    }
+    
+    private function import_clubs_from_json($uploaded_file) {
+        $file_content = file_get_contents($uploaded_file['tmp_name']);
+        $import_data = json_decode($file_content, true);
+        
+        if (!$import_data || !isset($import_data['clubs'])) {
+            wp_send_json_error(array('message' => 'Invalid import file format. Please ensure you are importing a valid Campus Manager clubs export file.'));
+            return;
+        }
+        
+        $overwrite_existing = isset($_POST['overwrite_existing']) && $_POST['overwrite_existing'] === '1';
+        $imported_count = 0;
+        $skipped_count = 0;
+        
+        foreach ($import_data['clubs'] as $club_data) {
+            if (empty($club_data['post_slug']) || empty($club_data['post_title'])) {
+                continue;
+            }
+            
+            // Check if club already exists
+            $existing_club = get_page_by_path($club_data['post_slug'], OBJECT, 'organization');
+            
+            if ($existing_club && !$overwrite_existing) {
+                $skipped_count++;
+                continue;
+            }
+            
+            $post_data = array(
+                'post_type' => 'organization',
+                'post_title' => sanitize_text_field($club_data['post_title']),
+                'post_name' => sanitize_title($club_data['post_slug']),
+                'post_status' => isset($club_data['post_status']) ? $club_data['post_status'] : 'publish',
+                'post_content' => isset($club_data['post_content']) ? wp_kses_post($club_data['post_content']) : '',
+                'post_excerpt' => isset($club_data['post_excerpt']) ? wp_kses_post($club_data['post_excerpt']) : '',
+                'post_author' => isset($club_data['post_author']) ? intval($club_data['post_author']) : get_current_user_id()
+            );
+            
+            if ($existing_club) {
+                // Update existing club
+                $post_data['ID'] = $existing_club->ID;
+                $post_id = wp_update_post($post_data);
+            } else {
+                // Create new club
+                $post_id = wp_insert_post($post_data);
+            }
+            
+            if ($post_id && !is_wp_error($post_id)) {
+                // Import metadata
+                if (!empty($club_data['meta'])) {
+                    foreach ($club_data['meta'] as $meta_key => $meta_value) {
+                        update_post_meta($post_id, $meta_key, $meta_value);
+                    }
+                }
+                
+                $imported_count++;
+            }
+        }
+        
+        wp_send_json_success(array(
+            'imported' => $imported_count,
+            'skipped' => $skipped_count
+        ));
+    }
+    
+    private function import_featured_image_from_zip($post_id, $image_data, $images_dir) {
+        if (empty($image_data['filename'])) {
+            return false;
+        }
+        
+        $image_path = $images_dir . '/' . $image_data['filename'];
+        
+        if (!file_exists($image_path)) {
+            return false;
+        }
+        
+        $upload_dir = wp_upload_dir();
+        $new_filename = $image_data['original_filename'] ?: $image_data['filename'];
+        $new_file_path = $upload_dir['path'] . '/' . $new_filename;
+        
+        // Copy image to uploads directory
+        if (!copy($image_path, $new_file_path)) {
+            return false;
+        }
+        
+        // Create attachment
+        $file_type = wp_check_filetype($new_filename, null);
+        $attachment_data = array(
+            'post_mime_type' => $file_type['type'],
+            'post_title' => isset($image_data['title']) ? $image_data['title'] : '',
+            'post_content' => '',
+            'post_excerpt' => isset($image_data['caption']) ? $image_data['caption'] : '',
+            'post_status' => 'inherit'
+        );
+        
+        $attachment_id = wp_insert_attachment($attachment_data, $new_file_path, $post_id);
+        
+        if (!is_wp_error($attachment_id)) {
+            // Generate metadata
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+            $attachment_metadata = wp_generate_attachment_metadata($attachment_id, $new_file_path);
+            wp_update_attachment_metadata($attachment_id, $attachment_metadata);
+            
+            // Set alt text
+            if (!empty($image_data['alt'])) {
+                update_post_meta($attachment_id, '_wp_attachment_image_alt', $image_data['alt']);
+            }
+            
+            // Set as featured image
+            set_post_thumbnail($post_id, $attachment_id);
+            
+            return $attachment_id;
+        }
+        
+        return false;
+    }
+    
+    private function import_featured_image($post_id, $image_data) {
+        if (empty($image_data['url'])) {
+            return false;
+        }
+        
+        // Download image from URL
+        $image_url = $image_data['url'];
+        $upload_dir = wp_upload_dir();
+        
+        // Get image content
+        $image_response = wp_remote_get($image_url);
+        if (is_wp_error($image_response)) {
+            return false;
+        }
+        
+        $image_content = wp_remote_retrieve_body($image_response);
+        if (empty($image_content)) {
+            return false;
+        }
+        
+        // Generate filename
+        $filename = isset($image_data['filename']) ? $image_data['filename'] : basename($image_url);
+        $file_path = $upload_dir['path'] . '/' . $filename;
+        
+        // Save file
+        $file_saved = file_put_contents($file_path, $image_content);
+        if (!$file_saved) {
+            return false;
+        }
+        
+        // Create attachment
+        $file_type = wp_check_filetype($filename, null);
+        $attachment_data = array(
+            'post_mime_type' => $file_type['type'],
+            'post_title' => isset($image_data['title']) ? $image_data['title'] : '',
+            'post_content' => '',
+            'post_excerpt' => isset($image_data['caption']) ? $image_data['caption'] : '',
+            'post_status' => 'inherit'
+        );
+        
+        $attachment_id = wp_insert_attachment($attachment_data, $file_path, $post_id);
+        
+        if (!is_wp_error($attachment_id)) {
+            // Generate metadata
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+            $attachment_metadata = wp_generate_attachment_metadata($attachment_id, $file_path);
+            wp_update_attachment_metadata($attachment_id, $attachment_metadata);
+            
+            // Set alt text
+            if (!empty($image_data['alt'])) {
+                update_post_meta($attachment_id, '_wp_attachment_image_alt', $image_data['alt']);
+            }
+            
+            // Set as featured image
+            set_post_thumbnail($post_id, $attachment_id);
+            
+            return $attachment_id;
+        }
+        
+        return false;
+    }
+    
+    public function ajax_export_complete_data() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'export_complete_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+        
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+        
+        $export_content = isset($_POST['export_content']) && $_POST['export_content'] == '1';
+        $export_images = isset($_POST['export_images']) && $_POST['export_images'] == '1';
+        $export_meta = isset($_POST['export_meta']) && $_POST['export_meta'] == '1';
+        $export_relations = isset($_POST['export_relations']) && $_POST['export_relations'] == '1';
+        
+        // Create ZIP file if images are included
+        if ($export_images) {
+            $this->export_complete_as_zip($export_content, $export_images, $export_meta, $export_relations);
+        } else {
+            $this->export_complete_as_json($export_content, $export_images, $export_meta, $export_relations);
+        }
+    }
+    
+    private function export_complete_as_zip($export_content, $export_images, $export_meta, $export_relations) {
+        // Check if ZipArchive is available
+        if (!class_exists('ZipArchive')) {
+            wp_send_json_error(array('message' => 'ZIP functionality not available on this server'));
+            return;
+        }
+        
+        // Get all organizations and events
+        $organizations = get_posts(array(
+            'post_type' => 'organization',
+            'post_status' => 'any',
+            'numberposts' => -1
+        ));
+        
+        $events = get_posts(array(
+            'post_type' => 'event',
+            'post_status' => 'any',
+            'numberposts' => -1
+        ));
+        
+        // Create temporary directory for export
+        $upload_dir = wp_upload_dir();
+        $temp_dir = $upload_dir['basedir'] . '/campus-manager-complete-export-' . time();
+        $images_dir = $temp_dir . '/images';
+        
+        if (!wp_mkdir_p($temp_dir) || !wp_mkdir_p($images_dir)) {
+            wp_send_json_error(array('message' => 'Could not create temporary directory'));
+            return;
+        }
+        
+        $complete_data = array(
+            'export_date' => current_time('mysql'),
+            'export_site' => get_site_url(),
+            'plugin_version' => '1.0.0',
+            'export_type' => 'complete',
+            'clubs' => array(),
+            'events' => array()
+        );
+        
+        $copied_images = array();
+        
+        // Process clubs/organizations
+        foreach ($organizations as $org) {
+            $club_data = array(
+                'post_title' => $org->post_title,
+                'post_slug' => $org->post_name,
+                'post_status' => $org->post_status,
+                'post_date' => $org->post_date,
+                'post_author' => $org->post_author
+            );
+            
+            if ($export_content) {
+                $club_data['post_content'] = $org->post_content;
+                $club_data['post_excerpt'] = $org->post_excerpt;
+                
+                // Extract images from content
+                if ($export_images) {
+                    $content_images = $this->extract_content_images($org->post_content, $images_dir, $org->post_name . '_content');
+                    if (!empty($content_images)) {
+                        $club_data['content_images'] = $content_images;
+                        $copied_images = array_merge($copied_images, array_column($content_images, 'filename'));
+                    }
+                }
+            }
+            
+            if ($export_images) {
+                $featured_image_id = get_post_thumbnail_id($org->ID);
+                if ($featured_image_id) {
+                    $image_path = get_attached_file($featured_image_id);
+                    if ($image_path && file_exists($image_path)) {
+                        $image_filename = basename($image_path);
+                        $unique_filename = $org->post_name . '_featured_' . $image_filename;
+                        $new_image_path = $images_dir . '/' . $unique_filename;
+                        
+                        if (copy($image_path, $new_image_path)) {
+                            $club_data['featured_image'] = array(
+                                'filename' => $unique_filename,
+                                'original_filename' => $image_filename,
+                                'alt' => get_post_meta($featured_image_id, '_wp_attachment_image_alt', true),
+                                'title' => get_the_title($featured_image_id),
+                                'caption' => wp_get_attachment_caption($featured_image_id)
+                            );
+                            $copied_images[] = $unique_filename;
+                        }
+                    }
+                }
+            }
+            
+            if ($export_meta) {
+                $meta_data = get_post_meta($org->ID);
+                $filtered_meta = array();
+                foreach ($meta_data as $key => $value) {
+                    if (!str_starts_with($key, '_') || in_array($key, ['_wp_page_template'])) {
+                        $filtered_meta[$key] = is_array($value) && count($value) == 1 ? $value[0] : $value;
+                    }
+                }
+                $club_data['meta'] = $filtered_meta;
+            }
+            
+            $complete_data['clubs'][] = $club_data;
+        }
+        
+        // Process events
+        foreach ($events as $event) {
+            $event_data = array(
+                'post_title' => $event->post_title,
+                'post_slug' => $event->post_name,
+                'post_status' => $event->post_status,
+                'post_date' => $event->post_date,
+                'post_author' => $event->post_author
+            );
+            
+            if ($export_content) {
+                $event_data['post_content'] = $event->post_content;
+                $event_data['post_excerpt'] = $event->post_excerpt;
+                
+                // Extract images from content
+                if ($export_images) {
+                    $content_images = $this->extract_content_images($event->post_content, $images_dir, $event->post_name . '_content');
+                    if (!empty($content_images)) {
+                        $event_data['content_images'] = $content_images;
+                        $copied_images = array_merge($copied_images, array_column($content_images, 'filename'));
+                    }
+                }
+            }
+            
+            if ($export_images) {
+                // Export event flyer image
+                $flyer_image_id = get_post_meta($event->ID, '_event_flyer', true);
+                if (!$flyer_image_id) {
+                    $flyer_image_id = get_post_thumbnail_id($event->ID);
+                }
+                
+                if ($flyer_image_id) {
+                    $image_path = get_attached_file($flyer_image_id);
+                    if ($image_path && file_exists($image_path)) {
+                        $image_filename = basename($image_path);
+                        $unique_filename = $event->post_name . '_flyer_' . $image_filename;
+                        $new_image_path = $images_dir . '/' . $unique_filename;
+                        
+                        if (copy($image_path, $new_image_path)) {
+                            $event_data['flyer_image'] = array(
+                                'filename' => $unique_filename,
+                                'original_filename' => $image_filename,
+                                'alt' => get_post_meta($flyer_image_id, '_wp_attachment_image_alt', true),
+                                'title' => get_the_title($flyer_image_id),
+                                'caption' => wp_get_attachment_caption($flyer_image_id)
+                            );
+                            $copied_images[] = $unique_filename;
+                        }
+                    }
+                }
+            }
+            
+            if ($export_meta) {
+                $meta_data = get_post_meta($event->ID);
+                $filtered_meta = array();
+                foreach ($meta_data as $key => $value) {
+                    if (!str_starts_with($key, '_') || in_array($key, ['_event_start_date', '_event_end_date', '_event_location', '_event_organization', '_event_flyer'])) {
+                        $filtered_meta[$key] = is_array($value) && count($value) == 1 ? $value[0] : $value;
+                    }
+                }
+                $event_data['meta'] = $filtered_meta;
+            }
+            
+            if ($export_relations) {
+                $associated_org_id = get_post_meta($event->ID, '_event_organization', true);
+                if ($associated_org_id) {
+                    $org = get_post($associated_org_id);
+                    if ($org) {
+                        $event_data['organization'] = array(
+                            'id' => $org->ID,
+                            'title' => $org->post_title,
+                            'slug' => $org->post_name
+                        );
+                    }
+                }
+            }
+            
+            $complete_data['events'][] = $event_data;
+        }
+        
+        // Save JSON data
+        $json_file = $temp_dir . '/campus-manager-complete.json';
+        file_put_contents($json_file, json_encode($complete_data, JSON_PRETTY_PRINT));
+        
+        // Create ZIP file
+        $zip_filename = 'campus-manager-complete-' . date('Y-m-d-H-i-s') . '.zip';
+        $zip_path = $upload_dir['basedir'] . '/' . $zip_filename;
+        
+        $zip = new ZipArchive();
+        if ($zip->open($zip_path, ZipArchive::CREATE) !== TRUE) {
+            $this->cleanup_temp_dir($temp_dir);
+            wp_send_json_error(array('message' => 'Could not create ZIP file'));
+            return;
+        }
+        
+        // Add JSON file to ZIP
+        $zip->addFile($json_file, 'campus-manager-complete.json');
+        
+        // Add images to ZIP
+        if ($export_images && !empty($copied_images)) {
+            foreach ($copied_images as $image_filename) {
+                $image_path = $images_dir . '/' . $image_filename;
+                if (file_exists($image_path)) {
+                    $zip->addFile($image_path, 'images/' . $image_filename);
+                }
+            }
+        }
+        
+        $zip->close();
+        
+        // Clean up temporary directory
+        $this->cleanup_temp_dir($temp_dir);
+        
+        // Generate download URL
+        $zip_url = $upload_dir['baseurl'] . '/' . $zip_filename;
+        
+        wp_send_json_success(array(
+            'download_url' => $zip_url,
+            'filename' => $zip_filename,
+            'clubs_count' => count($organizations),
+            'events_count' => count($events),
+            'images_count' => count($copied_images)
+        ));
+    }
+    
+    private function extract_content_images($content, $images_dir, $prefix) {
+        $content_images = array();
+        
+        // Find all image URLs in content
+        preg_match_all('/<img[^>]*src=["\']([^"\']*)["\'][^>]*>/i', $content, $matches);
+        
+        if (!empty($matches[1])) {
+            foreach ($matches[1] as $index => $image_url) {
+                // Check if it's a local image
+                $site_url = get_site_url();
+                if (strpos($image_url, $site_url) === 0) {
+                    // Get attachment ID from URL
+                    $attachment_id = attachment_url_to_postid($image_url);
+                    if ($attachment_id) {
+                        $image_path = get_attached_file($attachment_id);
+                        if ($image_path && file_exists($image_path)) {
+                            $image_filename = basename($image_path);
+                            $unique_filename = $prefix . '_' . $index . '_' . $image_filename;
+                            $new_image_path = $images_dir . '/' . $unique_filename;
+                            
+                            if (copy($image_path, $new_image_path)) {
+                                $content_images[] = array(
+                                    'filename' => $unique_filename,
+                                    'original_filename' => $image_filename,
+                                    'original_url' => $image_url,
+                                    'alt' => get_post_meta($attachment_id, '_wp_attachment_image_alt', true),
+                                    'title' => get_the_title($attachment_id),
+                                    'caption' => wp_get_attachment_caption($attachment_id)
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return $content_images;
+    }
+    
+    private function export_complete_as_json($export_content, $export_images, $export_meta, $export_relations) {
+        // Get all organizations and events
+        $organizations = get_posts(array(
+            'post_type' => 'organization',
+            'post_status' => 'any',
+            'numberposts' => -1
+        ));
+        
+        $events = get_posts(array(
+            'post_type' => 'event',
+            'post_status' => 'any',
+            'numberposts' => -1
+        ));
+        
+        $complete_data = array(
+            'export_date' => current_time('mysql'),
+            'export_site' => get_site_url(),
+            'plugin_version' => '1.0.0',
+            'export_type' => 'complete',
+            'clubs' => array(),
+            'events' => array()
+        );
+        
+        // Process clubs/organizations (basic data only for JSON)
+        foreach ($organizations as $org) {
+            $club_data = array(
+                'post_title' => $org->post_title,
+                'post_slug' => $org->post_name,
+                'post_status' => $org->post_status,
+                'post_date' => $org->post_date,
+                'post_author' => $org->post_author
+            );
+            
+            if ($export_content) {
+                $club_data['post_content'] = $org->post_content;
+                $club_data['post_excerpt'] = $org->post_excerpt;
+            }
+            
+            if ($export_meta) {
+                $meta_data = get_post_meta($org->ID);
+                $filtered_meta = array();
+                foreach ($meta_data as $key => $value) {
+                    if (!str_starts_with($key, '_') || in_array($key, ['_wp_page_template'])) {
+                        $filtered_meta[$key] = is_array($value) && count($value) == 1 ? $value[0] : $value;
+                    }
+                }
+                $club_data['meta'] = $filtered_meta;
+            }
+            
+            $complete_data['clubs'][] = $club_data;
+        }
+        
+        // Process events
+        foreach ($events as $event) {
+            $event_data = array(
+                'post_title' => $event->post_title,
+                'post_slug' => $event->post_name,
+                'post_status' => $event->post_status,
+                'post_date' => $event->post_date,
+                'post_author' => $event->post_author
+            );
+            
+            if ($export_content) {
+                $event_data['post_content'] = $event->post_content;
+                $event_data['post_excerpt'] = $event->post_excerpt;
+            }
+            
+            if ($export_meta) {
+                $meta_data = get_post_meta($event->ID);
+                $filtered_meta = array();
+                foreach ($meta_data as $key => $value) {
+                    if (!str_starts_with($key, '_') || in_array($key, ['_event_start_date', '_event_end_date', '_event_location', '_event_organization', '_event_flyer'])) {
+                        $filtered_meta[$key] = is_array($value) && count($value) == 1 ? $value[0] : $value;
+                    }
+                }
+                $event_data['meta'] = $filtered_meta;
+            }
+            
+            if ($export_relations) {
+                $associated_org_id = get_post_meta($event->ID, '_event_organization', true);
+                if ($associated_org_id) {
+                    $org = get_post($associated_org_id);
+                    if ($org) {
+                        $event_data['organization'] = array(
+                            'id' => $org->ID,
+                            'title' => $org->post_title,
+                            'slug' => $org->post_name
+                        );
+                    }
+                }
+            }
+            
+            $complete_data['events'][] = $event_data;
+        }
+        
+        wp_send_json_success(array(
+            'content' => $complete_data,
+            'clubs_count' => count($organizations),
+            'events_count' => count($events)
+        ));
+    }
+    
+    public function ajax_export_events_data() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'export_events_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+        
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+        
+        $export_content = isset($_POST['export_content']) && $_POST['export_content'] == '1';
+        $export_images = isset($_POST['export_images']) && $_POST['export_images'] == '1';
+        $export_meta = isset($_POST['export_meta']) && $_POST['export_meta'] == '1';
+        $export_organizations = isset($_POST['export_organizations']) && $_POST['export_organizations'] == '1';
+        
+        // Create ZIP file if images are included
+        if ($export_images) {
+            $this->export_events_as_zip($export_content, $export_images, $export_meta, $export_organizations);
+            return;
+        }
+        
+        // Get all events
+        $events = get_posts(array(
+            'post_type' => 'event',
+            'post_status' => 'any',
+            'numberposts' => -1
+        ));
+        
+        $events_data = array(
+            'export_date' => current_time('mysql'),
+            'export_site' => get_site_url(),
+            'plugin_version' => '1.0.0',
+            'events' => array()
+        );
+        
+        foreach ($events as $event) {
+            $event_data = array(
+                'post_title' => $event->post_title,
+                'post_slug' => $event->post_name,
+                'post_status' => $event->post_status,
+                'post_date' => $event->post_date,
+                'post_author' => $event->post_author
+            );
+            
+            // Include content if requested
+            if ($export_content) {
+                $event_data['post_content'] = $event->post_content;
+                $event_data['post_excerpt'] = $event->post_excerpt;
+            }
+            
+            // Include metadata if requested
+            if ($export_meta) {
+                $meta_data = get_post_meta($event->ID);
+                $filtered_meta = array();
+                foreach ($meta_data as $key => $value) {
+                    // Skip WordPress internal meta fields but keep important ones
+                    if (!str_starts_with($key, '_') || in_array($key, ['_event_start_date', '_event_end_date', '_event_location'])) {
+                        $filtered_meta[$key] = is_array($value) && count($value) == 1 ? $value[0] : $value;
+                    }
+                }
+                $event_data['meta'] = $filtered_meta;
+            }
+            
+            // Include organization associations if requested
+            if ($export_organizations) {
+                $associated_org_id = get_post_meta($event->ID, '_event_organization', true);
+                if ($associated_org_id) {
+                    $org = get_post($associated_org_id);
+                    if ($org) {
+                        $event_data['organization'] = array(
+                            'id' => $org->ID,
+                            'title' => $org->post_title,
+                            'slug' => $org->post_name
+                        );
+                    }
+                }
+            }
+            
+            $events_data['events'][] = $event_data;
+        }
+        
+        wp_send_json_success(array(
+            'content' => $events_data,
+            'count' => count($events)
+        ));
+    }
+    
+    public function ajax_import_events_data() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'import_events_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+        
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+        
+        if (!isset($_FILES['events_import_file']) || $_FILES['events_import_file']['error'] !== UPLOAD_ERR_OK) {
+            wp_send_json_error(array('message' => 'Error uploading file. Please try again.'));
+            return;
+        }
+        
+        $file_content = file_get_contents($_FILES['events_import_file']['tmp_name']);
+        $import_data = json_decode($file_content, true);
+        
+        if (!$import_data || !isset($import_data['events'])) {
+            wp_send_json_error(array('message' => 'Invalid import file format. Please ensure you are importing a valid Campus Manager events export file.'));
+            return;
+        }
+        
+        $overwrite_existing = isset($_POST['overwrite_existing']) && $_POST['overwrite_existing'] === '1';
+        $imported_count = 0;
+        $skipped_count = 0;
+        
+        foreach ($import_data['events'] as $event_data) {
+            if (empty($event_data['post_slug']) || empty($event_data['post_title'])) {
+                continue;
+            }
+            
+            // Check if event already exists
+            $existing_event = get_page_by_path($event_data['post_slug'], OBJECT, 'event');
+            
+            if ($existing_event && !$overwrite_existing) {
+                $skipped_count++;
+                continue;
+            }
+            
+            $post_data = array(
+                'post_type' => 'event',
+                'post_title' => sanitize_text_field($event_data['post_title']),
+                'post_name' => sanitize_title($event_data['post_slug']),
+                'post_status' => isset($event_data['post_status']) ? $event_data['post_status'] : 'publish',
+                'post_content' => isset($event_data['post_content']) ? wp_kses_post($event_data['post_content']) : '',
+                'post_excerpt' => isset($event_data['post_excerpt']) ? wp_kses_post($event_data['post_excerpt']) : '',
+                'post_author' => isset($event_data['post_author']) ? intval($event_data['post_author']) : get_current_user_id()
+            );
+            
+            if ($existing_event) {
+                // Update existing event
+                $post_data['ID'] = $existing_event->ID;
+                $post_id = wp_update_post($post_data);
+            } else {
+                // Create new event
+                $post_id = wp_insert_post($post_data);
+            }
+            
+            if ($post_id && !is_wp_error($post_id)) {
+                // Import metadata
+                if (!empty($event_data['meta'])) {
+                    foreach ($event_data['meta'] as $meta_key => $meta_value) {
+                        update_post_meta($post_id, $meta_key, $meta_value);
+                    }
+                }
+                
+                // Import organization association
+                if (!empty($event_data['organization'])) {
+                    $org_slug = $event_data['organization']['slug'];
+                    $org = get_page_by_path($org_slug, OBJECT, 'organization');
+                    if ($org) {
+                        update_post_meta($post_id, '_event_organization', $org->ID);
+                    }
+                }
+                
+                $imported_count++;
+            }
+        }
+        
+        wp_send_json_success(array(
+            'imported' => $imported_count,
+            'skipped' => $skipped_count
+        ));
+    }
+    
+    private function export_events_as_zip($export_content, $export_images, $export_meta, $export_organizations) {
+        // Check if ZipArchive is available
+        if (!class_exists('ZipArchive')) {
+            wp_send_json_error(array('message' => 'ZIP functionality not available on this server'));
+            return;
+        }
+        
+        // Get all events
+        $events = get_posts(array(
+            'post_type' => 'event',
+            'post_status' => 'any',
+            'numberposts' => -1
+        ));
+        
+        // Create temporary directory for export
+        $upload_dir = wp_upload_dir();
+        $temp_dir = $upload_dir['basedir'] . '/campus-manager-events-export-' . time();
+        $images_dir = $temp_dir . '/images';
+        
+        if (!wp_mkdir_p($temp_dir) || !wp_mkdir_p($images_dir)) {
+            wp_send_json_error(array('message' => 'Could not create temporary directory'));
+            return;
+        }
+        
+        $events_data = array(
+            'export_date' => current_time('mysql'),
+            'export_site' => get_site_url(),
+            'plugin_version' => '1.0.0',
+            'export_type' => 'events',
+            'events' => array()
+        );
+        
+        $copied_images = array();
+        
+        foreach ($events as $event) {
+            $event_data = array(
+                'post_title' => $event->post_title,
+                'post_slug' => $event->post_name,
+                'post_status' => $event->post_status,
+                'post_date' => $event->post_date,
+                'post_author' => $event->post_author
+            );
+            
+            if ($export_content) {
+                $event_data['post_content'] = $event->post_content;
+                $event_data['post_excerpt'] = $event->post_excerpt;
+                
+                // Extract images from content
+                if ($export_images) {
+                    $content_images = $this->extract_content_images($event->post_content, $images_dir, $event->post_name . '_content');
+                    if (!empty($content_images)) {
+                        $event_data['content_images'] = $content_images;
+                        $copied_images = array_merge($copied_images, array_column($content_images, 'filename'));
+                    }
+                }
+            }
+            
+            if ($export_images) {
+                // Export event flyer image
+                $flyer_image_id = get_post_meta($event->ID, '_event_flyer', true);
+                if (!$flyer_image_id) {
+                    $flyer_image_id = get_post_thumbnail_id($event->ID);
+                }
+                
+                if ($flyer_image_id) {
+                    $image_path = get_attached_file($flyer_image_id);
+                    if ($image_path && file_exists($image_path)) {
+                        $image_filename = basename($image_path);
+                        $unique_filename = $event->post_name . '_flyer_' . $image_filename;
+                        $new_image_path = $images_dir . '/' . $unique_filename;
+                        
+                        if (copy($image_path, $new_image_path)) {
+                            $event_data['flyer_image'] = array(
+                                'filename' => $unique_filename,
+                                'original_filename' => $image_filename,
+                                'alt' => get_post_meta($flyer_image_id, '_wp_attachment_image_alt', true),
+                                'title' => get_the_title($flyer_image_id),
+                                'caption' => wp_get_attachment_caption($flyer_image_id)
+                            );
+                            $copied_images[] = $unique_filename;
+                        }
+                    }
+                }
+            }
+            
+            if ($export_meta) {
+                $meta_data = get_post_meta($event->ID);
+                $filtered_meta = array();
+                foreach ($meta_data as $key => $value) {
+                    if (!str_starts_with($key, '_') || in_array($key, ['_event_start_date', '_event_end_date', '_event_location', '_event_organization', '_event_flyer'])) {
+                        $filtered_meta[$key] = is_array($value) && count($value) == 1 ? $value[0] : $value;
+                    }
+                }
+                $event_data['meta'] = $filtered_meta;
+            }
+            
+            if ($export_organizations) {
+                $associated_org_id = get_post_meta($event->ID, '_event_organization', true);
+                if ($associated_org_id) {
+                    $org = get_post($associated_org_id);
+                    if ($org) {
+                        $event_data['organization'] = array(
+                            'id' => $org->ID,
+                            'title' => $org->post_title,
+                            'slug' => $org->post_name
+                        );
+                    }
+                }
+            }
+            
+            $events_data['events'][] = $event_data;
+        }
+        
+        // Save JSON data
+        $json_file = $temp_dir . '/events-data.json';
+        file_put_contents($json_file, json_encode($events_data, JSON_PRETTY_PRINT));
+        
+        // Create ZIP file
+        $zip_filename = 'campus-manager-events-' . date('Y-m-d-H-i-s') . '.zip';
+        $zip_path = $upload_dir['basedir'] . '/' . $zip_filename;
+        
+        $zip = new ZipArchive();
+        if ($zip->open($zip_path, ZipArchive::CREATE) !== TRUE) {
+            $this->cleanup_temp_dir($temp_dir);
+            wp_send_json_error(array('message' => 'Could not create ZIP file'));
+            return;
+        }
+        
+        // Add JSON file to ZIP
+        $zip->addFile($json_file, 'events-data.json');
+        
+        // Add images to ZIP
+        if ($export_images && !empty($copied_images)) {
+            foreach ($copied_images as $image_filename) {
+                $image_path = $images_dir . '/' . $image_filename;
+                if (file_exists($image_path)) {
+                    $zip->addFile($image_path, 'images/' . $image_filename);
+                }
+            }
+        }
+        
+        $zip->close();
+        
+        // Clean up temporary directory
+        $this->cleanup_temp_dir($temp_dir);
+        
+        // Generate download URL
+        $zip_url = $upload_dir['baseurl'] . '/' . $zip_filename;
+        
+        wp_send_json_success(array(
+            'download_url' => $zip_url,
+            'filename' => $zip_filename,
+            'count' => count($events),
+            'images_count' => count($copied_images)
+        ));
+    }
+    
+    public function ajax_import_complete_data() {
+        // Verify nonce
+        if (!wp_verify_nonce($_POST['nonce'], 'import_complete_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+        
+        // Check capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+        
+        if (!isset($_FILES['complete_import_file']) || $_FILES['complete_import_file']['error'] !== UPLOAD_ERR_OK) {
+            wp_send_json_error(array('message' => 'Error uploading file. Please try again.'));
+            return;
+        }
+        
+        $uploaded_file = $_FILES['complete_import_file'];
+        $file_extension = strtolower(pathinfo($uploaded_file['name'], PATHINFO_EXTENSION));
+        
+        if ($file_extension === 'zip') {
+            $this->import_complete_from_zip($uploaded_file);
+        } else if ($file_extension === 'json') {
+            $this->import_complete_from_json($uploaded_file);
+        } else {
+            wp_send_json_error(array('message' => 'Invalid file format. Please upload a JSON or ZIP file.'));
+        }
+    }
+    
+    private function import_complete_from_zip($uploaded_file) {
+        // Check if ZipArchive is available
+        if (!class_exists('ZipArchive')) {
+            wp_send_json_error(array('message' => 'ZIP functionality not available on this server'));
+            return;
+        }
+        
+        $upload_dir = wp_upload_dir();
+        $temp_dir = $upload_dir['basedir'] . '/campus-manager-complete-import-' . time();
+        
+        if (!wp_mkdir_p($temp_dir)) {
+            wp_send_json_error(array('message' => 'Could not create temporary directory'));
+            return;
+        }
+        
+        $zip = new ZipArchive();
+        if ($zip->open($uploaded_file['tmp_name']) !== TRUE) {
+            $this->cleanup_temp_dir($temp_dir);
+            wp_send_json_error(array('message' => 'Could not open ZIP file'));
+            return;
+        }
+        
+        // Extract ZIP contents
+        $zip->extractTo($temp_dir);
+        $zip->close();
+        
+        // Look for campus-manager-complete.json or other data files
+        $json_file = '';
+        if (file_exists($temp_dir . '/campus-manager-complete.json')) {
+            $json_file = $temp_dir . '/campus-manager-complete.json';
+        } elseif (file_exists($temp_dir . '/clubs-data.json')) {
+            $json_file = $temp_dir . '/clubs-data.json';
+        } elseif (file_exists($temp_dir . '/events-data.json')) {
+            $json_file = $temp_dir . '/events-data.json';
+        }
+        
+        if (!$json_file) {
+            $this->cleanup_temp_dir($temp_dir);
+            wp_send_json_error(array('message' => 'Invalid ZIP file format. No data file found.'));
+            return;
+        }
+        
+        $file_content = file_get_contents($json_file);
+        $import_data = json_decode($file_content, true);
+        
+        if (!$import_data) {
+            $this->cleanup_temp_dir($temp_dir);
+            wp_send_json_error(array('message' => 'Invalid import file format.'));
+            return;
+        }
+        
+        $result = $this->process_complete_import($import_data, $temp_dir);
+        
+        // Clean up temporary directory
+        $this->cleanup_temp_dir($temp_dir);
+        
+        wp_send_json_success($result);
+    }
+    
+    private function import_complete_from_json($uploaded_file) {
+        $file_content = file_get_contents($uploaded_file['tmp_name']);
+        $import_data = json_decode($file_content, true);
+        
+        if (!$import_data) {
+            wp_send_json_error(array('message' => 'Invalid import file format.'));
+            return;
+        }
+        
+        $result = $this->process_complete_import($import_data, null);
+        wp_send_json_success($result);
+    }
+    
+    private function process_complete_import($import_data, $temp_dir) {
+        $overwrite_existing = isset($_POST['overwrite_existing']) && $_POST['overwrite_existing'] === '1';
+        $clubs_imported = 0;
+        $events_imported = 0;
+        $clubs_skipped = 0;
+        $events_skipped = 0;
+        $images_dir = $temp_dir ? $temp_dir . '/images' : null;
+        
+        // Import clubs if present
+        if (isset($import_data['clubs'])) {
+            foreach ($import_data['clubs'] as $club_data) {
+                if (empty($club_data['post_slug']) || empty($club_data['post_title'])) {
+                    continue;
+                }
+                
+                $existing_club = get_page_by_path($club_data['post_slug'], OBJECT, 'organization');
+                
+                if ($existing_club && !$overwrite_existing) {
+                    $clubs_skipped++;
+                    continue;
+                }
+                
+                $post_data = array(
+                    'post_type' => 'organization',
+                    'post_title' => sanitize_text_field($club_data['post_title']),
+                    'post_name' => sanitize_title($club_data['post_slug']),
+                    'post_status' => isset($club_data['post_status']) ? $club_data['post_status'] : 'publish',
+                    'post_content' => isset($club_data['post_content']) ? wp_kses_post($club_data['post_content']) : '',
+                    'post_excerpt' => isset($club_data['post_excerpt']) ? wp_kses_post($club_data['post_excerpt']) : '',
+                    'post_author' => isset($club_data['post_author']) ? intval($club_data['post_author']) : get_current_user_id()
+                );
+                
+                if ($existing_club) {
+                    $post_data['ID'] = $existing_club->ID;
+                    $post_id = wp_update_post($post_data);
+                } else {
+                    $post_id = wp_insert_post($post_data);
+                }
+                
+                if ($post_id && !is_wp_error($post_id)) {
+                    // Import metadata
+                    if (!empty($club_data['meta'])) {
+                        foreach ($club_data['meta'] as $meta_key => $meta_value) {
+                            update_post_meta($post_id, $meta_key, $meta_value);
+                        }
+                    }
+                    
+                    // Import featured image
+                    if (!empty($club_data['featured_image']) && $images_dir && is_dir($images_dir)) {
+                        $this->import_featured_image_from_zip($post_id, $club_data['featured_image'], $images_dir);
+                    }
+                    
+                    // Import content images
+                    if (!empty($club_data['content_images']) && $images_dir && is_dir($images_dir)) {
+                        $this->import_content_images($post_id, $club_data['content_images'], $images_dir, $club_data['post_content']);
+                    }
+                    
+                    $clubs_imported++;
+                }
+            }
+        }
+        
+        // Import events if present
+        if (isset($import_data['events'])) {
+            foreach ($import_data['events'] as $event_data) {
+                if (empty($event_data['post_slug']) || empty($event_data['post_title'])) {
+                    continue;
+                }
+                
+                $existing_event = get_page_by_path($event_data['post_slug'], OBJECT, 'event');
+                
+                if ($existing_event && !$overwrite_existing) {
+                    $events_skipped++;
+                    continue;
+                }
+                
+                $post_data = array(
+                    'post_type' => 'event',
+                    'post_title' => sanitize_text_field($event_data['post_title']),
+                    'post_name' => sanitize_title($event_data['post_slug']),
+                    'post_status' => isset($event_data['post_status']) ? $event_data['post_status'] : 'publish',
+                    'post_content' => isset($event_data['post_content']) ? wp_kses_post($event_data['post_content']) : '',
+                    'post_excerpt' => isset($event_data['post_excerpt']) ? wp_kses_post($event_data['post_excerpt']) : '',
+                    'post_author' => isset($event_data['post_author']) ? intval($event_data['post_author']) : get_current_user_id()
+                );
+                
+                if ($existing_event) {
+                    $post_data['ID'] = $existing_event->ID;
+                    $post_id = wp_update_post($post_data);
+                } else {
+                    $post_id = wp_insert_post($post_data);
+                }
+                
+                if ($post_id && !is_wp_error($post_id)) {
+                    // Import metadata
+                    if (!empty($event_data['meta'])) {
+                        foreach ($event_data['meta'] as $meta_key => $meta_value) {
+                            update_post_meta($post_id, $meta_key, $meta_value);
+                        }
+                    }
+                    
+                    // Import flyer image
+                    if (!empty($event_data['flyer_image']) && $images_dir && is_dir($images_dir)) {
+                        $attachment_id = $this->import_featured_image_from_zip($post_id, $event_data['flyer_image'], $images_dir);
+                        if ($attachment_id) {
+                            update_post_meta($post_id, '_event_flyer', $attachment_id);
+                        }
+                    }
+                    
+                    // Import content images
+                    if (!empty($event_data['content_images']) && $images_dir && is_dir($images_dir)) {
+                        $this->import_content_images($post_id, $event_data['content_images'], $images_dir, $event_data['post_content']);
+                    }
+                    
+                    // Import organization association
+                    if (!empty($event_data['organization'])) {
+                        $org_slug = $event_data['organization']['slug'];
+                        $org = get_page_by_path($org_slug, OBJECT, 'organization');
+                        if ($org) {
+                            update_post_meta($post_id, '_event_organization', $org->ID);
+                        }
+                    }
+                    
+                    $events_imported++;
+                }
+            }
+        }
+        
+        return array(
+            'clubs_imported' => $clubs_imported,
+            'events_imported' => $events_imported,
+            'clubs_skipped' => $clubs_skipped,
+            'events_skipped' => $events_skipped
+        );
+    }
+    
+    private function import_content_images($post_id, $content_images, $images_dir, $post_content) {
+        // Import content images and update post content with new URLs
+        $updated_content = $post_content;
+        
+        foreach ($content_images as $image_data) {
+            if (empty($image_data['filename']) || empty($image_data['original_url'])) {
+                continue;
+            }
+            
+            $image_path = $images_dir . '/' . $image_data['filename'];
+            
+            if (!file_exists($image_path)) {
+                continue;
+            }
+            
+            $upload_dir = wp_upload_dir();
+            $new_filename = $image_data['original_filename'] ?: $image_data['filename'];
+            $new_file_path = $upload_dir['path'] . '/' . $new_filename;
+            
+            // Copy image to uploads directory
+            if (copy($image_path, $new_file_path)) {
+                // Create attachment
+                $file_type = wp_check_filetype($new_filename, null);
+                $attachment_data = array(
+                    'post_mime_type' => $file_type['type'],
+                    'post_title' => isset($image_data['title']) ? $image_data['title'] : '',
+                    'post_content' => '',
+                    'post_excerpt' => isset($image_data['caption']) ? $image_data['caption'] : '',
+                    'post_status' => 'inherit'
+                );
+                
+                $attachment_id = wp_insert_attachment($attachment_data, $new_file_path, $post_id);
+                
+                if (!is_wp_error($attachment_id)) {
+                    // Generate metadata
+                    require_once(ABSPATH . 'wp-admin/includes/image.php');
+                    $attachment_metadata = wp_generate_attachment_metadata($attachment_id, $new_file_path);
+                    wp_update_attachment_metadata($attachment_id, $attachment_metadata);
+                    
+                    // Set alt text
+                    if (!empty($image_data['alt'])) {
+                        update_post_meta($attachment_id, '_wp_attachment_image_alt', $image_data['alt']);
+                    }
+                    
+                    // Update content with new image URL
+                    $new_image_url = wp_get_attachment_url($attachment_id);
+                    $updated_content = str_replace($image_data['original_url'], $new_image_url, $updated_content);
+                }
+            }
+        }
+        
+        // Update post content with new image URLs
+        if ($updated_content !== $post_content) {
+            wp_update_post(array(
+                'ID' => $post_id,
+                'post_content' => $updated_content
+            ));
+        }
     }
 }

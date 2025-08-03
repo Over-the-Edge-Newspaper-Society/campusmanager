@@ -367,6 +367,7 @@ class UNBC_Events_Meta_Boxes {
         $facebook = get_post_meta($post->ID, 'org_facebook', true);
         $instagram = get_post_meta($post->ID, 'org_instagram', true);
         $twitter = get_post_meta($post->ID, 'org_twitter', true);
+        $linkedin = get_post_meta($post->ID, 'org_linkedin', true);
         $discord = get_post_meta($post->ID, 'org_discord', true);
         $linktree = get_post_meta($post->ID, 'org_linktree', true);
         $youtube = get_post_meta($post->ID, 'org_youtube', true);
@@ -389,6 +390,10 @@ class UNBC_Events_Meta_Boxes {
             <tr>
                 <th><label for="org_twitter">Twitter/X</label></th>
                 <td><input type="text" id="org_twitter" name="org_twitter" value="<?php echo esc_attr($twitter); ?>" class="regular-text" placeholder="@yourusername" /></td>
+            </tr>
+            <tr>
+                <th><label for="org_linkedin">LinkedIn</label></th>
+                <td><input type="url" id="org_linkedin" name="org_linkedin" value="<?php echo esc_attr($linkedin); ?>" class="regular-text" placeholder="https://linkedin.com/company/yourcompany" /></td>
             </tr>
             <tr>
                 <th><label for="org_discord">Discord Server</label></th>
@@ -429,7 +434,9 @@ class UNBC_Events_Meta_Boxes {
                         <option value="">Select status</option>
                         <option value="Established" <?php selected($status, 'Established'); ?>>Established</option>
                         <option value="New" <?php selected($status, 'New'); ?>>New</option>
+                        <option value="Probationary" <?php selected($status, 'Probationary'); ?>>Probationary</option>
                         <option value="Inactive" <?php selected($status, 'Inactive'); ?>>Inactive</option>
+                        <option value="Dissolved" <?php selected($status, 'Dissolved'); ?>>Dissolved</option>
                     </select>
                 </td>
             </tr>
@@ -612,7 +619,7 @@ class UNBC_Events_Meta_Boxes {
                 'org_membership_requirements', 'org_meeting_schedule', 'org_president_name',
                 'org_president_email', 'org_contact_name', 'org_contact_email',
                 'org_office_location', 'org_website', 'org_facebook', 'org_instagram',
-                'org_twitter', 'org_discord', 'org_linktree', 'org_youtube', 
+                'org_twitter', 'org_linkedin', 'org_discord', 'org_linktree', 'org_youtube', 
                 'org_registration_link', 'org_status', 'org_founded_date', 'org_approval_date', 'org_registration_date',
                 'org_original_image_path'
             );
@@ -628,7 +635,7 @@ class UNBC_Events_Meta_Boxes {
                     }
                     
                     // Handle URL fields
-                    if (in_array($field, array('org_website', 'org_facebook', 'org_instagram', 'org_discord', 'org_linktree', 'org_youtube', 'org_registration_link'))) {
+                    if (in_array($field, array('org_website', 'org_facebook', 'org_instagram', 'org_linkedin', 'org_discord', 'org_linktree', 'org_youtube', 'org_registration_link'))) {
                         update_post_meta($post_id, $field, esc_url_raw($_POST[$field]));
                     }
                     // Handle email fields
