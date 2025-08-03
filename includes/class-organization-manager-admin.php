@@ -2270,7 +2270,7 @@ class UNBC_Organization_Manager_Admin {
             
             if ($export_images) {
                 // Export event flyer image
-                $flyer_image_id = get_post_meta($event->ID, '_event_flyer', true);
+                $flyer_image_id = get_post_meta($event->ID, 'flyer_id', true);
                 if (!$flyer_image_id) {
                     $flyer_image_id = get_post_thumbnail_id($event->ID);
                 }
@@ -2300,7 +2300,7 @@ class UNBC_Organization_Manager_Admin {
                 $meta_data = get_post_meta($event->ID);
                 $filtered_meta = array();
                 foreach ($meta_data as $key => $value) {
-                    if (!str_starts_with($key, '_') || in_array($key, ['_event_start_date', '_event_end_date', '_event_location', '_event_organization', '_event_flyer'])) {
+                    if (!str_starts_with($key, '_') || in_array($key, ['_event_start_date', '_event_end_date', '_event_location', '_event_organization']) || in_array($key, ['event_date', 'start_time', 'end_time', 'location', 'building', 'room', 'cost', 'organization_id', 'flyer_id'])) {
                         $filtered_meta[$key] = is_array($value) && count($value) == 1 ? $value[0] : $value;
                     }
                 }
@@ -2308,7 +2308,7 @@ class UNBC_Organization_Manager_Admin {
             }
             
             if ($export_relations) {
-                $associated_org_id = get_post_meta($event->ID, '_event_organization', true);
+                $associated_org_id = get_post_meta($event->ID, 'organization_id', true);
                 if ($associated_org_id) {
                     $org = get_post($associated_org_id);
                     if ($org) {
@@ -2479,7 +2479,7 @@ class UNBC_Organization_Manager_Admin {
                 $meta_data = get_post_meta($event->ID);
                 $filtered_meta = array();
                 foreach ($meta_data as $key => $value) {
-                    if (!str_starts_with($key, '_') || in_array($key, ['_event_start_date', '_event_end_date', '_event_location', '_event_organization', '_event_flyer'])) {
+                    if (!str_starts_with($key, '_') || in_array($key, ['_event_start_date', '_event_end_date', '_event_location', '_event_organization']) || in_array($key, ['event_date', 'start_time', 'end_time', 'location', 'building', 'room', 'cost', 'organization_id', 'flyer_id'])) {
                         $filtered_meta[$key] = is_array($value) && count($value) == 1 ? $value[0] : $value;
                     }
                 }
@@ -2487,7 +2487,7 @@ class UNBC_Organization_Manager_Admin {
             }
             
             if ($export_relations) {
-                $associated_org_id = get_post_meta($event->ID, '_event_organization', true);
+                $associated_org_id = get_post_meta($event->ID, 'organization_id', true);
                 if ($associated_org_id) {
                     $org = get_post($associated_org_id);
                     if ($org) {
@@ -2578,7 +2578,7 @@ class UNBC_Organization_Manager_Admin {
             
             // Include organization associations if requested
             if ($export_organizations) {
-                $associated_org_id = get_post_meta($event->ID, '_event_organization', true);
+                $associated_org_id = get_post_meta($event->ID, 'organization_id', true);
                 if ($associated_org_id) {
                     $org = get_post($associated_org_id);
                     if ($org) {
@@ -2748,7 +2748,7 @@ class UNBC_Organization_Manager_Admin {
             
             if ($export_images) {
                 // Export event flyer image
-                $flyer_image_id = get_post_meta($event->ID, '_event_flyer', true);
+                $flyer_image_id = get_post_meta($event->ID, 'flyer_id', true);
                 if (!$flyer_image_id) {
                     $flyer_image_id = get_post_thumbnail_id($event->ID);
                 }
@@ -2778,7 +2778,7 @@ class UNBC_Organization_Manager_Admin {
                 $meta_data = get_post_meta($event->ID);
                 $filtered_meta = array();
                 foreach ($meta_data as $key => $value) {
-                    if (!str_starts_with($key, '_') || in_array($key, ['_event_start_date', '_event_end_date', '_event_location', '_event_organization', '_event_flyer'])) {
+                    if (!str_starts_with($key, '_') || in_array($key, ['_event_start_date', '_event_end_date', '_event_location', '_event_organization']) || in_array($key, ['event_date', 'start_time', 'end_time', 'location', 'building', 'room', 'cost', 'organization_id', 'flyer_id'])) {
                         $filtered_meta[$key] = is_array($value) && count($value) == 1 ? $value[0] : $value;
                     }
                 }
@@ -2786,7 +2786,7 @@ class UNBC_Organization_Manager_Admin {
             }
             
             if ($export_organizations) {
-                $associated_org_id = get_post_meta($event->ID, '_event_organization', true);
+                $associated_org_id = get_post_meta($event->ID, 'organization_id', true);
                 if ($associated_org_id) {
                     $org = get_post($associated_org_id);
                     if ($org) {
@@ -3053,7 +3053,7 @@ class UNBC_Organization_Manager_Admin {
                     if (!empty($event_data['flyer_image']) && $images_dir && is_dir($images_dir)) {
                         $attachment_id = $this->import_featured_image_from_zip($post_id, $event_data['flyer_image'], $images_dir);
                         if ($attachment_id) {
-                            update_post_meta($post_id, '_event_flyer', $attachment_id);
+                            update_post_meta($post_id, 'flyer_id', $attachment_id);
                         }
                     }
                     
@@ -3067,7 +3067,7 @@ class UNBC_Organization_Manager_Admin {
                         $org_slug = $event_data['organization']['slug'];
                         $org = get_page_by_path($org_slug, OBJECT, 'organization');
                         if ($org) {
-                            update_post_meta($post_id, '_event_organization', $org->ID);
+                            update_post_meta($post_id, 'organization_id', $org->ID);
                         }
                     }
                     

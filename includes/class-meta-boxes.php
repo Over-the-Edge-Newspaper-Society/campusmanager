@@ -200,7 +200,8 @@ class UNBC_Events_Meta_Boxes {
                 <td>
                     <div class="flyer-upload">
                         <?php if ($flyer_id): 
-                            $flyer_url = wp_get_attachment_image_src($flyer_id, 'thumbnail')[0];
+                            $flyer_image = wp_get_attachment_image_src($flyer_id, 'thumbnail');
+                            $flyer_url = $flyer_image ? $flyer_image[0] : '';
                         ?>
                             <img src="<?php echo esc_url($flyer_url); ?>" style="max-width: 150px; height: auto; display: block; margin-bottom: 10px;" />
                         <?php endif; ?>
