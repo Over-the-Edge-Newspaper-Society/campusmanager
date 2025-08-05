@@ -16,6 +16,8 @@ class UNBC_Events_Plugin {
         // Include files immediately
         $this->include_files();
         
+        // REMOVED: Minimal organization settings page override
+        
         // Initialize REST API immediately after including files
         new UNBC_Events_REST_API();
     }
