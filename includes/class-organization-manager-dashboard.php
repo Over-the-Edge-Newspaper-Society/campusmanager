@@ -56,23 +56,6 @@ class UNBC_Organization_Manager_Dashboard {
             array($this, 'render_organization_dashboard')
         );
         
-        // Add submenu for events
-        add_submenu_page(
-            'organization-dashboard',
-            'Events',
-            'Events',
-            'read',
-            'edit.php?post_type=event'
-        );
-        
-        // Add submenu for club posts
-        add_submenu_page(
-            'organization-dashboard',
-            'Club Posts',
-            'Club Posts',
-            'read',
-            'edit.php?post_type=club_post'
-        );
         
         // Hide the default Organizations menu for managers
         remove_menu_page('edit.php?post_type=organization');
