@@ -29,6 +29,7 @@ class UNBC_Events_Plugin {
         
         // Use refactored organization manager classes
         new UNBC_Organization_Manager_Admin_Refactored();
+        new UNBC_Organization_Manager_Dashboard();
         
         new UNBC_Events_Blocks();
         new UNBC_Calendar_Blocks();
@@ -76,6 +77,7 @@ class UNBC_Events_Plugin {
             'includes/class-organization-import-export.php',
             'includes/class-organization-template-manager.php',
             'includes/class-organization-manager-admin-refactored.php',
+            'includes/class-organization-manager-dashboard.php',
             'includes/class-blocks.php',
             'includes/class-calendar-blocks.php',
             'includes/class-settings.php'
