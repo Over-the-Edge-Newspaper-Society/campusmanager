@@ -1,0 +1,739 @@
+/* Campus Manager Calendar & List View - Dark Mode Support
+   Works with the existing dark mode toggle from the theme
+   Activates when html[data-theme="dark"] is set
+*/
+
+/* -------------------- Calendar Container -------------------- */
+html[data-theme="dark"] .unbc-calendar-container {
+    background: var(--surface, #1e293b);
+    color: var(--text, #e6eaf2);
+}
+
+html[data-theme="dark"] .unbc-calendar-loading {
+    color: var(--text-sec, #b9c0cf);
+}
+
+/* -------------------- Calendar View Components -------------------- */
+html[data-theme="dark"] .bg-white.dark\:bg-gray-800 {
+    background-color: var(--surface, #1e293b) !important;
+}
+
+html[data-theme="dark"] .border-gray-200.dark\:border-gray-700 {
+    border-color: var(--border, #334155) !important;
+}
+
+/* -------------------- Tabs and Tab List -------------------- */
+/* Tab container */
+html[data-theme="dark"] .bg-gray-100,
+html[data-theme="dark"] .dark\:bg-gray-700,
+html[data-theme="dark"] [data-slot="tabs-list"] {
+    background-color: var(--muted, #141922) !important;
+}
+
+/* Individual tabs */
+html[data-theme="dark"] [data-slot="tabs-trigger"] {
+    background-color: transparent !important;
+    color: var(--text-sec, #b9c0cf) !important;
+    border-color: transparent !important;
+}
+
+/* Active tab */
+html[data-theme="dark"] [data-slot="tabs-trigger"][data-state="active"],
+html[data-theme="dark"] [data-state="active"].dark\:data-\[state\=active\]\:bg-gray-600,
+html[data-theme="dark"] .data-\[state\=active\]\:bg-white[data-state="active"] {
+    background-color: var(--surface, #1e293b) !important;
+    color: var(--text, #e6eaf2) !important;
+    border-color: var(--border, #334155) !important;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Tab hover states */
+html[data-theme="dark"] [data-slot="tabs-trigger"]:hover {
+    background-color: var(--bg-elev, #141922) !important;
+    color: var(--text, #e6eaf2) !important;
+}
+
+/* Tab text and icons */
+html[data-theme="dark"] .dark\:text-gray-300,
+html[data-theme="dark"] [data-slot="tabs-trigger"] svg {
+    color: var(--text-sec, #b9c0cf) !important;
+}
+
+html[data-theme="dark"] [data-slot="tabs-trigger"][data-state="active"] svg {
+    color: var(--text, #e6eaf2) !important;
+}
+
+/* Specific overrides for the tablist classes */
+html[data-theme="dark"] .text-muted-foreground {
+    color: var(--text-sec, #b9c0cf) !important;
+}
+
+html[data-theme="dark"] .text-foreground {
+    color: var(--text, #e6eaf2) !important;
+}
+
+/* -------------------- Calendar Grid -------------------- */
+html[data-theme="dark"] .grid-cols-7,
+html[data-theme="dark"] .grid-cols-8 {
+    background: var(--surface, #1e293b);
+}
+
+/* Day cells */
+html[data-theme="dark"] .day-card,
+html[data-theme="dark"] .border-gray-200 {
+    border-color: var(--border, #334155);
+    background: var(--surface, #1e293b);
+}
+
+html[data-theme="dark"] .day-card:hover {
+    background: var(--bg-elev, #141922);
+}
+
+/* Current day */
+html[data-theme="dark"] .bg-blue-50 {
+    background-color: color-mix(in oklab, var(--brand), transparent 90%) !important;
+}
+
+/* Text colors */
+html[data-theme="dark"] .text-gray-900 {
+    color: var(--text, #e6eaf2) !important;
+}
+
+html[data-theme="dark"] .text-gray-600 {
+    color: var(--text-sec, #b9c0cf) !important;
+}
+
+html[data-theme="dark"] .text-gray-500 {
+    color: var(--text-sec, #b9c0cf) !important;
+}
+
+html[data-theme="dark"] .text-gray-400 {
+    color: #94a3b8 !important;
+}
+
+/* -------------------- Event Cards -------------------- */
+html[data-theme="dark"] .event-card {
+    background: var(--bg-elev, #141922);
+    border-color: var(--border, #334155);
+}
+
+html[data-theme="dark"] .event-card:hover {
+    background: color-mix(in oklab, var(--bg-elev), white 5%);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Month view - event text visibility on hover */
+html[data-theme="dark"] .day-card:hover .event-card,
+html[data-theme="dark"] .day-card:hover .event-card * {
+    color: var(--text, #e6eaf2) !important;
+}
+
+/* Ensure event names are visible in ALL views - comprehensive targeting */
+html[data-theme="dark"] .event-card,
+html[data-theme="dark"] .event-card *,
+html[data-theme="dark"] .event-card .text-xs,
+html[data-theme="dark"] .event-card .text-sm,
+html[data-theme="dark"] .event-card .text-base,
+html[data-theme="dark"] .event-card .text-lg,
+html[data-theme="dark"] .event-card p,
+html[data-theme="dark"] .event-card span,
+html[data-theme="dark"] .event-card div,
+html[data-theme="dark"] .event-card h1,
+html[data-theme="dark"] .event-card h2,
+html[data-theme="dark"] .event-card h3,
+html[data-theme="dark"] .event-card h4,
+html[data-theme="dark"] .event-card h5,
+html[data-theme="dark"] .event-card h6 {
+    color: var(--text, #e6eaf2) !important;
+}
+
+/* Force visibility for any text inside event cards */
+html[data-theme="dark"] .bg-white .event-card,
+html[data-theme="dark"] .bg-white .event-card *,
+html[data-theme="dark"] .rounded .event-card,
+html[data-theme="dark"] .rounded .event-card * {
+    color: var(--text, #e6eaf2) !important;
+}
+
+/* Specific targeting for common event text patterns */
+html[data-theme="dark"] [class*="event"] p,
+html[data-theme="dark"] [class*="event"] span,
+html[data-theme="dark"] [class*="event"] div {
+    color: var(--text, #e6eaf2) !important;
+}
+
+/* Event category badges with proper dark mode colors */
+html[data-theme="dark"] .bg-blue-100 {
+    background-color: rgba(59, 130, 246, 0.15) !important;
+}
+html[data-theme="dark"] .text-blue-800,
+html[data-theme="dark"] .dark\:text-blue-100 {
+    color: #93bbfc !important;
+}
+
+html[data-theme="dark"] .bg-green-100 {
+    background-color: rgba(34, 197, 94, 0.15) !important;
+}
+html[data-theme="dark"] .text-green-800,
+html[data-theme="dark"] .dark\:text-green-100 {
+    color: #86efac !important;
+}
+
+html[data-theme="dark"] .bg-purple-100 {
+    background-color: rgba(168, 85, 247, 0.15) !important;
+}
+html[data-theme="dark"] .text-purple-800,
+html[data-theme="dark"] .dark\:text-purple-100 {
+    color: #c4a1fc !important;
+}
+
+html[data-theme="dark"] .bg-orange-100 {
+    background-color: rgba(249, 115, 22, 0.15) !important;
+}
+html[data-theme="dark"] .text-orange-800,
+html[data-theme="dark"] .dark\:text-orange-100 {
+    color: #fb923c !important;
+}
+
+html[data-theme="dark"] .bg-pink-100 {
+    background-color: rgba(236, 72, 153, 0.15) !important;
+}
+html[data-theme="dark"] .text-pink-800,
+html[data-theme="dark"] .dark\:text-pink-100 {
+    color: #f9a8d4 !important;
+}
+
+html[data-theme="dark"] .bg-yellow-100 {
+    background-color: rgba(234, 179, 8, 0.15) !important;
+}
+html[data-theme="dark"] .text-yellow-800,
+html[data-theme="dark"] .dark\:text-yellow-100 {
+    color: #fde047 !important;
+}
+
+html[data-theme="dark"] .bg-red-100 {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+}
+html[data-theme="dark"] .text-red-800,
+html[data-theme="dark"] .dark\:text-red-100 {
+    color: #fca5a5 !important;
+}
+
+html[data-theme="dark"] .bg-teal-100 {
+    background-color: rgba(20, 184, 166, 0.15) !important;
+}
+html[data-theme="dark"] .text-teal-800,
+html[data-theme="dark"] .dark\:text-teal-100 {
+    color: #5eead4 !important;
+}
+
+/* -------------------- List View -------------------- */
+html[data-theme="dark"] .space-y-4 > div {
+    background: var(--surface, #1e293b);
+    border-color: var(--border, #334155);
+}
+
+html[data-theme="dark"] .hover\:bg-gray-50:hover,
+html[data-theme="dark"] .hover\:bg-gray-100:hover {
+    background-color: var(--bg-elev, #141922) !important;
+}
+
+/* List view item hover states */
+html[data-theme="dark"] .space-y-4 > div:hover,
+html[data-theme="dark"] .bg-white:hover {
+    background-color: var(--bg-elev, #141922) !important;
+}
+
+/* -------------------- Filters & Controls -------------------- */
+html[data-theme="dark"] select,
+html[data-theme="dark"] input[type="text"],
+html[data-theme="dark"] input[type="search"],
+html[data-theme="dark"] .bg-white {
+    background-color: var(--surface, #1e293b) !important;
+    border-color: var(--border, #334155) !important;
+    color: var(--text, #e6eaf2) !important;
+}
+
+html[data-theme="dark"] select:focus,
+html[data-theme="dark"] input[type="text"]:focus,
+html[data-theme="dark"] input[type="search"]:focus {
+    border-color: var(--brand, #4a7c59) !important;
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand), transparent 70%);
+}
+
+html[data-theme="dark"] option {
+    background-color: var(--surface, #1e293b);
+    color: var(--text, #e6eaf2);
+}
+
+/* Placeholder text */
+html[data-theme="dark"] ::placeholder {
+    color: var(--text-sec, #b9c0cf);
+    opacity: 0.7;
+}
+
+/* -------------------- Buttons -------------------- */
+html[data-theme="dark"] button {
+    color: var(--text, #e6eaf2);
+}
+
+html[data-theme="dark"] .bg-blue-600 {
+    background-color: var(--brand, #4a7c59) !important;
+}
+
+html[data-theme="dark"] .hover\:bg-blue-700:hover {
+    background-color: var(--brand-2, #86a58e) !important;
+}
+
+html[data-theme="dark"] button.bg-gray-100 {
+    background-color: var(--muted, #141922) !important;
+    color: var(--text, #e6eaf2) !important;
+}
+
+html[data-theme="dark"] button.hover\:bg-gray-100:hover {
+    background-color: var(--bg-elev, #141922) !important;
+}
+
+/* -------------------- Dialog/Modal -------------------- */
+html[data-theme="dark"] .fixed.inset-0.bg-black\/80 {
+    background-color: rgba(0, 0, 0, 0.85) !important;
+}
+
+html[data-theme="dark"] .bg-white.rounded-lg {
+    background-color: var(--surface, #1e293b) !important;
+    border: 1px solid var(--border, #334155);
+}
+
+html[data-theme="dark"] .border-b {
+    border-bottom-color: var(--border, #334155) !important;
+}
+
+/* Dialog Content Styling */
+html[data-theme="dark"] .space-y-3 {
+    background-color: transparent !important;
+}
+
+html[data-theme="dark"] .space-y-3:hover {
+    background-color: transparent !important;
+}
+
+/* Dialog item rows - prevent weird hover effects */
+html[data-theme="dark"] .space-y-3 > div {
+    background-color: transparent !important;
+    transition: none !important;
+}
+
+html[data-theme="dark"] .space-y-3 > div:hover {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+/* Dialog text elements */
+html[data-theme="dark"] .space-y-3 .font-medium {
+    color: var(--text, #e6eaf2) !important;
+}
+
+html[data-theme="dark"] .space-y-3 .text-gray-900 {
+    color: var(--text, #e6eaf2) !important;
+}
+
+html[data-theme="dark"] .space-y-3 .text-gray-600 {
+    color: var(--text-sec, #b9c0cf) !important;
+}
+
+html[data-theme="dark"] .space-y-3 .text-gray-500 {
+    color: var(--text-sec, #b9c0cf) !important;
+}
+
+/* Dialog icons */
+html[data-theme="dark"] .space-y-3 svg {
+    color: var(--text-sec, #b9c0cf) !important;
+}
+
+/* Remove any unwanted hover effects from dialog elements */
+html[data-theme="dark"] .space-y-3 .flex.items-center.gap-3 {
+    pointer-events: none !important;
+}
+
+html[data-theme="dark"] .space-y-3 .flex.items-center.gap-3:hover {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Ensure dialog badges are properly styled */
+html[data-theme="dark"] .space-y-3 .inline-flex.items-center.rounded-full {
+    pointer-events: auto !important;
+}
+
+/* -------------------- Mobile Specific -------------------- */
+@media (max-width: 768px) {
+    html[data-theme="dark"] .mobile-calendar {
+        background: var(--surface, #1e293b) !important;
+        color: var(--text, #e6eaf2) !important;
+    }
+    
+    html[data-theme="dark"] .mobile-list-view {
+        background: var(--bg, #0f172a);
+    }
+    
+    html[data-theme="dark"] .mobile-list-view > div {
+        background: var(--surface, #1e293b);
+        border-color: var(--border, #334155);
+    }
+}
+
+/* -------------------- Mobile Calendar Comprehensive Fix -------------------- */
+/* Mobile calendar container */
+html[data-theme="dark"] .mobile-calendar,
+html[data-theme="dark"] .block.md\:hidden.mobile-calendar {
+    background: var(--surface, #1e293b) !important;
+}
+
+/* Mobile calendar card */
+html[data-theme="dark"] .mobile-calendar [data-slot="card"] {
+    background: var(--surface, #1e293b) !important;
+    border-color: var(--border, #334155) !important;
+    color: var(--text, #e6eaf2) !important;
+}
+
+/* Mobile calendar navigation buttons */
+html[data-theme="dark"] .mobile-calendar button {
+    background: var(--bg-elev, #141922) !important;
+    color: var(--text, #e6eaf2) !important;
+    border-color: var(--border, #334155) !important;
+}
+
+html[data-theme="dark"] .mobile-calendar button:hover {
+    background: var(--muted, #141922) !important;
+    color: var(--text, #e6eaf2) !important;
+}
+
+/* Mobile calendar text */
+html[data-theme="dark"] .mobile-calendar h3 {
+    color: var(--text, #e6eaf2) !important;
+}
+
+html[data-theme="dark"] .mobile-calendar .text-gray-900 {
+    color: var(--text, #e6eaf2) !important;
+}
+
+html[data-theme="dark"] .mobile-calendar .text-gray-600 {
+    color: var(--text-sec, #b9c0cf) !important;
+}
+
+html[data-theme="dark"] .mobile-calendar .text-gray-400 {
+    color: var(--text-sec, #b9c0cf) !important;
+}
+
+/* Mobile calendar day buttons */
+html[data-theme="dark"] .mobile-calendar .grid-cols-7 button {
+    color: var(--text, #e6eaf2) !important;
+}
+
+html[data-theme="dark"] .mobile-calendar .grid-cols-7 button:hover {
+    background: var(--bg-elev, #141922) !important;
+}
+
+/* Current day highlighting */
+html[data-theme="dark"] .mobile-calendar .bg-blue-500 {
+    background: var(--brand, #4a7c59) !important;
+    color: white !important;
+}
+
+html[data-theme="dark"] .mobile-calendar .hover\:bg-blue-600:hover {
+    background: var(--brand-2, #86a58e) !important;
+}
+
+/* Mobile calendar footer */
+html[data-theme="dark"] .mobile-calendar [data-slot="card-footer"] {
+    border-color: var(--border, #334155) !important;
+    background: var(--surface, #1e293b) !important;
+}
+
+/* Mobile event items */
+html[data-theme="dark"] .mobile-calendar .bg-muted {
+    background: var(--bg-elev, #141922) !important;
+    color: var(--text, #e6eaf2) !important;
+}
+
+html[data-theme="dark"] .mobile-calendar .hover\:bg-gray-100:hover {
+    background: var(--muted, #141922) !important;
+}
+
+html[data-theme="dark"] .mobile-calendar .text-muted-foreground {
+    color: var(--text-sec, #b9c0cf) !important;
+}
+
+/* Fix the green color issues */
+html[data-theme="dark"] .mobile-calendar .after\:bg-green-500:after {
+    background: var(--brand, #4a7c59) !important;
+}
+
+/* Override any hardcoded colors */
+html[data-theme="dark"] .mobile-calendar * {
+    border-color: var(--border, #334155) !important;
+}
+
+html[data-theme="dark"] .mobile-calendar .bg-white {
+    background: var(--surface, #1e293b) !important;
+}
+
+html[data-theme="dark"] .mobile-calendar .dark\:bg-gray-950 {
+    background: var(--bg-elev, #141922) !important;
+}
+
+html[data-theme="dark"] .mobile-calendar .dark\:bg-gray-700 {
+    background: var(--muted, #141922) !important;
+}
+
+html[data-theme="dark"] .mobile-calendar .dark\:bg-gray-600 {
+    background: var(--bg-elev, #141922) !important;
+}
+
+html[data-theme="dark"] .mobile-calendar .dark\:text-slate-50,
+html[data-theme="dark"] .mobile-calendar .dark\:text-gray-100 {
+    color: var(--text, #e6eaf2) !important;
+}
+
+html[data-theme="dark"] .mobile-calendar .dark\:text-gray-400,
+html[data-theme="dark"] .mobile-calendar .dark\:text-gray-500 {
+    color: var(--text-sec, #b9c0cf) !important;
+}
+
+/* -------------------- Organization List Badges -------------------- */
+/* Fix organization badges in list view */
+html[data-theme="dark"] .inline-flex.items-center.rounded-full {
+    background-color: var(--bg-elev, #141922) !important;
+    color: var(--text, #e6eaf2) !important;
+    border-color: var(--border, #334155) !important;
+}
+
+html[data-theme="dark"] .bg-slate-100 {
+    background-color: var(--bg-elev, #141922) !important;
+}
+
+html[data-theme="dark"] .text-slate-900 {
+    color: var(--text, #e6eaf2) !important;
+}
+
+html[data-theme="dark"] .hover\:bg-slate-100\/80:hover {
+    background-color: var(--muted, #141922) !important;
+}
+
+/* Specific targeting for organization badges */
+html[data-theme="dark"] .inline-flex.items-center.rounded-full.border.font-semibold {
+    background-color: var(--bg-elev, #141922) !important;
+    color: var(--text, #e6eaf2) !important;
+    border-color: var(--border, #334155) !important;
+}
+
+html[data-theme="dark"] .inline-flex.items-center.rounded-full.border.font-semibold:hover {
+    background-color: var(--muted, #141922) !important;
+    color: var(--text, #e6eaf2) !important;
+}
+
+/* Focus states for badges */
+html[data-theme="dark"] .focus\:ring-slate-950:focus {
+    --tw-ring-color: var(--brand, #4a7c59) !important;
+}
+
+html[data-theme="dark"] .dark\:focus\:ring-slate-300:focus {
+    --tw-ring-color: var(--brand, #4a7c59) !important;
+}
+
+/* Additional badge and chip targeting */
+html[data-theme="dark"] .border-transparent.bg-slate-100.text-slate-900 {
+    background-color: var(--bg-elev, #141922) !important;
+    color: var(--text, #e6eaf2) !important;
+    border-color: var(--border, #334155) !important;
+}
+
+html[data-theme="dark"] .border-transparent.bg-slate-100.text-slate-900:hover {
+    background-color: var(--muted, #141922) !important;
+}
+
+/* List view organization items */
+html[data-theme="dark"] .space-y-4 .inline-flex.items-center.rounded-full,
+html[data-theme="dark"] .space-y-3 .inline-flex.items-center.rounded-full {
+    background-color: var(--bg-elev, #141922) !important;
+    color: var(--text, #e6eaf2) !important;
+    border-color: var(--border, #334155) !important;
+}
+
+/* Ensure all slate colors are overridden */
+html[data-theme="dark"] .bg-slate-50,
+html[data-theme="dark"] .bg-slate-200 {
+    background-color: var(--bg-elev, #141922) !important;
+}
+
+html[data-theme="dark"] .text-slate-700,
+html[data-theme="dark"] .text-slate-800 {
+    color: var(--text, #e6eaf2) !important;
+}
+
+/* -------------------- Scrollbars (Webkit browsers) -------------------- */
+html[data-theme="dark"] ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-track {
+    background: var(--muted, #141922);
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: var(--border, #334155);
+    border-radius: 6px;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-sec, #b9c0cf);
+}
+
+/* -------------------- Loading States -------------------- */
+html[data-theme="dark"] .animate-spin {
+    color: var(--brand, #4a7c59);
+}
+
+/* -------------------- Focus States -------------------- */
+html[data-theme="dark"] .focus\:ring-2:focus {
+    --tw-ring-color: var(--brand, #4a7c59) !important;
+}
+
+html[data-theme="dark"] .focus-visible\:ring-2:focus-visible {
+    --tw-ring-color: var(--brand, #4a7c59) !important;
+}
+
+/* -------------------- Card Components -------------------- */
+html[data-theme="dark"] .bg-card {
+    background-color: var(--surface, #1e293b) !important;
+}
+
+html[data-theme="dark"] .text-card-foreground {
+    color: var(--text, #e6eaf2) !important;
+}
+
+/* -------------------- Shadows in Dark Mode -------------------- */
+html[data-theme="dark"] .shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .shadow-md {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+}
+
+html[data-theme="dark"] .shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+/* -------------------- Smooth Transitions -------------------- */
+.unbc-calendar-container.theme-transitioning {
+    transition: all var(--trans-med);
+}
+
+/* -------------------- Ensure React Component Styles -------------------- */
+html[data-theme="dark"] .unbc-calendar-view * {
+    transition: background-color var(--trans-fast), 
+                border-color var(--trans-fast), 
+                color var(--trans-fast);
+}
+
+.unbc-calendar-view *,
+.unbc-calendar-container * {
+    transition: background-color 160ms cubic-bezier(0.2, 0.6, 0.2, 1), 
+                border-color 160ms cubic-bezier(0.2, 0.6, 0.2, 1), 
+                color 160ms cubic-bezier(0.2, 0.6, 0.2, 1),
+                box-shadow 160ms cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+
+/* Override any hardcoded white backgrounds in the calendar */
+html[data-theme="dark"] .unbc-calendar-view [style*="background: white"],
+html[data-theme="dark"] .unbc-calendar-view [style*="background-color: white"],
+html[data-theme="dark"] .unbc-calendar-view [style*="background:#fff"],
+html[data-theme="dark"] .unbc-calendar-view [style*="background-color:#fff"] {
+    background-color: var(--surface, #1e293b) !important;
+}
+
+/* -------------------- Additional Fixes -------------------- */
+/* Fix for any remaining bright hovers in lists */
+html[data-theme="dark"] .hover\:shadow-md:hover,
+html[data-theme="dark"] .hover\:shadow-lg:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Ensure proper contrast for all text elements */
+html[data-theme="dark"] .unbc-calendar-view h1,
+html[data-theme="dark"] .unbc-calendar-view h2,
+html[data-theme="dark"] .unbc-calendar-view h3,
+html[data-theme="dark"] .unbc-calendar-view h4,
+html[data-theme="dark"] .unbc-calendar-view h5,
+html[data-theme="dark"] .unbc-calendar-view h6 {
+    color: var(--text, #e6eaf2) !important;
+}
+
+/* AGGRESSIVE text visibility fixes for all calendar content */
+html[data-theme="dark"] .unbc-calendar-view *,
+html[data-theme="dark"] .unbc-calendar-container *,
+html[data-theme="dark"] .bg-white *,
+html[data-theme="dark"] .rounded *,
+html[data-theme="dark"] .border * {
+    color: var(--text, #e6eaf2) !important;
+}
+
+/* Re-apply specific overrides after aggressive fix */
+html[data-theme="dark"] .text-gray-500,
+html[data-theme="dark"] .text-gray-400,
+html[data-theme="dark"] .text-muted-foreground {
+    color: var(--text-sec, #b9c0cf) !important;
+}
+
+/* Ensure category badges maintain their colors */
+html[data-theme="dark"] .bg-blue-100 *,
+html[data-theme="dark"] .bg-green-100 *,
+html[data-theme="dark"] .bg-purple-100 *,
+html[data-theme="dark"] .bg-orange-100 *,
+html[data-theme="dark"] .bg-pink-100 *,
+html[data-theme="dark"] .bg-yellow-100 *,
+html[data-theme="dark"] .bg-red-100 *,
+html[data-theme="dark"] .bg-teal-100 * {
+    color: inherit !important;
+}
+
+/* Fix any remaining white backgrounds that might appear on hover */
+html[data-theme="dark"] .bg-white:hover,
+html[data-theme="dark"] .hover\:bg-white:hover {
+    background-color: var(--bg-elev, #141922) !important;
+}
+
+/* Ensure dropdown/select elements are properly styled */
+html[data-theme="dark"] .bg-white.rounded-md,
+html[data-theme="dark"] .bg-white.border {
+    background-color: var(--surface, #1e293b) !important;
+    border-color: var(--border, #334155) !important;
+}
+
+/* -------------------- Remove Unwanted Interactions -------------------- */
+/* Prevent hover effects on informational elements */
+html[data-theme="dark"] .flex.items-center.gap-3.text-sm {
+    cursor: default !important;
+}
+
+html[data-theme="dark"] .flex.items-center.gap-3.text-sm:hover {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+/* Ensure proper dialog content styling */
+html[data-theme="dark"] [role="dialog"] .space-y-3,
+html[data-theme="dark"] [role="dialog"] .space-y-3 > div {
+    background-color: transparent !important;
+}
+
+html[data-theme="dark"] [role="dialog"] .space-y-3:hover,
+html[data-theme="dark"] [role="dialog"] .space-y-3 > div:hover {
+    background-color: transparent !important;
+    cursor: default !important;
+}

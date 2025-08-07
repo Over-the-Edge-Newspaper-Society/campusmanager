@@ -35,6 +35,13 @@ class UNBC_Calendar_Blocks {
             '1.0.1'
         );
         
+        wp_register_style(
+            'unbc-calendar-dark-mode',
+            plugin_dir_url(dirname(__FILE__)) . 'assets/css/calendar-dark-mode.css',
+            array('unbc-calendar-styles'),
+            '1.0.5'
+        );
+        
         // Provide WordPress REST API data to React
         wp_localize_script('unbc-calendar-app', 'unbcCalendarData', array(
             'apiUrl' => rest_url('unbc-events/v1/'),
@@ -143,6 +150,23 @@ class UNBC_Calendar_Blocks {
                 plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/style.css',
                 array(),
                 '3.1.0' // Increment version
+            );
+            
+            // Enqueue dark mode support CSS
+            wp_enqueue_style(
+                'unbc-calendar-dark-mode',
+                plugin_dir_url(dirname(__FILE__)) . 'assets/css/calendar-dark-mode.css',
+                array('unbc-calendar-styles'),
+                '1.0.5'
+            );
+            
+            // Enqueue dark mode integration JavaScript
+            wp_enqueue_script(
+                'unbc-calendar-dark-mode-js',
+                plugin_dir_url(dirname(__FILE__)) . 'assets/js/dark-mode-integration.js',
+                array('unbc-calendar-app'),
+                '1.0.0',
+                true
             );
             
             // Provide WordPress REST API data to React

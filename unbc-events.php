@@ -26,7 +26,10 @@ class UNBC_Events_Plugin {
         new UNBC_Events_Post_Types();
         new UNBC_Events_Meta_Boxes();
         new UNBC_Events_User_Roles();
-        new UNBC_Organization_Manager_Admin();
+        
+        // Use refactored organization manager classes
+        new UNBC_Organization_Manager_Admin_Refactored();
+        
         new UNBC_Events_Blocks();
         new UNBC_Calendar_Blocks();
         new UNBC_Events_Settings();
@@ -68,7 +71,11 @@ class UNBC_Events_Plugin {
             'includes/class-rest-api.php',
             'includes/class-meta-boxes.php',
             'includes/class-user-roles.php',
-            'includes/class-organization-manager-admin.php',
+            // Include refactored classes
+            'includes/class-organization-manager-assignment.php',
+            'includes/class-organization-import-export.php',
+            'includes/class-organization-template-manager.php',
+            'includes/class-organization-manager-admin-refactored.php',
             'includes/class-blocks.php',
             'includes/class-calendar-blocks.php',
             'includes/class-settings.php'
