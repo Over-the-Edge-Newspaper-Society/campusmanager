@@ -314,12 +314,7 @@ class UNBC_Organization_Manager_Dashboard {
                             <div class="postbox">
                                 <h2 class="hndle"><span>Update Organization</span></h2>
                                 <div class="inside">
-                                    <div id="major-publishing-actions">
-                                        <div id="publishing-action">
-                                            <input type="submit" name="save" id="publish" class="button button-primary button-large" value="Update Organization">
-                                        </div>
-                                        <div class="clear"></div>
-                                    </div>
+                                    <input type="submit" name="save" id="publish" class="button button-primary button-large" value="Update Organization">
                                 </div>
                             </div>
                             
@@ -339,13 +334,6 @@ class UNBC_Organization_Manager_Dashboard {
                                         <label for="organization_logo">Upload New Logo:</label><br>
                                         <input type="file" name="organization_logo" id="organization_logo" accept="image/*">
                                     </p>
-                                    <?php if ($thumbnail_id): ?>
-                                    <p>
-                                        <label>
-                                            <input type="checkbox" name="remove_logo" value="1"> Remove current logo
-                                        </label>
-                                    </p>
-                                    <?php endif; ?>
                                 </div>
                             </div>
                             
@@ -492,19 +480,41 @@ class UNBC_Organization_Manager_Dashboard {
                 margin-bottom: 15px;
             }
             
-            /* Publishing actions */
-            #major-publishing-actions {
-                padding: 15px;
-                background: #f9f9f9;
-                border-top: 1px solid #eee;
+            /* Update Organization Button */
+            #postbox-container-1 .postbox .inside {
+                text-align: center;
+                padding: 20px;
+                background: #f8f9fa;
             }
             
-            #publishing-action input[type="submit"] {
+            #postbox-container-1 input[type="submit"]#publish {
                 float: none;
                 width: 100%;
+                max-width: 300px;
+                margin: 0 auto;
                 text-align: center;
-                padding: 8px 12px;
-                font-size: 14px;
+                padding: 12px 24px;
+                font-size: 15px;
+                font-weight: 600;
+                border-radius: 6px;
+                background: #2271b1;
+                border-color: #2271b1;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                transition: all 0.2s ease;
+                text-transform: none;
+                letter-spacing: 0.5px;
+            }
+            
+            #postbox-container-1 input[type="submit"]#publish:hover {
+                background: #135e96;
+                border-color: #135e96;
+                box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+                transform: translateY(-1px);
+            }
+            
+            #postbox-container-1 input[type="submit"]#publish:active {
+                transform: translateY(0);
+                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             }
             
             /* Quick stats */
@@ -680,10 +690,6 @@ class UNBC_Organization_Manager_Dashboard {
             }
         }
         
-        // Handle logo removal
-        if (isset($_POST['remove_logo']) && $_POST['remove_logo'] == '1') {
-            delete_post_thumbnail($org_id);
-        }
         
         // Redirect with success message
         wp_redirect(admin_url('admin.php?page=organization-dashboard&updated=1'));
