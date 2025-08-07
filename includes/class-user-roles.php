@@ -4,6 +4,8 @@ class UNBC_Events_User_Roles {
     public function __construct() {
         add_action('init', array($this, 'create_organization_manager_role'));
         add_action('wp_loaded', array($this, 'assign_organization_to_user'));
+        
+        // Re-enabled - the issue was conflicting redirects, not this filter
         add_filter('map_meta_cap', array($this, 'map_organization_edit_capability'), 10, 4);
         
         // Ensure role exists when needed
@@ -117,10 +119,19 @@ class UNBC_Events_User_Roles {
     }
     
     public function map_organization_edit_capability($caps, $cap, $user_id, $args) {
+        // Prevent infinite recursion
+        static $checking = false;
+        if ($checking) {
+            return $caps;
+        }
+        
         // Handle organization editing capabilities
         if ($cap === 'edit_post' && isset($args[0])) {
             $post_id = $args[0];
+            
+            $checking = true;
             $post = get_post($post_id);
+            $checking = false;
             
             if ($post && ($post->post_type === 'organization' || $post->post_type === 'event')) {
                 $user = get_user_by('id', $user_id);
@@ -169,7 +180,10 @@ class UNBC_Events_User_Roles {
         // Handle event deletion capabilities
         if ($cap === 'delete_post' && isset($args[0])) {
             $post_id = $args[0];
+            
+            $checking = true;
             $post = get_post($post_id);
+            $checking = false;
             
             if ($post && $post->post_type === 'event') {
                 $user = get_user_by('id', $user_id);

@@ -15,8 +15,9 @@ class UNBC_Events_Post_Types {
         add_action('pre_get_posts', array($this, 'restrict_organization_manager_posts'));
         add_action('pre_get_posts', array($this, 'handle_club_post_query'));
         add_action('admin_menu', array($this, 'modify_admin_menu_for_org_managers'));
-        add_action('admin_init', array($this, 'block_restricted_pages_for_org_managers'));
-        add_action('admin_init', array($this, 'redirect_org_managers_from_dashboard'));
+        // Disabled - conflicts with organization-manager-dashboard redirects
+        // add_action('admin_init', array($this, 'block_restricted_pages_for_org_managers'));
+        // add_action('admin_init', array($this, 'redirect_org_managers_from_dashboard'));
         add_action('add_meta_boxes', array($this, 'remove_page_attributes_metabox'));
         add_action('admin_head', array($this, 'hide_post_attributes_css'));
         add_action('save_post', array($this, 'prevent_template_changes'), 1);
