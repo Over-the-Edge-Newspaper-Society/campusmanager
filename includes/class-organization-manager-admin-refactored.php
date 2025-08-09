@@ -101,12 +101,44 @@ class UNBC_Organization_Manager_Admin_Refactored {
                     background: white;
                     border: 1px solid #ccc;
                     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                    overflow: visible;
+                    min-height: 400px;
                 }
                 .org-manager-forms h2 {
                     margin-top: 0;
                 }
+                .org-manager-forms select {
+                    width: 100%;
+                    max-width: 100%;
+                    min-width: 200px;
+                }
+                .org-manager-forms .form-table {
+                    width: 100%;
+                }
+                .org-manager-forms .form-table th {
+                    width: 30%;
+                    vertical-align: top;
+                    padding-top: 10px;
+                }
+                .org-manager-forms .form-table td {
+                    padding: 10px 0;
+                }
+                .org-manager-forms .description {
+                    margin-top: 5px;
+                    color: #666;
+                    font-size: 13px;
+                }
                 .managers-list-table {
                     margin-top: 30px;
+                }
+                @media screen and (max-width: 1200px) {
+                    .org-manager-forms {
+                        flex-direction: column;
+                    }
+                    .org-manager-forms .card {
+                        width: 100%;
+                        max-width: 600px;
+                    }
                 }
             </style>
             
