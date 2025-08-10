@@ -90,6 +90,13 @@
   font-family: inherit;
 }
 
+/* Allow space-y utilities to work on inputs and selects */
+#root .space-y-4 > input:not(:first-child),
+#root .space-y-4 > *:has(input):not(:first-child),
+#root .space-y-4 > *:has(select):not(:first-child) {
+  margin-top: 1rem !important;
+}
+
 /* Ensure Tailwind utilities work */
 #root .text-4xl {
   font-size: 2.25rem !important;
@@ -107,4 +114,12 @@
 
 #root .space-y-6 > * + * {
   margin-top: 1.5rem !important;
+}
+
+/* Calendar Tab List - Remove Outline */
+#root [role="tablist"] button[role="tab"],
+#root [role="tablist"] button[role="tab"]:focus,
+#root [role="tablist"] button[role="tab"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }

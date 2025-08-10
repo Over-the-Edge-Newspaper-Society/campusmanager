@@ -114,11 +114,11 @@ export function MonthView({ events, eventMetadata, onDateClick, onEventClick }: 
           {currentDate.getFullYear()}
         </motion.h2>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={handlePrevMonth} className="gap-2">
+          <Button variant="outline" onClick={handlePrevMonth} className="gap-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
             <ArrowLeft className="h-4 w-4" />
             Prev
           </Button>
-          <Button variant="outline" onClick={handleNextMonth} className="gap-2">
+          <Button variant="outline" onClick={handleNextMonth} className="gap-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
             Next
             <ArrowRight className="h-4 w-4" />
           </Button>
@@ -145,7 +145,7 @@ export function MonthView({ events, eventMetadata, onDateClick, onEventClick }: 
           ))}
 
           {Array.from({ length: startOffset }).map((_, idx) => (
-            <div key={`offset-${idx}`} className="h-[150px] opacity-50">
+            <div key={`offset-${idx}`} className="h-[150px] opacity-50 p-4">
               <div className="font-semibold relative text-3xl mb-1 text-gray-400 dark:text-gray-500">
                 {lastDateOfPrevMonth - startOffset + idx + 1}
               </div>
@@ -173,16 +173,16 @@ export function MonthView({ events, eventMetadata, onDateClick, onEventClick }: 
                 onMouseLeave={() => setHoveredDay(null)}
               >
                 <Card 
-                  className={`shadow-md overflow-hidden relative flex p-4 border h-full transition-shadow day-card ${
+                  className={`bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-md overflow-hidden relative flex p-4 border h-full transition-shadow day-card ${
                     dayEvents.length > 0 
-                      ? "cursor-pointer hover:shadow-lg" 
+                      ? "cursor-pointer hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-750" 
                       : "cursor-default"
                   }`}
                   onClick={dayEvents.length > 0 ? () => onDateClick?.(new Date(currentDate.getFullYear(), currentDate.getMonth(), dayObj.day)) : undefined}
                 >
                   <div className={`font-semibold relative text-3xl mb-1 ${
                     dayEvents.length > 0 ? "text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"
-                  } ${isToday ? "text-secondary-500" : ""}`}>
+                  } ${isToday ? "text-blue-600 dark:text-blue-400" : ""}`}>
                     {dayObj.day}
                   </div>
                   <div className="flex-grow flex flex-col gap-2 w-full">
@@ -256,6 +256,15 @@ export function MonthView({ events, eventMetadata, onDateClick, onEventClick }: 
               </motion.div>
             );
           })}
+
+          {/* Next month overflow days */}
+          {Array.from({ length: 42 - startOffset - daysInMonth.length }).map((_, idx) => (
+            <div key={`next-${idx}`} className="h-[150px] opacity-50 p-4">
+              <div className="font-semibold relative text-3xl mb-1 text-gray-400 dark:text-gray-500">
+                {idx + 1}
+              </div>
+            </div>
+          ))}
         </motion.div>
       </AnimatePresence>
     </div>

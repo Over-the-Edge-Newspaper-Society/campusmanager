@@ -7,15 +7,23 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarDays, List } from "lucide-react";
 import type { Event } from "@/types";
-import { useEvents } from "@/hooks/useEvents";
-import { useOrganizations } from "@/hooks/useOrganizations";
+import { useEventsDev } from "@/hooks/useEventsDev";
 import { EventDialog } from "@/components/event-dialog";
 import { MonthView, WeekView, DayView } from "@/components/calendar-views";
 import { MobileMonthView } from "./mobile-month-view";
 import { EventListView, MobileListView } from "./list-views";
 import { Loader2 } from "lucide-react";
 
-export default function UNBCCalendar() {
+// Mock organizations for development
+const mockOrganizations = [
+  { id: 1, title: { rendered: 'Student Union' } },
+  { id: 2, title: { rendered: 'Computer Science Club' } },
+  { id: 3, title: { rendered: 'Athletics Department' } },
+  { id: 4, title: { rendered: 'Cultural Society' } },
+  { id: 5, title: { rendered: 'Career Services' } },
+];
+
+export default function UNBCCalendarDev() {
   const [activeTab, setActiveTab] = useState("month");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -76,7 +84,7 @@ export default function UNBCCalendar() {
   const [organizationFilter, setOrganizationFilter] = useState("all");
   const [searchFilter, setSearchFilter] = useState("");
 
-  // Use the events hook - load all events once
+  // Use the dev events hook
   const { 
     events: allEvents, 
     eventMetadata, 
@@ -84,12 +92,10 @@ export default function UNBCCalendar() {
     error, 
     total, 
     setFilters 
-  } = useEvents({
-    per_page: 1000, // Get all events
-  });
+  } = useEventsDev();
 
-  // Use the organizations hook
-  const { organizations } = useOrganizations();
+  // Use mock organizations
+  const organizations = mockOrganizations;
 
   // Filter events client-side
   const events = React.useMemo(() => {
@@ -128,7 +134,7 @@ export default function UNBCCalendar() {
     }
 
     return filtered;
-  }, [allEvents, eventMetadata, categoryFilter, organizationFilter, searchFilter, organizations]);
+  }, [allEvents, eventMetadata, categoryFilter, organizationFilter, searchFilter]);
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
@@ -140,15 +146,13 @@ export default function UNBCCalendar() {
     setShowEventDialog(true);
   };
 
-
-
   // Show loading state
   if (loading) {
     return (
       <div className="w-full flex items-center justify-center py-12">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading events...</p>
+          <p className="text-gray-600">Loading sample events...</p>
         </div>
       </div>
     );

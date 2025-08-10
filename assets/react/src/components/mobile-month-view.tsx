@@ -40,6 +40,15 @@ export function MobileMonthView({ events, eventMetadata, onEventClick }: MobileM
     });
   };
 
+  const hasEventsOnDate = (date: Date) => {
+    return events.some(event => {
+      const eventDate = new Date(event.startDate);
+      return eventDate.getDate() === date.getDate() && 
+             eventDate.getMonth() === date.getMonth() && 
+             eventDate.getFullYear() === date.getFullYear();
+    });
+  };
+
   const selectedDateEvents = getEventsForSelectedDate();
 
   // Simple calendar implementation
@@ -59,7 +68,7 @@ export function MobileMonthView({ events, eventMetadata, onEventClick }: MobileM
   }
 
   return (
-    <Card className="w-full py-4 mobile-calendar">
+    <Card className="w-full py-4 mobile-calendar bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
       <CardContent className="px-4">
         {/* Simple calendar header with navigation */}
         <div className="flex items-center justify-between mb-4">
@@ -67,6 +76,7 @@ export function MobileMonthView({ events, eventMetadata, onEventClick }: MobileM
             variant="outline"
             size="sm"
             onClick={handlePrevMonth}
+            className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
           >
             <ArrowLeft className="h-4 w-4" />
             Prev
@@ -80,6 +90,7 @@ export function MobileMonthView({ events, eventMetadata, onEventClick }: MobileM
             variant="outline"
             size="sm"
             onClick={handleNextMonth}
+            className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
           >
             Next
             <ArrowRight className="h-4 w-4" />
@@ -101,25 +112,32 @@ export function MobileMonthView({ events, eventMetadata, onEventClick }: MobileM
               day.getMonth() === selectedDate.getMonth() && 
               day.getFullYear() === selectedDate.getFullYear();
             const isToday = day.toDateString() === new Date().toDateString();
+            const hasEvents = hasEventsOnDate(day);
             
             return (
               <button
                 key={index}
                 onClick={() => setSelectedDate(day)}
                 className={`
-                  p-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
+                  p-2 text-sm rounded transition-colors relative focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800
                   ${isCurrentMonth ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}
-                  ${isSelected ? 'bg-blue-500 text-white hover:bg-blue-600' : ''}
-                  ${isToday && !isSelected ? 'bg-gray-200 dark:bg-gray-700 font-semibold' : ''}
+                  ${isSelected ? 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700' : 'hover:bg-gray-100 dark:hover:bg-gray-600'}
+                  ${isToday && !isSelected ? 'bg-gray-200 dark:bg-gray-600 font-semibold' : ''}
                 `}
               >
                 {day.getDate()}
+                {hasEvents && (
+                  <span 
+                    className="absolute top-1 right-1 w-2 h-2 bg-red-500 dark:bg-red-400 rounded-full"
+                    aria-label="Events available"
+                  />
+                )}
               </button>
             );
           })}
         </div>
       </CardContent>
-      <CardFooter className="flex flex-col items-start gap-3 border-t px-4 !pt-4">
+      <CardFooter className="flex flex-col items-start gap-3 border-t border-gray-200 dark:border-gray-600 px-4 !pt-4">
         <div className="flex w-full items-center justify-between px-1">
           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
             {selectedDate?.toLocaleDateString("en-US", {
@@ -152,7 +170,7 @@ export function MobileMonthView({ events, eventMetadata, onEventClick }: MobileM
               return (
                 <button
                   key={event.id}
-                  className={`bg-muted dark:bg-gray-700 relative rounded-md p-2 pl-6 text-sm text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors ${categoryColor}`}
+                  className={`bg-gray-50 dark:bg-gray-700 relative rounded-md p-2 pl-6 text-sm text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 ${categoryColor}`}
                   onClick={() => onEventClick?.(event)}
                 >
                   <div className="font-medium text-gray-900 dark:text-gray-100">{event.title}</div>

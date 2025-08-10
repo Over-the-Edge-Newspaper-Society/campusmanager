@@ -155,7 +155,7 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
           <div className="flex gap-2 w-full">
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
               onClick={() => window.open(generateCalendarLink('google'), '_blank')}
             >
               <Calendar className="h-4 w-4 mr-2" />
@@ -163,7 +163,7 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
             </Button>
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
               onClick={() => window.open(generateCalendarLink('outlook'), '_blank')}
             >
               <Calendar className="h-4 w-4 mr-2" />
@@ -171,7 +171,7 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
             </Button>
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
               onClick={() => {
                 const link = generateCalendarLink('apple');
                 const a = document.createElement('a');
