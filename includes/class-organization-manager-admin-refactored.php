@@ -328,18 +328,36 @@ class UNBC_Organization_Manager_Admin_Refactored {
             <div class="card" style="margin-top: 20px;">
                 <h2>Import/Export Data</h2>
                 
-                <h3>Export Club Posts</h3>
-                <form id="export-clubs-form">
-                    <?php wp_nonce_field('export_clubs_nonce', 'export_clubs_nonce'); ?>
-                    <label>
-                        <input type="checkbox" name="export_content" value="true" checked> Include Content
-                    </label><br>
-                    <label>
-                        <input type="checkbox" name="export_images" value="true" checked> Include Images
-                    </label><br>
-                    <label>
-                        <input type="checkbox" name="export_meta" value="true" checked> Include Meta Data
-                    </label><br>
+                <h3>Unified Export/Import</h3>
+                <p><em>Export and import both organizations and events together:</em></p>
+                
+                <h4>Export Data</h4>
+                <form id="export-unified-form">
+                    <?php wp_nonce_field('export_unified_nonce', 'export_unified_nonce'); ?>
+                    
+                    <fieldset style="border: 1px solid #ccc; padding: 10px; margin: 10px 0;">
+                        <legend><strong>What to Export:</strong></legend>
+                        <label>
+                            <input type="checkbox" name="export_clubs" value="true" checked> Export Organizations
+                        </label><br>
+                        <label>
+                            <input type="checkbox" name="export_events" value="true" checked> Export Events
+                        </label><br>
+                    </fieldset>
+                    
+                    <fieldset style="border: 1px solid #ccc; padding: 10px; margin: 10px 0;">
+                        <legend><strong>Export Options:</strong></legend>
+                        <label>
+                            <input type="checkbox" name="export_content" value="true" checked> Include Content
+                        </label><br>
+                        <label>
+                            <input type="checkbox" name="export_images" value="true" checked> Include Images
+                        </label><br>
+                        <label>
+                            <input type="checkbox" name="export_meta" value="true" checked> Include Meta Data
+                        </label><br>
+                    </fieldset>
+                    
                     <label>
                         Format: 
                         <select name="format">
@@ -347,25 +365,62 @@ class UNBC_Organization_Manager_Admin_Refactored {
                             <option value="zip">ZIP</option>
                         </select>
                     </label><br><br>
-                    <button type="submit" class="button button-primary">Export Clubs</button>
+                    <button type="submit" class="button button-primary">Export Data</button>
                 </form>
                 
-                <h3>Import Club Posts</h3>
-                <form id="import-clubs-form" enctype="multipart/form-data">
-                    <?php wp_nonce_field('import_clubs_nonce', 'import_clubs_nonce'); ?>
+                <h4>Import Data</h4>
+                <form id="import-unified-form" enctype="multipart/form-data">
+                    <?php wp_nonce_field('import_unified_nonce', 'import_unified_nonce'); ?>
                     <input type="file" name="import_file" accept=".json,.zip" required>
-                    <button type="submit" class="button button-primary">Import Clubs</button>
+                    <button type="submit" class="button button-primary">Import Data</button>
+                    <p><em>Supports JSON or ZIP files exported from this system. Will import both organizations and events if present in the file.</em></p>
                 </form>
                 
-                <h3>Export Events</h3>
-                <button type="button" class="button" id="export-events-btn">Export All Events</button>
+                <hr style="margin: 20px 0;">
                 
-                <h3>Import Events</h3>
-                <form id="import-events-form" enctype="multipart/form-data">
-                    <?php wp_nonce_field('import_events_nonce', 'import_events_nonce'); ?>
-                    <input type="file" name="import_file" accept=".json" required>
-                    <button type="submit" class="button button-primary">Import Events</button>
-                </form>
+                <details>
+                    <summary><strong>Individual Export Options</strong></summary>
+                    <p><em>Export organizations or events separately:</em></p>
+                    
+                    <h4>Export Organizations</h4>
+                    <form id="export-clubs-form">
+                        <?php wp_nonce_field('export_clubs_nonce', 'export_clubs_nonce'); ?>
+                        <label>
+                            <input type="checkbox" name="export_content" value="true" checked> Include Content
+                        </label><br>
+                        <label>
+                            <input type="checkbox" name="export_images" value="true" checked> Include Images
+                        </label><br>
+                        <label>
+                            <input type="checkbox" name="export_meta" value="true" checked> Include Meta Data
+                        </label><br>
+                        <label>
+                            Format: 
+                            <select name="format">
+                                <option value="json">JSON</option>
+                                <option value="zip">ZIP</option>
+                            </select>
+                        </label><br><br>
+                        <button type="submit" class="button">Export Organizations Only</button>
+                    </form>
+                    
+                    <h4>Import Organizations</h4>
+                    <form id="import-clubs-form" enctype="multipart/form-data">
+                        <?php wp_nonce_field('import_clubs_nonce', 'import_clubs_nonce'); ?>
+                        <input type="file" name="import_file" accept=".json,.zip" required>
+                        <button type="submit" class="button">Import Organizations</button>
+                    </form>
+                    
+                    <h4>Export Events</h4>
+                    <button type="button" class="button" id="export-events-btn">Export All Events</button>
+                    
+                    <h4>Import Events</h4>
+                    <form id="import-events-form" enctype="multipart/form-data">
+                        <?php wp_nonce_field('import_events_nonce', 'import_events_nonce'); ?>
+                        <input type="file" name="import_file" accept=".json" required>
+                        <button type="submit" class="button">Import Events</button>
+                    </form>
+                </details>
             </div>
         </div>
         
@@ -400,6 +455,58 @@ class UNBC_Organization_Manager_Admin_Refactored {
             $('#export-templates-btn').on('click', function() {
                 window.location.href = ajaxurl + '?action=export_organization_templates&nonce=' + 
                     '<?php echo wp_create_nonce('export_templates_nonce'); ?>';
+            });
+            
+            // Export unified data
+            $('#export-unified-form').on('submit', function(e) {
+                e.preventDefault();
+                
+                // Check if at least one export option is selected
+                var exportClubs = $('#export-unified-form input[name="export_clubs"]').is(':checked');
+                var exportEvents = $('#export-unified-form input[name="export_events"]').is(':checked');
+                
+                if (!exportClubs && !exportEvents) {
+                    alert('Please select at least one data type to export (Organizations or Events).');
+                    return;
+                }
+                
+                var formData = $(this).serialize();
+                window.location.href = ajaxurl + '?action=export_unified_data&' + formData;
+            });
+            
+            // Import unified data
+            $('#import-unified-form').on('submit', function(e) {
+                e.preventDefault();
+                var formData = new FormData(this);
+                formData.append('action', 'import_unified_data');
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.success) {
+                            var message = 'Import successful!\\n';
+                            if (response.data.clubs_imported > 0 || response.data.clubs_skipped > 0) {
+                                message += 'Organizations - Imported: ' + response.data.clubs_imported + 
+                                          ', Skipped: ' + response.data.clubs_skipped + '\\n';
+                            }
+                            if (response.data.events_imported > 0 || response.data.events_skipped > 0) {
+                                message += 'Events - Imported: ' + response.data.events_imported + 
+                                          ', Skipped: ' + response.data.events_skipped;
+                            }
+                            alert(message);
+                            location.reload(); // Refresh the page to show updated data
+                        } else {
+                            alert('Error: ' + response.data);
+                        }
+                    },
+                    error: function() {
+                        alert('An error occurred during import. Please try again.');
+                    }
+                });
             });
             
             // Export clubs
