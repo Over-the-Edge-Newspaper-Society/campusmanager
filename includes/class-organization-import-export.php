@@ -742,10 +742,12 @@ class UNBC_Organization_Import_Export {
      * Import unified data via AJAX
      */
     public function ajax_import_unified_data() {
-        check_ajax_referer('import_unified_nonce', 'nonce');
+        // Use the same pattern as other import functions
+        check_ajax_referer('import_unified_nonce', 'import_unified_nonce');
         
         if (!current_user_can('manage_options')) {
-            wp_die('Unauthorized');
+            wp_send_json_error('You do not have permission to import data');
+            return;
         }
         
         if (!isset($_FILES['import_file'])) {
@@ -820,6 +822,11 @@ class UNBC_Organization_Import_Export {
                         }
                     }
                     
+                    // Handle featured image import
+                    if (isset($club_data['featured_image_url']) && !empty($club_data['featured_image_url'])) {
+                        $this->import_featured_image($org_id, $club_data['featured_image_url']);
+                    }
+                    
                     $result['clubs_imported']++;
                 }
             }
@@ -854,6 +861,11 @@ class UNBC_Organization_Import_Export {
                             }
                             update_post_meta($event_id, $key, maybe_unserialize($value));
                         }
+                    }
+                    
+                    // Handle featured image import
+                    if (isset($event_data['featured_image_url']) && !empty($event_data['featured_image_url'])) {
+                        $this->import_featured_image($event_id, $event_data['featured_image_url']);
                     }
                     
                     // Link to organization if exists
@@ -905,5 +917,54 @@ class UNBC_Organization_Import_Export {
         $this->cleanup_temp_dir($temp_dir);
         
         return $result;
+    }
+    
+    /**
+     * Import featured image from URL
+     */
+    private function import_featured_image($post_id, $image_url) {
+        // Skip if URL is empty or not valid
+        if (empty($image_url) || !filter_var($image_url, FILTER_VALIDATE_URL)) {
+            return;
+        }
+        
+        // Include required WordPress functions
+        if (!function_exists('media_handle_sideload')) {
+            require_once(ABSPATH . 'wp-admin/includes/media.php');
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+        }
+        
+        // Download the image
+        $temp_file = download_url($image_url);
+        
+        if (is_wp_error($temp_file)) {
+            return; // Skip if download failed
+        }
+        
+        // Prepare the file array for media_handle_sideload
+        $file_array = array(
+            'name' => basename($image_url),
+            'tmp_name' => $temp_file,
+        );
+        
+        // Get the file extension and set proper mime type
+        $file_info = wp_check_filetype($file_array['name']);
+        if ($file_info['type']) {
+            $file_array['type'] = $file_info['type'];
+        }
+        
+        // Import the image to WordPress media library
+        $attachment_id = media_handle_sideload($file_array, $post_id);
+        
+        // Clean up temp file
+        if (file_exists($temp_file)) {
+            unlink($temp_file);
+        }
+        
+        // Set as featured image if import was successful
+        if (!is_wp_error($attachment_id)) {
+            set_post_thumbnail($post_id, $attachment_id);
+        }
     }
 }

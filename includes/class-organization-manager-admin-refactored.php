@@ -375,52 +375,6 @@ class UNBC_Organization_Manager_Admin_Refactored {
                     <button type="submit" class="button button-primary">Import Data</button>
                     <p><em>Supports JSON or ZIP files exported from this system. Will import both organizations and events if present in the file.</em></p>
                 </form>
-                
-                <hr style="margin: 20px 0;">
-                
-                <details>
-                    <summary><strong>Individual Export Options</strong></summary>
-                    <p><em>Export organizations or events separately:</em></p>
-                    
-                    <h4>Export Organizations</h4>
-                    <form id="export-clubs-form">
-                        <?php wp_nonce_field('export_clubs_nonce', 'export_clubs_nonce'); ?>
-                        <label>
-                            <input type="checkbox" name="export_content" value="true" checked> Include Content
-                        </label><br>
-                        <label>
-                            <input type="checkbox" name="export_images" value="true" checked> Include Images
-                        </label><br>
-                        <label>
-                            <input type="checkbox" name="export_meta" value="true" checked> Include Meta Data
-                        </label><br>
-                        <label>
-                            Format: 
-                            <select name="format">
-                                <option value="json">JSON</option>
-                                <option value="zip">ZIP</option>
-                            </select>
-                        </label><br><br>
-                        <button type="submit" class="button">Export Organizations Only</button>
-                    </form>
-                    
-                    <h4>Import Organizations</h4>
-                    <form id="import-clubs-form" enctype="multipart/form-data">
-                        <?php wp_nonce_field('import_clubs_nonce', 'import_clubs_nonce'); ?>
-                        <input type="file" name="import_file" accept=".json,.zip" required>
-                        <button type="submit" class="button">Import Organizations</button>
-                    </form>
-                    
-                    <h4>Export Events</h4>
-                    <button type="button" class="button" id="export-events-btn">Export All Events</button>
-                    
-                    <h4>Import Events</h4>
-                    <form id="import-events-form" enctype="multipart/form-data">
-                        <?php wp_nonce_field('import_events_nonce', 'import_events_nonce'); ?>
-                        <input type="file" name="import_file" accept=".json" required>
-                        <button type="submit" class="button">Import Events</button>
-                    </form>
-                </details>
             </div>
         </div>
         
@@ -479,6 +433,10 @@ class UNBC_Organization_Manager_Admin_Refactored {
                 e.preventDefault();
                 var formData = new FormData(this);
                 formData.append('action', 'import_unified_data');
+                // Ensure the nonce is properly included
+                if (!formData.has('import_unified_nonce')) {
+                    formData.append('import_unified_nonce', $('#import-unified-form input[name="import_unified_nonce"]').val());
+                }
                 
                 $.ajax({
                     url: ajaxurl,
@@ -505,65 +463,6 @@ class UNBC_Organization_Manager_Admin_Refactored {
                     },
                     error: function() {
                         alert('An error occurred during import. Please try again.');
-                    }
-                });
-            });
-            
-            // Export clubs
-            $('#export-clubs-form').on('submit', function(e) {
-                e.preventDefault();
-                var formData = $(this).serialize();
-                window.location.href = ajaxurl + '?action=export_clubs_data&' + formData;
-            });
-            
-            // Import clubs
-            $('#import-clubs-form').on('submit', function(e) {
-                e.preventDefault();
-                var formData = new FormData(this);
-                formData.append('action', 'import_clubs_data');
-                
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        if (response.success) {
-                            alert('Import successful! Imported: ' + response.data.imported + 
-                                  ', Skipped: ' + response.data.skipped);
-                        } else {
-                            alert('Error: ' + response.data);
-                        }
-                    }
-                });
-            });
-            
-            // Export events
-            $('#export-events-btn').on('click', function() {
-                window.location.href = ajaxurl + '?action=export_events_data&nonce=' + 
-                    '<?php echo wp_create_nonce('export_events_nonce'); ?>';
-            });
-            
-            // Import events
-            $('#import-events-form').on('submit', function(e) {
-                e.preventDefault();
-                var formData = new FormData(this);
-                formData.append('action', 'import_events_data');
-                
-                $.ajax({
-                    url: ajaxurl,
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        if (response.success) {
-                            alert('Import successful! Imported: ' + response.data.imported + 
-                                  ', Skipped: ' + response.data.skipped);
-                        } else {
-                            alert('Error: ' + response.data);
-                        }
                     }
                 });
             });
