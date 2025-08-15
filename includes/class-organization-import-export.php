@@ -778,6 +778,13 @@ class UNBC_Organization_Import_Export {
      * Import unified data from JSON
      */
     private function import_unified_from_json($uploaded_file) {
+        return $this->import_unified_from_json_with_images($uploaded_file, null);
+    }
+    
+    /**
+     * Import unified data from JSON with optional images directory
+     */
+    private function import_unified_from_json_with_images($uploaded_file, $images_dir = null) {
         $import_data = json_decode(file_get_contents($uploaded_file['tmp_name']), true);
         
         if (!$import_data) {
@@ -826,6 +833,10 @@ class UNBC_Organization_Import_Export {
                     if (isset($club_data['featured_image_url']) && !empty($club_data['featured_image_url'])) {
                         $this->import_featured_image($org_id, $club_data['featured_image_url']);
                     }
+                    // Handle local image files from ZIP export
+                    if (isset($club_data['featured_image']) && !empty($club_data['featured_image']) && isset($images_dir)) {
+                        $this->import_featured_image_from_file($org_id, $club_data['featured_image'], $images_dir);
+                    }
                     
                     $result['clubs_imported']++;
                 }
@@ -866,6 +877,10 @@ class UNBC_Organization_Import_Export {
                     // Handle featured image import
                     if (isset($event_data['featured_image_url']) && !empty($event_data['featured_image_url'])) {
                         $this->import_featured_image($event_id, $event_data['featured_image_url']);
+                    }
+                    // Handle local image files from ZIP export
+                    if (isset($event_data['featured_image']) && !empty($event_data['featured_image']) && isset($images_dir)) {
+                        $this->import_featured_image_from_file($event_id, $event_data['featured_image'], $images_dir);
                     }
                     
                     // Link to organization if exists
@@ -909,9 +924,9 @@ class UNBC_Organization_Import_Export {
             return new WP_Error('no_data', 'No data.json file found in ZIP');
         }
         
-        // Import from JSON
+        // Import from JSON with ZIP context
         $fake_uploaded_file = array('tmp_name' => $json_file);
-        $result = $this->import_unified_from_json($fake_uploaded_file);
+        $result = $this->import_unified_from_json_with_images($fake_uploaded_file, $temp_dir);
         
         // Clean up
         $this->cleanup_temp_dir($temp_dir);
@@ -945,6 +960,58 @@ class UNBC_Organization_Import_Export {
         // Prepare the file array for media_handle_sideload
         $file_array = array(
             'name' => basename($image_url),
+            'tmp_name' => $temp_file,
+        );
+        
+        // Get the file extension and set proper mime type
+        $file_info = wp_check_filetype($file_array['name']);
+        if ($file_info['type']) {
+            $file_array['type'] = $file_info['type'];
+        }
+        
+        // Import the image to WordPress media library
+        $attachment_id = media_handle_sideload($file_array, $post_id);
+        
+        // Clean up temp file
+        if (file_exists($temp_file)) {
+            unlink($temp_file);
+        }
+        
+        // Set as featured image if import was successful
+        if (!is_wp_error($attachment_id)) {
+            set_post_thumbnail($post_id, $attachment_id);
+        }
+    }
+    
+    /**
+     * Import featured image from local file (for ZIP imports)
+     */
+    private function import_featured_image_from_file($post_id, $image_filename, $images_dir) {
+        // Skip if filename is empty or images directory is not provided
+        if (empty($image_filename) || empty($images_dir)) {
+            return;
+        }
+        
+        // Check if the image file exists in the images directory
+        $image_path = $images_dir . '/images/' . $image_filename;
+        if (!file_exists($image_path)) {
+            return;
+        }
+        
+        // Include required WordPress functions
+        if (!function_exists('media_handle_sideload')) {
+            require_once(ABSPATH . 'wp-admin/includes/media.php');
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+        }
+        
+        // Create a temporary copy of the file for WordPress to process
+        $temp_file = wp_tempnam($image_filename);
+        copy($image_path, $temp_file);
+        
+        // Prepare the file array for media_handle_sideload
+        $file_array = array(
+            'name' => $image_filename,
             'tmp_name' => $temp_file,
         );
         
