@@ -1,7 +1,7 @@
-const { registerBlockType } = wp.blocks;
-const { InspectorControls } = wp.blockEditor;
-const { PanelBody, TextControl, RangeControl, ToggleControl } = wp.components;
-const { __ } = wp.i18n;
+import { registerBlockType } from '@wordpress/blocks';
+import { InspectorControls } from '@wordpress/block-editor';
+import { PanelBody, TextControl, RangeControl, ToggleControl } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 
 registerBlockType('unbc/events-list', {
     edit: function(props) {
@@ -63,7 +63,7 @@ registerBlockType('unbc/events-list', {
                 }, '📋'),
                 wp.element.createElement('h3', {
                     style: { margin: '0 0 10px 0' }
-                }, __('UNBC Events List', 'unbc-events')),
+                }, __('Event List', 'unbc-events')),
                 wp.element.createElement('p', {
                     style: { margin: '0', color: '#666' }
                 }, __('Showing ' + limit + ' events' + (organizationName ? ' for ' + organizationName : ''), 'unbc-events'))

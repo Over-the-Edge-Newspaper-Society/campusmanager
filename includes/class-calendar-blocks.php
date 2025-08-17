@@ -7,18 +7,25 @@ if (!defined('ABSPATH')) {
 class UNBC_Calendar_Blocks {
     
     public function __construct() {
-        add_action('init', array($this, 'register_blocks'));
+        error_log('Campus Manager: Calendar Blocks class constructor called');
+        add_action('init', array($this, 'register_blocks'), 10);
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
         add_action('enqueue_block_editor_assets', array($this, 'enqueue_block_editor_assets'));
+        add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
         add_shortcode('unbc_calendar', array($this, 'calendar_shortcode'));
         add_shortcode('unbc_events_list', array($this, 'events_list_shortcode'));
         add_shortcode('organization_events', array($this, 'organization_events_shortcode'));
         
-        // Also try registering on block type registration hook
-        add_action('block_type_metadata_settings', array($this, 'debug_block_registration'), 10, 2);
+        // Also try registering immediately if init has already passed
+        if (did_action('init')) {
+            error_log('Campus Manager: init already fired, calling register_blocks immediately');
+            $this->register_blocks();
+        }
     }
     
+    
     public function register_blocks() {
+        error_log('Campus Manager: register_blocks method called');
         // Register scripts and styles first
         wp_register_script(
             'unbc-calendar-app',
@@ -53,104 +60,63 @@ class UNBC_Calendar_Blocks {
             'organizationsEndpoint' => rest_url('wp/v2/organization/')
         ));
         
-        // Simple block registration - just the essentials
-        if (function_exists('register_block_type')) {
-            register_block_type('unbc/calendar-view', array(
-                'render_callback' => array($this, 'render_calendar_block'),
-                'attributes' => array(
-                    'view' => array(
-                        'type' => 'string',
-                        'default' => 'month'
-                    ),
-                    'categoryFilter' => array(
-                        'type' => 'string', 
-                        'default' => 'all'
-                    ),
-                    'organizationFilter' => array(
-                        'type' => 'string',
-                        'default' => 'all'
-                    )
-                ),
-                'editor_script' => 'unbc-calendar-blocks-editor'
-            ));
-            
-            register_block_type('unbc/events-list', array(
-                'render_callback' => array($this, 'render_events_list_block'),
-                'attributes' => array(
-                    'organizationId' => array(
-                        'type' => 'string',
-                        'default' => ''
-                    ),
-                    'organizationName' => array(
-                        'type' => 'string',
-                        'default' => ''
-                    ),
-                    'limit' => array(
-                        'type' => 'number',
-                        'default' => 5
-                    ),
-                    'showPastEvents' => array(
-                        'type' => 'boolean',
-                        'default' => false
-                    )
-                ),
-                'editor_script' => 'unbc-calendar-blocks-editor'
-            ));
-        }
-    }
-    
-    public function debug_block_registration($settings, $metadata) {
-        return $settings;
-    }
-    
-    public function enqueue_block_editor_assets() {
-        // Register and enqueue the block editor script
+        // Register the main blocks editor script
         wp_register_script(
             'unbc-calendar-blocks-editor',
             plugin_dir_url(dirname(__FILE__)) . 'assets/js/blocks-editor.js',
             array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n'),
-            '1.0.0',
+            '1.0.5',
             true
         );
         
-        // Register editor styles
-        wp_register_style(
-            'unbc-calendar-blocks-editor-style',
-            plugin_dir_url(dirname(__FILE__)) . 'blocks/calendar-view/editor.css',
-            array(),
-            '1.0.0'
-        );
-        
-        // Register frontend styles
-        wp_register_style(
-            'unbc-calendar-blocks-style',
-            plugin_dir_url(dirname(__FILE__)) . 'blocks/calendar-view/style.css',
-            array(),
-            '1.0.0'
-        );
-        
+        // Only register render callbacks - blocks are registered in JS
+        if (function_exists('register_block_type')) {
+            register_block_type('unbc/calendar-view', array(
+                'render_callback' => array($this, 'render_calendar_block')
+            ));
+            
+            register_block_type('unbc/events-list', array(
+                'render_callback' => array($this, 'render_events_list_block')
+            ));
+            
+            error_log('Campus Manager: Calendar and Events List blocks render callbacks registered');
+        }
+    }
+    
+    public function enqueue_block_editor_assets() {
+        error_log('Campus Manager: enqueue_block_editor_assets called');
+        // Enqueue the main blocks editor script
         wp_enqueue_script('unbc-calendar-blocks-editor');
-        wp_enqueue_style('unbc-calendar-blocks-editor-style');
+        
+        // Also ensure React app is available for preview
+        $this->enqueue_scripts();
+    }
+    
+    public function admin_enqueue_scripts($hook) {
+        error_log('Campus Manager: admin_enqueue_scripts called on hook: ' . $hook);
+        // Only enqueue on post edit screens
+        if (in_array($hook, ['post.php', 'post-new.php', 'site-editor.php', 'widgets.php'])) {
+            wp_enqueue_script('unbc-calendar-blocks-editor');
+        }
     }
     
     public function enqueue_scripts() {
-        // Always enqueue on frontend pages (for blocks/shortcodes)
-        if (!is_admin()) {
-            // Force enqueue the React app
-            wp_enqueue_script(
-                'unbc-calendar-app',
-                plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/unbc-calendar.umd.js',
-                array(),
-                '3.1.6', // Increment version
-                true
-            );
-            
-            wp_enqueue_style(
-                'unbc-calendar-styles',
-                plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/style.css',
-                array(),
-                '3.1.0' // Increment version
-            );
+        // Always enqueue scripts for blocks/shortcodes (admin and frontend)
+        // Force enqueue the React app
+        wp_enqueue_script(
+            'unbc-calendar-app',
+            plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/unbc-calendar.umd.js',
+            array(),
+            '3.1.7', // Increment version
+            true
+        );
+        
+        wp_enqueue_style(
+            'unbc-calendar-styles',
+            plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/style.css',
+            array(),
+            '3.1.1' // Increment version
+        );
             
             // Enqueue dark mode support CSS
             wp_enqueue_style(
@@ -179,8 +145,6 @@ class UNBC_Calendar_Blocks {
                 'eventsEndpoint' => rest_url('unbc-events/v1/events/'),
                 'organizationsEndpoint' => rest_url('wp/v2/organization/')
             ));
-            
-        }
     }
     
     private function has_calendar_content() {
@@ -206,15 +170,20 @@ class UNBC_Calendar_Blocks {
     }
     
     public function render_calendar_block($attributes) {
+        // Ensure scripts are loaded
+        $this->enqueue_scripts();
+        
         $view = isset($attributes['view']) ? $attributes['view'] : 'month';
         $category_filter = isset($attributes['categoryFilter']) ? $attributes['categoryFilter'] : 'all';
         $organization_filter = isset($attributes['organizationFilter']) ? $attributes['organizationFilter'] : 'all';
-        
         
         return $this->render_calendar_component($view, $category_filter, $organization_filter);
     }
     
     public function render_events_list_block($attributes) {
+        // Ensure scripts are loaded
+        $this->enqueue_scripts();
+        
         $organization_id = isset($attributes['organizationId']) ? $attributes['organizationId'] : '';
         $organization_name = isset($attributes['organizationName']) ? $attributes['organizationName'] : '';
         $limit = isset($attributes['limit']) ? intval($attributes['limit']) : 5;

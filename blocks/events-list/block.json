@@ -2,10 +2,10 @@
     "$schema": "https://schemas.wp.org/trunk/block.json",
     "apiVersion": 2,
     "name": "unbc/events-list",
-    "title": "UNBC Events List",
-    "category": "widgets",
+    "title": "Event List",
+    "category": "campus-manager",
     "icon": "list-view",
-    "description": "Display a list of UNBC events with organization filtering.",
+    "description": "Display a list of events with organization filtering.",
     "keywords": ["events", "list", "unbc", "organization"],
     "textdomain": "unbc-events",
     "attributes": {
@@ -30,7 +30,7 @@
         "html": false,
         "align": ["wide", "full"]
     },
-    "editorScript": "file:./index.js",
+    "editorScript": "file:./build/index.js",
     "editorStyle": "file:./editor.css",
     "style": "file:./style.css"
 }

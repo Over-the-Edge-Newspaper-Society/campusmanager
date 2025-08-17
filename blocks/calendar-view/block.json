@@ -2,10 +2,10 @@
     "$schema": "https://schemas.wp.org/trunk/block.json",
     "apiVersion": 2,
     "name": "unbc/calendar-view",
-    "title": "UNBC Calendar",
-    "category": "widgets",
+    "title": "Event Calendar",
+    "category": "campus-manager",
     "icon": "calendar-alt",
-    "description": "Display the UNBC events calendar with multiple view options.",
+    "description": "Display the events calendar with multiple view options.",
     "keywords": ["calendar", "events", "unbc"],
     "textdomain": "unbc-events",
     "attributes": {
@@ -26,7 +26,7 @@
         "html": false,
         "align": ["wide", "full"]
     },
-    "editorScript": "file:./index.js",
+    "editorScript": "file:./build/index.js",
     "editorStyle": "file:./editor.css",
     "style": "file:./style.css"
 }

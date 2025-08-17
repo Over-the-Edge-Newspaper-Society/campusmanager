@@ -4,7 +4,7 @@
 	"name": "unbc/organization-field",
 	"version": "1.0.0",
 	"title": "Organization Field",
-	"category": "unbc-blocks",
+	"category": "campus-manager",
 	"icon": "groups",
 	"description": "Display organization custom fields with customizable text.",
 	"example": {},

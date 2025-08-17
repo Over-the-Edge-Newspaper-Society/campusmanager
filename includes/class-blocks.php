@@ -11,32 +11,32 @@ if (!defined('ABSPATH')) {
 class UNBC_Events_Blocks {
     
     public function __construct() {
+        error_log('Campus Manager: Main Blocks class constructor called');
+        
+        // Register category filters immediately
+        add_filter('block_categories_all', array($this, 'add_block_category'), 10, 2);
+        add_filter('block_categories', array($this, 'add_block_category'), 10, 2);
+        
         add_action('init', array($this, 'register_blocks'), 20); // Later priority
-        add_action('init', array($this, 'register_block_category'), 5); // Early priority for category
-        error_log('UNBC Events: Blocks class initialized');
+        
+        // Also register immediately if init has already passed
+        if (did_action('init')) {
+            $this->register_blocks();
+        }
     }
     
-    /**
-     * Register custom block category
-     */
-    public function register_block_category() {
-        // Register for all WordPress versions
-        add_filter('block_categories_all', array($this, 'add_block_category'), 10, 2);
-        
-        // Also try the older filter for compatibility
-        add_filter('block_categories', array($this, 'add_block_category'), 10, 2);
-    }
     
     /**
      * Add block category (fallback for older WP versions)
      */
     public function add_block_category($categories, $post) {
+        error_log('Campus Manager: Adding block category');
         return array_merge(
             $categories,
             array(
                 array(
-                    'slug'  => 'unbc-blocks',
-                    'title' => __('UNBC Blocks', 'unbc-events'),
+                    'slug'  => 'campus-manager',
+                    'title' => __('Campus Manager', 'unbc-events'),
                     'icon'  => 'groups',
                 ),
             )

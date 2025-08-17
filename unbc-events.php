@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: UNBC Campus Manager
- * Description: Comprehensive management system for UNBC campus events and organizations
+ * Plugin Name: Campus Manager
+ * Description: Comprehensive management system for campus events and organizations
  * Version: 2.0.0
  */
 
@@ -31,8 +31,19 @@ class UNBC_Events_Plugin {
         new UNBC_Organization_Manager_Admin_Refactored();
         new UNBC_Organization_Manager_Dashboard();
         
-        new UNBC_Events_Blocks();
-        new UNBC_Calendar_Blocks();
+        try {
+            new UNBC_Events_Blocks();
+            error_log('Campus Manager: UNBC_Events_Blocks instantiated successfully');
+        } catch (Exception $e) {
+            error_log('Campus Manager: Error instantiating UNBC_Events_Blocks: ' . $e->getMessage());
+        }
+        
+        try {
+            new UNBC_Calendar_Blocks();
+            error_log('Campus Manager: UNBC_Calendar_Blocks instantiated successfully');
+        } catch (Exception $e) {
+            error_log('Campus Manager: Error instantiating UNBC_Calendar_Blocks: ' . $e->getMessage());
+        }
         new UNBC_Events_Settings();
         
         // Add custom rewrite rules for organizations/departments

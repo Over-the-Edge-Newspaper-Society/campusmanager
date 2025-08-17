@@ -6,3 +6,5 @@ assets/react/.DS_Store
 .DS_Store
 blocks/.DS_Store
 assets/.DS_Store
+blocks/calendar-view/node_modules
+blocks/events-list/node_modules
