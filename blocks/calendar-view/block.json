@@ -15,7 +15,8 @@
         },
         "categoryFilter": {
             "type": "string",
-            "default": "all"
+            "default": "all",
+            "enum": ["all", "clubs", "unbc", "organizations", "sports"]
         },
         "organizationFilter": {
             "type": "string",

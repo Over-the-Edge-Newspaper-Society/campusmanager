@@ -32,16 +32,11 @@ class UNBC_Organization_Import_Export {
         
         // Handle both POST and GET parameters
         $request_data = $_POST ? $_POST : $_GET;
-        $export_format = sanitize_text_field($request_data['format'] ?? 'json');
         $export_content = isset($request_data['export_content']) && $request_data['export_content'] === 'true';
         $export_images = isset($request_data['export_images']) && $request_data['export_images'] === 'true';
         $export_meta = isset($request_data['export_meta']) && $request_data['export_meta'] === 'true';
         
-        if ($export_format === 'zip') {
-            $this->export_clubs_as_zip($export_content, $export_images, $export_meta);
-        } else {
-            $this->export_clubs_as_json($export_content, $export_images, $export_meta);
-        }
+        $this->export_clubs_as_zip($export_content, $export_images, $export_meta);
         
         wp_die();
     }
@@ -135,56 +130,6 @@ class UNBC_Organization_Import_Export {
         }
     }
     
-    /**
-     * Export clubs as JSON
-     */
-    private function export_clubs_as_json($export_content, $export_images, $export_meta) {
-        $organizations = get_posts(array(
-            'post_type' => 'organization',
-            'numberposts' => -1,
-            'post_status' => 'any'
-        ));
-        
-        $export_data = array(
-            'version' => '1.0',
-            'export_date' => current_time('mysql'),
-            'site_url' => get_site_url(),
-            'clubs' => array()
-        );
-        
-        foreach ($organizations as $organization) {
-            $org_data = array(
-                'ID' => $organization->ID,
-                'post_title' => $organization->post_title,
-                'post_name' => $organization->post_name,
-                'post_status' => $organization->post_status,
-                'post_date' => $organization->post_date,
-                'post_modified' => $organization->post_modified
-            );
-            
-            if ($export_content) {
-                $org_data['post_content'] = $organization->post_content;
-                $org_data['post_excerpt'] = $organization->post_excerpt;
-            }
-            
-            if ($export_meta) {
-                $org_data['meta'] = get_post_meta($organization->ID);
-            }
-            
-            if ($export_images) {
-                $thumbnail_id = get_post_thumbnail_id($organization->ID);
-                if ($thumbnail_id) {
-                    $org_data['featured_image_url'] = wp_get_attachment_url($thumbnail_id);
-                }
-            }
-            
-            $export_data['clubs'][] = $org_data;
-        }
-        
-        header('Content-Type: application/json');
-        header('Content-Disposition: attachment; filename="organizations-export-' . date('Y-m-d-His') . '.json"');
-        echo json_encode($export_data, JSON_PRETTY_PRINT);
-    }
     
     /**
      * Import clubs data via AJAX
@@ -354,17 +299,12 @@ class UNBC_Organization_Import_Export {
             wp_die('Unauthorized');
         }
         
-        $export_format = sanitize_text_field($_POST['format']);
         $export_content = isset($_POST['export_content']) && $_POST['export_content'] === 'true';
         $export_images = isset($_POST['export_images']) && $_POST['export_images'] === 'true';
         $export_meta = isset($_POST['export_meta']) && $_POST['export_meta'] === 'true';
         $export_relations = isset($_POST['export_relations']) && $_POST['export_relations'] === 'true';
         
-        if ($export_format === 'zip') {
-            $this->export_complete_as_zip($export_content, $export_images, $export_meta, $export_relations);
-        } else {
-            $this->export_complete_as_json($export_content, $export_images, $export_meta, $export_relations);
-        }
+        $this->export_complete_as_zip($export_content, $export_images, $export_meta, $export_relations);
         
         wp_die();
     }
@@ -478,123 +418,17 @@ class UNBC_Organization_Import_Export {
         
         // Handle both POST and GET parameters
         $request_data = $_POST ? $_POST : $_GET;
-        $export_format = sanitize_text_field($request_data['format'] ?? 'json');
         $export_content = isset($request_data['export_content']) && $request_data['export_content'] === 'true';
         $export_images = isset($request_data['export_images']) && $request_data['export_images'] === 'true';
         $export_meta = isset($request_data['export_meta']) && $request_data['export_meta'] === 'true';
         $export_clubs = isset($request_data['export_clubs']) && $request_data['export_clubs'] === 'true';
         $export_events = isset($request_data['export_events']) && $request_data['export_events'] === 'true';
         
-        if ($export_format === 'zip') {
-            $this->export_unified_as_zip($export_content, $export_images, $export_meta, $export_clubs, $export_events);
-        } else {
-            $this->export_unified_as_json($export_content, $export_images, $export_meta, $export_clubs, $export_events);
-        }
+        $this->export_unified_as_zip($export_content, $export_images, $export_meta, $export_clubs, $export_events);
         
         wp_die();
     }
     
-    /**
-     * Export unified data as JSON
-     */
-    private function export_unified_as_json($export_content, $export_images, $export_meta, $export_clubs, $export_events) {
-        $export_data = array(
-            'version' => '1.0',
-            'export_date' => current_time('mysql'),
-            'site_url' => get_site_url(),
-            'clubs' => array(),
-            'events' => array()
-        );
-        
-        // Export organizations (clubs)
-        if ($export_clubs) {
-            $organizations = get_posts(array(
-                'post_type' => 'organization',
-                'numberposts' => -1,
-                'post_status' => 'any'
-            ));
-            
-            foreach ($organizations as $organization) {
-                $org_data = array(
-                    'ID' => $organization->ID,
-                    'post_title' => $organization->post_title,
-                    'post_name' => $organization->post_name,
-                    'post_status' => $organization->post_status,
-                    'post_date' => $organization->post_date,
-                    'post_modified' => $organization->post_modified
-                );
-                
-                if ($export_content) {
-                    $org_data['post_content'] = $organization->post_content;
-                    $org_data['post_excerpt'] = $organization->post_excerpt;
-                }
-                
-                if ($export_meta) {
-                    $org_data['meta'] = get_post_meta($organization->ID);
-                }
-                
-                if ($export_images) {
-                    $thumbnail_id = get_post_thumbnail_id($organization->ID);
-                    if ($thumbnail_id) {
-                        $org_data['featured_image_url'] = wp_get_attachment_url($thumbnail_id);
-                    }
-                }
-                
-                $export_data['clubs'][] = $org_data;
-            }
-        }
-        
-        // Export events
-        if ($export_events) {
-            $events = get_posts(array(
-                'post_type' => 'event',
-                'numberposts' => -1,
-                'post_status' => 'any'
-            ));
-            
-            foreach ($events as $event) {
-                $event_data = array(
-                    'ID' => $event->ID,
-                    'post_title' => $event->post_title,
-                    'post_name' => $event->post_name,
-                    'post_status' => $event->post_status,
-                    'post_date' => $event->post_date,
-                    'post_modified' => $event->post_modified
-                );
-                
-                if ($export_content) {
-                    $event_data['post_content'] = $event->post_content;
-                    $event_data['post_excerpt'] = $event->post_excerpt;
-                }
-                
-                if ($export_meta) {
-                    $event_data['meta'] = get_post_meta($event->ID);
-                }
-                
-                if ($export_images) {
-                    $thumbnail_id = get_post_thumbnail_id($event->ID);
-                    if ($thumbnail_id) {
-                        $event_data['featured_image_url'] = wp_get_attachment_url($thumbnail_id);
-                    }
-                }
-                
-                // Get organization
-                $org_id = get_post_meta($event->ID, 'organization_id', true);
-                if ($org_id) {
-                    $org = get_post($org_id);
-                    if ($org) {
-                        $event_data['organization'] = $org->post_title;
-                    }
-                }
-                
-                $export_data['events'][] = $event_data;
-            }
-        }
-        
-        header('Content-Type: application/json');
-        header('Content-Disposition: attachment; filename="unified-export-' . date('Y-m-d-His') . '.json"');
-        echo json_encode($export_data, JSON_PRETTY_PRINT);
-    }
     
     /**
      * Export unified data as ZIP
@@ -638,6 +472,22 @@ class UNBC_Organization_Import_Export {
                 
                 if ($export_meta) {
                     $org_data['meta'] = get_post_meta($organization->ID);
+                    
+                    // Export taxonomies
+                    $org_data['taxonomies'] = array();
+                    $taxonomies = array('org_category', 'org_tag', 'org_status', 'org_size');
+                    foreach ($taxonomies as $taxonomy) {
+                        $terms = wp_get_post_terms($organization->ID, $taxonomy);
+                        if (!is_wp_error($terms) && !empty($terms)) {
+                            $org_data['taxonomies'][$taxonomy] = array();
+                            foreach ($terms as $term) {
+                                $org_data['taxonomies'][$taxonomy][] = array(
+                                    'slug' => $term->slug,
+                                    'name' => $term->name
+                                );
+                            }
+                        }
+                    }
                 }
                 
                 if ($export_images) {
@@ -826,6 +676,32 @@ class UNBC_Organization_Import_Export {
                                 $value = $value[0];
                             }
                             update_post_meta($org_id, $key, maybe_unserialize($value));
+                        }
+                    }
+                    
+                    // Import taxonomy data
+                    if (isset($club_data['taxonomies'])) {
+                        foreach ($club_data['taxonomies'] as $taxonomy => $terms) {
+                            $term_slugs = array();
+                            foreach ($terms as $term_data) {
+                                // Create term if it doesn't exist
+                                $term = get_term_by('slug', $term_data['slug'], $taxonomy);
+                                if (!$term) {
+                                    $result = wp_insert_term($term_data['name'], $taxonomy, array(
+                                        'slug' => $term_data['slug']
+                                    ));
+                                    if (!is_wp_error($result)) {
+                                        $term_slugs[] = $term_data['slug'];
+                                    }
+                                } else {
+                                    $term_slugs[] = $term_data['slug'];
+                                }
+                            }
+                            
+                            // Assign terms to organization
+                            if (!empty($term_slugs)) {
+                                wp_set_post_terms($org_id, $term_slugs, $taxonomy);
+                            }
                         }
                     }
                     

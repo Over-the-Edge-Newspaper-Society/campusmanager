@@ -45,6 +45,7 @@ export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
       setTotal(response.total);
       setPages(response.pages);
     } catch (err) {
+      console.error('Error fetching events:', err);
       // Set error state without fallback data
       setEvents([]);
       setEventMetadata({});

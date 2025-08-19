@@ -70,10 +70,12 @@ class EventsAPI {
       // Ensure proper URL construction
       const baseUrl = this.baseUrl.endsWith('/') ? this.baseUrl.slice(0, -1) : this.baseUrl;
       const url = `${baseUrl}/events${queryString.toString() ? '?' + queryString.toString() : ''}`;
+      
       const response = await fetch(url);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
       }
       
       return await response.json();
@@ -125,37 +127,47 @@ class EventsAPI {
   }
 
   private getCategoryVariant(categories: Array<{name: string; slug: string}>): string {
-    if (categories.length === 0) return 'default';
+    if (categories.length === 0) return 'default'; // Gray for uncategorized
     
+    // Map categories to colors based on new category system
     const categoryMap: {[key: string]: string} = {
+      'clubs': 'primary',      // Purple for clubs
+      'club': 'primary',
+      'student-clubs': 'primary',
+      'unbc': 'success',       // Green for UNBC
+      'university': 'success',
       'academic': 'success',
-      'social': 'warning',
-      'cultural': 'primary',
-      'sports': 'danger',
-      'professional': 'success',
-      'wellness': 'primary',
-      'volunteer': 'warning',
-      'arts': 'primary'
+      'organizations': 'danger', // Red for organizations
+      'organization': 'danger',
+      'community': 'danger',
+      'sports': 'warning',     // Blue/Orange for sports
+      'athletics': 'warning',
+      'recreation': 'warning'
     };
     
-    return categoryMap[categories[0].slug] || 'default';
+    return categoryMap[categories[0].slug] || 'default'; // Gray for unknown categories
   }
 
-  private mapWordPressCategory(categories: Array<{name: string; slug: string}>): EventCategory {
-    if (categories.length === 0) return 'academic';
+  private mapWordPressCategory(categories: Array<{name: string; slug: string}>): EventCategory | null {
+    if (categories.length === 0) return null; // No category = show as uncategorized
     
+    // Map WordPress categories to our new category system
     const categoryMap: {[key: string]: EventCategory} = {
-      'academic': 'academic',
-      'social': 'social',
-      'cultural': 'cultural',
+      'clubs': 'clubs',
+      'club': 'clubs',
+      'student-clubs': 'clubs',
+      'unbc': 'unbc',
+      'university': 'unbc',
+      'academic': 'unbc',
+      'organizations': 'organizations',
+      'organization': 'organizations',
+      'community': 'organizations',
       'sports': 'sports',
-      'professional': 'professional',
-      'wellness': 'wellness',
-      'volunteer': 'volunteer',
-      'arts': 'arts'
+      'athletics': 'sports',
+      'recreation': 'sports'
     };
     
-    return categoryMap[categories[0].slug] || 'academic';
+    return categoryMap[categories[0].slug] || null; // Unknown category = uncategorized
   }
 }
 

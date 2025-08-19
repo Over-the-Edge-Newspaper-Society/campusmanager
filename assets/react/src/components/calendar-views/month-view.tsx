@@ -63,14 +63,10 @@ export function MonthView({ events, eventMetadata, onDateClick, onEventClick }: 
   // Event Component
   const MonthEventComponent = ({ events }: { events: Event[] }) => {
     const categoryColors = {
-      academic: "bg-green-500",
-      social: "bg-orange-500",
-      cultural: "bg-purple-500",
-      sports: "bg-red-500",
-      professional: "bg-teal-500",
-      wellness: "bg-blue-500",
-      volunteer: "bg-yellow-500",
-      arts: "bg-pink-500"
+      clubs: "bg-purple-500",
+      unbc: "bg-green-500",
+      organizations: "bg-red-500",
+      sports: "bg-blue-500"
     };
 
     const eventsByCategory = events.reduce((acc, event) => {
@@ -218,14 +214,10 @@ export function MonthView({ events, eventMetadata, onDateClick, onEventClick }: 
                       {dayEvents.map((event) => {
                         const metadata = eventMetadata[event.id];
                         const categoryColors = {
-                          academic: "bg-green-500",
-                          social: "bg-orange-500",
-                          cultural: "bg-purple-500",
-                          sports: "bg-red-500",
-                          professional: "bg-teal-500",
-                          wellness: "bg-blue-500",
-                          volunteer: "bg-yellow-500",
-                          arts: "bg-pink-500"
+                          clubs: "bg-purple-500",
+                          unbc: "bg-green-500",
+                          organizations: "bg-red-500",
+                          sports: "bg-blue-500"
                         };
                         const colorClass = metadata ? categoryColors[metadata.category as keyof typeof categoryColors] : "bg-gray-500";
                         

@@ -31,7 +31,7 @@ class UNBC_Calendar_Blocks {
             'unbc-calendar-app',
             plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/unbc-calendar.umd.js',
             array(),
-            '3.1.6',
+            '4.0.0',
             true
         );
         
@@ -39,14 +39,14 @@ class UNBC_Calendar_Blocks {
             'unbc-calendar-styles',
             plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/style.css',
             array(),
-            '1.0.1'
+            '4.0.0'
         );
         
         wp_register_style(
             'unbc-calendar-dark-mode',
             plugin_dir_url(dirname(__FILE__)) . 'assets/css/calendar-dark-mode.css',
             array('unbc-calendar-styles'),
-            '1.0.5'
+            '4.0.0'
         );
         
         // Provide WordPress REST API data to React
@@ -107,7 +107,7 @@ class UNBC_Calendar_Blocks {
             'unbc-calendar-app',
             plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/unbc-calendar.umd.js',
             array(),
-            '3.1.7', // Increment version
+            '4.0.0', // Updated version
             true
         );
         
@@ -115,7 +115,7 @@ class UNBC_Calendar_Blocks {
             'unbc-calendar-styles',
             plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/style.css',
             array(),
-            '3.1.1' // Increment version
+            '4.0.0' // Updated version
         );
             
             // Enqueue dark mode support CSS
@@ -123,7 +123,7 @@ class UNBC_Calendar_Blocks {
                 'unbc-calendar-dark-mode',
                 plugin_dir_url(dirname(__FILE__)) . 'assets/css/calendar-dark-mode.css',
                 array('unbc-calendar-styles'),
-                '1.0.5'
+                '4.0.0'
             );
             
             // Enqueue dark mode integration JavaScript

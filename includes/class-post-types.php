@@ -181,6 +181,52 @@ class UNBC_Events_Post_Types {
             'rewrite' => array('slug' => 'club-tag'),
         ));
         }
+        
+        // Organization Status taxonomy
+        if (!taxonomy_exists('org_status')) {
+            register_taxonomy('org_status', 'organization', array(
+                'labels' => array(
+                    'name' => 'Organization Status',
+                    'singular_name' => 'Status',
+                    'search_items' => 'Search Statuses',
+                    'all_items' => 'All Statuses',
+                    'edit_item' => 'Edit Status',
+                    'update_item' => 'Update Status',
+                    'add_new_item' => 'Add New Status',
+                    'new_item_name' => 'New Status Name',
+                    'menu_name' => 'Status',
+                ),
+                'hierarchical' => false,
+                'public' => true,
+                'show_in_rest' => true,
+                'show_admin_column' => true,
+                'rewrite' => array('slug' => 'org-status'),
+                'meta_box_cb' => false // We'll create custom meta boxes
+            ));
+        }
+        
+        // Organization Size taxonomy
+        if (!taxonomy_exists('org_size')) {
+            register_taxonomy('org_size', 'organization', array(
+                'labels' => array(
+                    'name' => 'Organization Size',
+                    'singular_name' => 'Size',
+                    'search_items' => 'Search Sizes',
+                    'all_items' => 'All Sizes',
+                    'edit_item' => 'Edit Size',
+                    'update_item' => 'Update Size',
+                    'add_new_item' => 'Add New Size',
+                    'new_item_name' => 'New Size Name',
+                    'menu_name' => 'Size',
+                ),
+                'hierarchical' => false,
+                'public' => true,
+                'show_in_rest' => true,
+                'show_admin_column' => true,
+                'rewrite' => array('slug' => 'org-size'),
+                'meta_box_cb' => false // We'll create custom meta boxes
+            ));
+        }
     }
     
     public function disable_gutenberg_for_events($use_block_editor, $post_type) {

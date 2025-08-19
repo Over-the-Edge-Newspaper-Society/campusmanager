@@ -223,5 +223,29 @@ class UNBC_Events_REST_API {
                 )
             ));
         }
+        
+        // Register organization meta fields for the block editor
+        $org_meta_fields = array(
+            'org_status' => 'string',
+            'org_size' => 'string',
+            'org_is_department' => 'boolean'
+        );
+        
+        foreach ($org_meta_fields as $field => $type) {
+            register_rest_field('organization', $field, array(
+                'get_callback' => function($post) use ($field) {
+                    $value = get_post_meta($post['id'], $field, true);
+                    if ($field === 'org_is_department') {
+                        return $value === '1';
+                    }
+                    return $value;
+                },
+                'schema' => array(
+                    'description' => ucfirst(str_replace('_', ' ', $field)),
+                    'type' => $type,
+                    'context' => array('view', 'edit')
+                )
+            ));
+        }
     }
 }

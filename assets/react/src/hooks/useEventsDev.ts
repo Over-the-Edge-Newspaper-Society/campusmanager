@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Event, EventMetadata } from '@/types';
+import { unbcEvents, eventMetadata as unbcEventMetadata } from '@/data/events';
 
 // Generate sample events for development
 const generateSampleEvents = (): Event[] => {
@@ -203,8 +204,9 @@ export function useEventsDev() {
     return () => clearTimeout(timer);
   }, []);
   
-  const events = generateSampleEvents();
-  const eventMetadata = generateEventMetadata(events);
+  // Use the imported events from data/events.ts instead of generating them
+  const events = unbcEvents;
+  const eventMetadata = unbcEventMetadata;
   
   return {
     events,

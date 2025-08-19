@@ -1,13 +1,9 @@
-// Campus Manager Blocks - Debug Version
-console.log('Campus Manager: JavaScript file loaded');
-
+// Campus Manager Blocks
 // Check if WordPress block functions are available
-if (typeof wp === 'undefined') {
-    console.error('Campus Manager: WordPress wp object not available');
-} else if (typeof wp.blocks === 'undefined') {
-    console.error('Campus Manager: wp.blocks not available');
-} else {
-    console.log('Campus Manager: WordPress blocks API available');
+(function() {
+    if (typeof wp === 'undefined' || typeof wp.blocks === 'undefined') {
+        return;
+    }
     
     const { registerBlockType } = wp.blocks;
     const { InspectorControls } = wp.blockEditor;
@@ -37,8 +33,6 @@ if (typeof wp === 'undefined') {
             }
         });
         
-        console.log('Campus Manager: Event Calendar block registered');
-
         // Register Events List Block - Simple version for testing
         registerBlockType('unbc/events-list', {
             title: 'Event List',
@@ -61,10 +55,10 @@ if (typeof wp === 'undefined') {
             }
         });
         
-        console.log('Campus Manager: Event List block registered');
-        console.log('Campus Manager: All blocks registered successfully');
-        
     } catch (error) {
-        console.error('Campus Manager: Error registering blocks:', error);
+        console.error('Campus Manager blocks error:', error);
     }
-}
+})();
+
+// Organization filtering is now handled by native WordPress taxonomies
+// Query Loop blocks will automatically show taxonomy filters for org_status and org_size

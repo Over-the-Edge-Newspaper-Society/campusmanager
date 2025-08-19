@@ -8,7 +8,7 @@ export interface Event {
 }
 
 export interface EventMetadata {
-  category: EventCategory;
+  category: EventCategory | null; // Allow null for uncategorized events
   organization: string;
   organization_id?: string;  // Add organization_id field
   location: string;
@@ -17,6 +17,7 @@ export interface EventMetadata {
   posterUrl?: string;
   registrationLink?: string;
   contactEmail?: string;
+  website?: string;
   isVirtual?: boolean;
   virtualLink?: string;
   capacity?: string;
@@ -24,13 +25,9 @@ export interface EventMetadata {
 }
 
 export type EventCategory = 
-  | 'academic'
-  | 'social'
-  | 'cultural'
-  | 'sports'
-  | 'professional'
-  | 'wellness'
-  | 'volunteer'
-  | 'arts';
+  | 'clubs'
+  | 'unbc'
+  | 'organizations'
+  | 'sports';
 
 export type ViewType = 'month' | 'week' | 'day' | 'list';

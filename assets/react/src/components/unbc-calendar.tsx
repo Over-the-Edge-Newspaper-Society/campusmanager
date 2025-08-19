@@ -5,8 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarDays, List } from "lucide-react";
+import { CalendarDays, List, Calendar, Clock } from "lucide-react";
 import type { Event } from "@/types";
+import { useEventsDev } from "@/hooks/useEventsDev";
 import { useEvents } from "@/hooks/useEvents";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { EventDialog } from "@/components/event-dialog";
@@ -14,6 +15,15 @@ import { MonthView, WeekView, DayView } from "@/components/calendar-views";
 import { MobileMonthView } from "./mobile-month-view";
 import { EventListView, MobileListView } from "./list-views";
 import { Loader2 } from "lucide-react";
+
+// Mock organizations for development
+const mockOrganizations = [
+  { id: 1, title: { rendered: 'Student Union' } },
+  { id: 2, title: { rendered: 'Computer Science Club' } },
+  { id: 3, title: { rendered: 'Athletics Department' } },
+  { id: 4, title: { rendered: 'Cultural Society' } },
+  { id: 5, title: { rendered: 'Career Services' } },
+];
 
 export default function UNBCCalendar() {
   const [activeTab, setActiveTab] = useState("month");
@@ -76,7 +86,24 @@ export default function UNBCCalendar() {
   const [organizationFilter, setOrganizationFilter] = useState("all");
   const [searchFilter, setSearchFilter] = useState("");
 
-  // Use the events hook - load all events once
+  // Reset organization filter when category changes to something other than clubs/unbc
+  React.useEffect(() => {
+    if (categoryFilter !== "clubs" && categoryFilter !== "unbc") {
+      setOrganizationFilter("all");
+    }
+  }, [categoryFilter]);
+
+  // Check if we're in development mode - use Vite's environment detection
+  // In development: import.meta.env.DEV is true
+  // In production: import.meta.env.DEV is false
+  const isDev = import.meta.env.DEV;
+  
+  // Use appropriate hooks based on environment
+  const devData = useEventsDev();
+  const prodEventsData = useEvents();
+  const prodOrgsData = useOrganizations();
+  
+  // Select data source based on environment
   const { 
     events: allEvents, 
     eventMetadata, 
@@ -84,26 +111,32 @@ export default function UNBCCalendar() {
     error, 
     total, 
     setFilters 
-  } = useEvents({
-    per_page: 1000, // Get all events
-  });
+  } = isDev ? devData : prodEventsData;
 
-  // Use the organizations hook
-  const { organizations } = useOrganizations();
+  const organizations = isDev ? mockOrganizations : prodOrgsData.organizations;
+  const orgLoading = isDev ? false : prodOrgsData.loading;
 
-  // Filter events client-side
+  // Load all events initially and handle all filtering client-side
+  React.useEffect(() => {
+    if (!isDev && setFilters) {
+      // Don't send any filters to server - load all events and filter client-side
+      setFilters({});
+    }
+  }, [setFilters, isDev]);
+
+  // Filter events client-side for better UX and to handle server-side limitations
   const events = React.useMemo(() => {
     let filtered = allEvents;
 
-    // Category filter
+    // Category filter - always client-side since server-side filtering is too strict
     if (categoryFilter !== "all") {
       filtered = filtered.filter(event => {
         const metadata = eventMetadata[event.id];
-        return metadata?.categories?.some(cat => cat.slug === categoryFilter);
+        return metadata?.category === categoryFilter;
       });
     }
 
-    // Organization filter
+    // Organization filter - always client-side for better UX
     if (organizationFilter !== "all") {
       filtered = filtered.filter(event => {
         const metadata = eventMetadata[event.id];
@@ -113,7 +146,7 @@ export default function UNBCCalendar() {
       });
     }
 
-    // Search filter
+    // Search filter - always client-side for better UX
     if (searchFilter) {
       const searchLower = searchFilter.toLowerCase();
       filtered = filtered.filter(event => {
@@ -140,15 +173,13 @@ export default function UNBCCalendar() {
     setShowEventDialog(true);
   };
 
-
-
   // Show loading state
-  if (loading) {
+  if (loading || orgLoading) {
     return (
       <div className="w-full flex items-center justify-center py-12">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading events...</p>
+          <p className="text-gray-600">{isDev ? 'Loading sample events...' : 'Loading calendar...'}</p>
         </div>
       </div>
     );
@@ -185,11 +216,11 @@ export default function UNBCCalendar() {
             <div className="flex justify-center mb-4">
               <TabsList className="h-9 bg-gray-100 dark:bg-gray-700 p-1">
                 <TabsTrigger value="day" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
-                  <CalendarDays className="h-3 w-3" />
+                  <Clock className="h-3 w-3" />
                   Day
                 </TabsTrigger>
                 <TabsTrigger value="week" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
-                  <CalendarDays className="h-3 w-3" />
+                  <Calendar className="h-3 w-3" />
                   Week
                 </TabsTrigger>
                 <TabsTrigger value="month" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
@@ -205,40 +236,38 @@ export default function UNBCCalendar() {
             
             {/* Filters - Responsive flex layout */}
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <Select onValueChange={setCategoryFilter}>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-40 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
-                  <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All Categories</SelectItem>
-                  <SelectItem value="academic" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Academic</SelectItem>
-                  <SelectItem value="arts" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Arts & Creative</SelectItem>
-                  <SelectItem value="cultural" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Cultural</SelectItem>
-                  <SelectItem value="professional" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Professional</SelectItem>
-                  <SelectItem value="social" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Social</SelectItem>
-                  <SelectItem value="sports" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Sports & Recreation</SelectItem>
-                  <SelectItem value="volunteer" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Volunteer</SelectItem>
-                  <SelectItem value="wellness" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Health & Wellness</SelectItem>
+                  <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All</SelectItem>
+                  <SelectItem value="clubs" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Clubs</SelectItem>
+                  <SelectItem value="unbc" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">UNBC</SelectItem>
+                  <SelectItem value="organizations" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Organizations</SelectItem>
+                  <SelectItem value="sports" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Sports</SelectItem>
                 </SelectContent>
               </Select>
 
-              <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
-                <SelectTrigger className="w-44 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 [&>span]:truncate [&>span]:block">
-                  <SelectValue placeholder="All Organizations" />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 max-h-[200px] overflow-y-auto">
-                  <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All Organizations</SelectItem>
-                  {organizations.map((org) => (
-                    <SelectItem 
-                      key={org.id} 
-                      value={org.id.toString()} 
-                      className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600"
-                    >
-                      {org.title.rendered}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {(categoryFilter === "clubs" || categoryFilter === "unbc") && (
+                <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
+                  <SelectTrigger className="w-44 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 [&>span]:truncate [&>span]:block">
+                    <SelectValue placeholder="All Organizations" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 max-h-[200px] overflow-y-auto">
+                    <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All Organizations</SelectItem>
+                    {organizations.map((org) => (
+                      <SelectItem 
+                        key={org.id} 
+                        value={org.id.toString()} 
+                        className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600"
+                      >
+                        {org.title.rendered}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
 
               <Input
                 placeholder="Search events..."
@@ -253,7 +282,7 @@ export default function UNBCCalendar() {
             <div className="p-6 pb-0 flex justify-center">
               <TabsList className="h-9 bg-gray-100 dark:bg-gray-700 p-1">
                 <TabsTrigger value="day" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
-                  <CalendarDays className="h-3 w-3" />
+                  <Clock className="h-3 w-3" />
                   Day
                 </TabsTrigger>
                 <TabsTrigger value="month" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
@@ -269,40 +298,38 @@ export default function UNBCCalendar() {
             
             {/* Mobile Filters - Stacked */}
             <div className="p-6 pt-4 space-y-4">
-              <Select onValueChange={setCategoryFilter}>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-full h-10 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
-                  <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All Categories</SelectItem>
-                  <SelectItem value="academic" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Academic</SelectItem>
-                  <SelectItem value="arts" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Arts & Creative</SelectItem>
-                  <SelectItem value="cultural" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Cultural</SelectItem>
-                  <SelectItem value="professional" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Professional</SelectItem>
-                  <SelectItem value="social" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Social</SelectItem>
-                  <SelectItem value="sports" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Sports & Recreation</SelectItem>
-                  <SelectItem value="volunteer" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Volunteer</SelectItem>
-                  <SelectItem value="wellness" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Health & Wellness</SelectItem>
+                  <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All</SelectItem>
+                  <SelectItem value="clubs" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Clubs</SelectItem>
+                  <SelectItem value="unbc" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">UNBC</SelectItem>
+                  <SelectItem value="organizations" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Organizations</SelectItem>
+                  <SelectItem value="sports" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Sports</SelectItem>
                 </SelectContent>
               </Select>
 
-              <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
-                <SelectTrigger className="w-full h-10 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                  <SelectValue placeholder="All Organizations" className="truncate" />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 max-h-[200px] overflow-y-auto">
-                  <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All Organizations</SelectItem>
-                  {organizations.map((org) => (
-                    <SelectItem 
-                      key={org.id} 
-                      value={org.id.toString()} 
-                      className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600"
-                    >
-                      {org.title.rendered}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {(categoryFilter === "clubs" || categoryFilter === "unbc") && (
+                <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
+                  <SelectTrigger className="w-full h-10 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <SelectValue placeholder="All Organizations" className="truncate" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 max-h-[200px] overflow-y-auto">
+                    <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All Organizations</SelectItem>
+                    {organizations.map((org) => (
+                      <SelectItem 
+                        key={org.id} 
+                        value={org.id.toString()} 
+                        className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600"
+                      >
+                        {org.title.rendered}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
 
               <Input
                 placeholder="Search events..."

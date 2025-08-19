@@ -71,18 +71,18 @@ export function MobileMonthView({ events, eventMetadata, onEventClick }: MobileM
     <Card className="w-full py-4 mobile-calendar bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
       <CardContent className="px-4">
         {/* Simple calendar header with navigation */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 gap-2">
           <Button 
             variant="outline"
             size="sm"
             onClick={handlePrevMonth}
-            className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
+            className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
-            Prev
+            <span className="hidden xs:inline">Prev</span>
           </Button>
           
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 text-center flex-1 min-w-0 truncate">
             {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </h3>
           
@@ -90,9 +90,9 @@ export function MobileMonthView({ events, eventMetadata, onEventClick }: MobileM
             variant="outline"
             size="sm"
             onClick={handleNextMonth}
-            className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
+            className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 flex-shrink-0"
           >
-            Next
+            <span className="hidden xs:inline">Next</span>
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
@@ -156,16 +156,15 @@ export function MobileMonthView({ events, eventMetadata, onEventClick }: MobileM
             selectedDateEvents.map((event) => {
               const metadata = eventMetadata[event.id];
               const categoryColors = {
-                academic: "after:bg-green-500",
-                social: "after:bg-orange-500",
-                cultural: "after:bg-purple-500",
-                sports: "after:bg-red-500",
-                professional: "after:bg-teal-500",
-                wellness: "after:bg-blue-500",
-                volunteer: "after:bg-yellow-500",
-                arts: "after:bg-pink-500"
+                clubs: "after:bg-purple-500",
+                unbc: "after:bg-green-500",
+                organizations: "after:bg-red-500",
+                sports: "after:bg-blue-500"
               };
-              const categoryColor = metadata ? categoryColors[metadata.category as keyof typeof categoryColors] : "after:bg-gray-500";
+              // Handle null/undefined categories as gray
+              const categoryColor = metadata?.category && categoryColors[metadata.category as keyof typeof categoryColors] 
+                ? categoryColors[metadata.category as keyof typeof categoryColors] 
+                : "after:bg-gray-500";
 
               return (
                 <button

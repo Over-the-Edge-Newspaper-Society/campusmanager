@@ -119,7 +119,24 @@
 /* Calendar Tab List - Remove Outline */
 #root [role="tablist"] button[role="tab"],
 #root [role="tablist"] button[role="tab"]:focus,
-#root [role="tablist"] button[role="tab"]:focus-visible {
+#root [role="tablist"] button[role="tab"]:focus-visible,
+#root [role="tablist"] button[role="tab"]:active,
+#root [role="tablist"] button[role="tab"][data-state="active"] {
   outline: none !important;
   box-shadow: none !important;
+  border: none !important;
+  border-color: transparent !important;
+}
+
+/* More specific override for Radix UI tabs */
+#root button[data-slot="tabs-trigger"],
+#root button[data-slot="tabs-trigger"]:focus,
+#root button[data-slot="tabs-trigger"]:focus-visible,
+#root button[data-slot="tabs-trigger"]:active,
+#root button[data-slot="tabs-trigger"][data-state="active"] {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-color: transparent !important;
+  ring: none !important;
 }

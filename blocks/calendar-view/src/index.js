@@ -2,8 +2,11 @@ import { InspectorControls } from '@wordpress/block-editor';
 import { PanelBody, SelectControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
-// Only provide the edit function - block is registered in PHP
-window.unbcCalendarEdit = function(props) {
+import { registerBlockType } from '@wordpress/blocks';
+
+// Register the block
+registerBlockType('unbc/calendar-view', {
+    edit: function(props) {
     const { attributes, setAttributes } = props;
     const { view, categoryFilter, organizationFilter } = attributes;
 
@@ -30,15 +33,11 @@ window.unbcCalendarEdit = function(props) {
                     label: __('Default Category Filter', 'unbc-events'),
                     value: categoryFilter,
                     options: [
-                        { label: 'All Categories', value: 'all' },
-                        { label: 'Academic', value: 'academic' },
-                        { label: 'Social', value: 'social' },
-                        { label: 'Cultural', value: 'cultural' },
-                        { label: 'Sports', value: 'sports' },
-                        { label: 'Professional', value: 'professional' },
-                        { label: 'Wellness', value: 'wellness' },
-                        { label: 'Volunteer', value: 'volunteer' },
-                        { label: 'Arts', value: 'arts' }
+                        { label: 'All', value: 'all' },
+                        { label: 'Clubs', value: 'clubs' },
+                        { label: 'UNBC', value: 'unbc' },
+                        { label: 'Organizations', value: 'organizations' },
+                        { label: 'Sports', value: 'sports' }
                     ],
                     onChange: function(newCategory) {
                         setAttributes({ categoryFilter: newCategory });
@@ -78,4 +77,9 @@ window.unbcCalendarEdit = function(props) {
             }, __('View: ' + view + ' | Category: ' + categoryFilter, 'unbc-events'))
         )
     ];
-};
+    },
+    
+    save: function() {
+        return null; // Server-side rendered
+    }
+});

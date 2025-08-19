@@ -70,16 +70,15 @@ export function EventListView({ events, eventMetadata, onEventClick }: ListViewP
                 {dateEvents.map((event) => {
                   const metadata = eventMetadata[event.id];
                   const categoryColors = {
-                    academic: "after:bg-green-500",
-                    social: "after:bg-orange-500",
-                    cultural: "after:bg-purple-500",
-                    sports: "after:bg-red-500",
-                    professional: "after:bg-teal-500",
-                    wellness: "after:bg-blue-500",
-                    volunteer: "after:bg-yellow-500",
-                    arts: "after:bg-pink-500"
+                    clubs: "after:bg-purple-500",
+                    unbc: "after:bg-green-500",
+                    organizations: "after:bg-red-500",
+                    sports: "after:bg-blue-500"
                   };
-                  const categoryColor = metadata ? categoryColors[metadata.category as keyof typeof categoryColors] : "after:bg-gray-500";
+                  // Handle null/undefined categories as gray
+                  const categoryColor = metadata?.category && categoryColors[metadata.category as keyof typeof categoryColors] 
+                    ? categoryColors[metadata.category as keyof typeof categoryColors] 
+                    : "after:bg-gray-500";
 
                   return (
                     <div
@@ -193,16 +192,15 @@ export function MobileListView({ events, eventMetadata, onEventClick }: ListView
                 {dateEvents.map((event) => {
                   const metadata = eventMetadata[event.id];
                   const categoryColors = {
-                    academic: "after:bg-green-500",
-                    social: "after:bg-orange-500",
-                    cultural: "after:bg-purple-500",
-                    sports: "after:bg-red-500",
-                    professional: "after:bg-teal-500",
-                    wellness: "after:bg-blue-500",
-                    volunteer: "after:bg-yellow-500",
-                    arts: "after:bg-pink-500"
+                    clubs: "after:bg-purple-500",
+                    unbc: "after:bg-green-500",
+                    organizations: "after:bg-red-500",
+                    sports: "after:bg-blue-500"
                   };
-                  const categoryColor = metadata ? categoryColors[metadata.category as keyof typeof categoryColors] : "after:bg-gray-500";
+                  // Handle null/undefined categories as gray
+                  const categoryColor = metadata?.category && categoryColors[metadata.category as keyof typeof categoryColors] 
+                    ? categoryColors[metadata.category as keyof typeof categoryColors] 
+                    : "after:bg-gray-500";
 
                   return (
                     <div

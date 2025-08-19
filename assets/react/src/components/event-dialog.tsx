@@ -2,7 +2,7 @@ import React from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, MapPin, Building2, DollarSign, Calendar } from "lucide-react";
+import { Clock, MapPin, Building2, DollarSign, Calendar, ExternalLink } from "lucide-react";
 import type { Event, EventMetadata } from "@/types";
 
 interface EventDialogProps {
@@ -72,14 +72,10 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
   };
 
   const categoryStyles = {
-    academic: 'bg-green-100 text-green-800',
-    social: 'bg-orange-100 text-orange-800',
-    cultural: 'bg-purple-100 text-purple-800',
-    sports: 'bg-red-100 text-red-800',
-    professional: 'bg-teal-100 text-teal-800',
-    wellness: 'bg-blue-100 text-blue-800',
-    volunteer: 'bg-yellow-100 text-yellow-800',
-    arts: 'bg-pink-100 text-pink-800'
+    clubs: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+    unbc: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+    organizations: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+    sports: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
   };
 
   return (
@@ -122,25 +118,47 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
             
             {metadata && (
               <>
-                <div className="flex items-center gap-3 text-sm">
-                  <MapPin className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                  <span className="text-gray-900 dark:text-gray-100">{metadata.location}</span>
-                </div>
+                {metadata.location && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <MapPin className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    <span className="text-gray-900 dark:text-gray-100">{metadata.location}</span>
+                  </div>
+                )}
                 
-                <div className="flex items-center gap-3 text-sm">
-                  <Building2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                  <span className="text-gray-900 dark:text-gray-100">{metadata.organization}</span>
-                </div>
+                {metadata.organization && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <Building2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    <span className="text-gray-900 dark:text-gray-100">{metadata.organization}</span>
+                  </div>
+                )}
                 
-                <div className="flex items-center gap-3 text-sm">
-                  <DollarSign className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                  <span className="text-gray-900 dark:text-gray-100">{metadata.cost}</span>
-                </div>
+                {metadata.cost && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <DollarSign className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    <span className="text-gray-900 dark:text-gray-100">{metadata.cost}</span>
+                  </div>
+                )}
+                
+                {metadata.website && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <ExternalLink className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    <a 
+                      href={metadata.website} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:underline transition-colors"
+                    >
+                      Event Website
+                    </a>
+                  </div>
+                )}
                 
                 <div className="flex items-center gap-3">
-                  <Badge className={categoryStyles[metadata.category as keyof typeof categoryStyles] || 'bg-gray-100 text-gray-800'}>
-                    {metadata.category.charAt(0).toUpperCase() + metadata.category.slice(1)}
-                  </Badge>
+                  {metadata.category && (
+                    <Badge className={categoryStyles[metadata.category as keyof typeof categoryStyles] || 'bg-gray-100 text-gray-800'}>
+                      {metadata.category.charAt(0).toUpperCase() + metadata.category.slice(1)}
+                    </Badge>
+                  )}
                   {metadata.registrationRequired && (
                     <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">Registration Required</Badge>
                   )}

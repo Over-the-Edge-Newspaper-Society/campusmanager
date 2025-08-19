@@ -125,11 +125,35 @@ export const unbcEvents: Event[] = [
     endDate: new Date(currentYear, currentMonth, today.getDate(), 13, 0),
     variant: "success"
   },
+  {
+    id: "16",
+    title: "Study Session - Math Tutoring",
+    description: "Drop-in math tutoring session for students needing extra help.",
+    startDate: new Date(currentYear, currentMonth, Math.min(28, new Date(currentYear, currentMonth + 1, 0).getDate()), 14, 0),
+    endDate: new Date(currentYear, currentMonth, Math.min(28, new Date(currentYear, currentMonth + 1, 0).getDate()), 16, 0),
+    variant: "default"
+  },
+  {
+    id: "17",
+    title: "Campus Walking Group",
+    description: "Informal walking group meeting at the main entrance. All fitness levels welcome.",
+    startDate: new Date(currentYear, currentMonth, Math.min(27, new Date(currentYear, currentMonth + 1, 0).getDate()), 17, 0),
+    endDate: new Date(currentYear, currentMonth, Math.min(27, new Date(currentYear, currentMonth + 1, 0).getDate()), 18, 0),
+    variant: "warning"
+  },
+  {
+    id: "18",
+    title: "Free Pizza Friday",
+    description: "Free pizza available in the student lounge while supplies last.",
+    startDate: new Date(currentYear, currentMonth, Math.min(24, new Date(currentYear, currentMonth + 1, 0).getDate()), 11, 30),
+    endDate: new Date(currentYear, currentMonth, Math.min(24, new Date(currentYear, currentMonth + 1, 0).getDate()), 13, 0),
+    variant: "success"
+  },
 ];
 
 export const eventMetadata: Record<string, EventMetadata> = {
   "1": {
-    category: "cultural",
+    category: "clubs",
     organization: "International Students Club",
     location: "Agora",
     cost: "Free",
@@ -137,72 +161,75 @@ export const eventMetadata: Record<string, EventMetadata> = {
     posterUrl: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=600&fit=crop&auto=format"
   },
   "2": {
-    category: "professional",
+    category: "unbc",
     organization: "UNBC Student Union",
     location: "Campus Gymnasium",
     cost: "Free",
     registrationRequired: false,
-    posterUrl: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=400&h=600&fit=crop&auto=format"
+    posterUrl: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=400&h=600&fit=crop&auto=format",
+    website: "https://www.unbc.ca/career-services"
   },
   "3": {
-    category: "sports",
+    category: "clubs",
     organization: "UNBC Outdoor Club",
     location: "Meet at Student Union Building",
     cost: "$15",
     registrationRequired: true
   },
   "4": {
-    category: "wellness",
+    category: "unbc",
     organization: "Student Health & Wellness",
     location: "Various Locations",
     cost: "Free",
     registrationRequired: false
   },
   "5": {
-    category: "social",
+    category: "unbc",
     organization: "UNBC Student Union",
     location: "Winter Garden",
     cost: "$25",
     registrationRequired: true,
-    posterUrl: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=600&fit=crop&auto=format"
+    posterUrl: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=600&fit=crop&auto=format",
+    website: "https://www.unbc.ca/student-life/events"
   },
   "6": {
-    category: "academic",
+    category: "unbc",
     organization: "Graduate Studies",
     location: "Teaching Laboratory Building",
     cost: "Free",
     registrationRequired: false
   },
   "7": {
-    category: "arts",
+    category: "clubs",
     organization: "Photography Club",
     location: "Art Building Studio 3",
     cost: "$10",
     registrationRequired: true
   },
   "8": {
-    category: "volunteer",
+    category: "organizations",
     organization: "Community Engagement Office",
     location: "Student Union Building",
     cost: "Free",
     registrationRequired: false
   },
   "9": {
-    category: "professional",
+    category: "organizations",
     organization: "Business Students Association",
     location: "Winter Garden",
     cost: "$5",
-    registrationRequired: true
+    registrationRequired: true,
+    website: "https://www.unbc.ca/business-networking"
   },
   "10": {
-    category: "wellness",
+    category: "unbc",
     organization: "Student Health & Wellness",
     location: "Campus Recreation Center",
     cost: "Free",
     registrationRequired: false
   },
   "11": {
-    category: "cultural",
+    category: "clubs",
     organization: "International Students Club",
     location: "Agora",
     cost: "Free",
@@ -216,23 +243,44 @@ export const eventMetadata: Record<string, EventMetadata> = {
     registrationRequired: true
   },
   "13": {
-    category: "wellness",
+    category: "unbc",
     organization: "Student Health & Wellness",
     location: "Campus Recreation Center",
     cost: "Free",
     registrationRequired: false
   },
   "14": {
-    category: "academic",
+    category: "clubs",
     organization: "Biology Students Association",
     location: "Library Study Room 201",
     cost: "Free",
     registrationRequired: false
   },
   "15": {
-    category: "academic",
+    category: "unbc",
     organization: "Sustainability Office",
     location: "Agora",
+    cost: "Free",
+    registrationRequired: false
+  },
+  "16": {
+    category: null, // Uncategorized event - should show in gray
+    organization: "Academic Support Services",
+    location: "Library Study Room 105",
+    cost: "Free",
+    registrationRequired: false
+  },
+  "17": {
+    category: null, // Uncategorized event - should show in gray
+    organization: "Community Health Group",
+    location: "Campus Trails",
+    cost: "Free",
+    registrationRequired: false
+  },
+  "18": {
+    category: "clubs",
+    organization: "Student Social Committee",
+    location: "Student Lounge",
     cost: "Free",
     registrationRequired: false
   }

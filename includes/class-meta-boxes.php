@@ -295,11 +295,23 @@ class UNBC_Events_Meta_Boxes {
             <tr>
                 <th><label for="org_size">Organization Size</label></th>
                 <td>
-                    <select id="org_size" name="org_size">
+                    <?php
+                    // Use taxonomy instead of meta field
+                    $size_terms = wp_get_post_terms($post->ID, 'org_size', array('fields' => 'all'));
+                    $current_size = !empty($size_terms) ? $size_terms[0]->slug : '';
+                    
+                    $all_size_terms = get_terms(array(
+                        'taxonomy' => 'org_size',
+                        'hide_empty' => false
+                    ));
+                    ?>
+                    <select id="org_size_taxonomy" name="org_size_taxonomy">
                         <option value="">Select size</option>
-                        <option value="Small (1-10)" <?php selected($size, 'Small (1-10)'); ?>>Small (1-10)</option>
-                        <option value="Medium (11-50)" <?php selected($size, 'Medium (11-50)'); ?>>Medium (11-50)</option>
-                        <option value="Large (51+)" <?php selected($size, 'Large (51+)'); ?>>Large (51+)</option>
+                        <?php foreach ($all_size_terms as $term): ?>
+                            <option value="<?php echo esc_attr($term->slug); ?>" <?php selected($current_size, $term->slug); ?>>
+                                <?php echo esc_html($term->name); ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </td>
             </tr>
@@ -431,13 +443,23 @@ class UNBC_Events_Meta_Boxes {
             <tr>
                 <th><label for="org_status">Organization Status</label></th>
                 <td>
-                    <select id="org_status" name="org_status">
+                    <?php
+                    // Use taxonomy instead of meta field
+                    $status_terms = wp_get_post_terms($post->ID, 'org_status', array('fields' => 'all'));
+                    $current_status = !empty($status_terms) ? $status_terms[0]->slug : '';
+                    
+                    $all_status_terms = get_terms(array(
+                        'taxonomy' => 'org_status',
+                        'hide_empty' => false
+                    ));
+                    ?>
+                    <select id="org_status_taxonomy" name="org_status_taxonomy">
                         <option value="">Select status</option>
-                        <option value="Established" <?php selected($status, 'Established'); ?>>Established</option>
-                        <option value="New" <?php selected($status, 'New'); ?>>New</option>
-                        <option value="Probationary" <?php selected($status, 'Probationary'); ?>>Probationary</option>
-                        <option value="Inactive" <?php selected($status, 'Inactive'); ?>>Inactive</option>
-                        <option value="Dissolved" <?php selected($status, 'Dissolved'); ?>>Dissolved</option>
+                        <?php foreach ($all_status_terms as $term): ?>
+                            <option value="<?php echo esc_attr($term->slug); ?>" <?php selected($current_status, $term->slug); ?>>
+                                <?php echo esc_html($term->name); ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </td>
             </tr>
@@ -616,12 +638,12 @@ class UNBC_Events_Meta_Boxes {
             $is_org_manager = in_array('organization_manager', $current_user->roles);
             
             $org_fields = array(
-                'org_email', 'org_size', 'org_founded_year', 'org_short_description',
+                'org_email', 'org_founded_year', 'org_short_description',
                 'org_membership_requirements', 'org_meeting_schedule', 'org_president_name',
                 'org_president_email', 'org_contact_name', 'org_contact_email',
                 'org_office_location', 'org_website', 'org_facebook', 'org_instagram',
                 'org_twitter', 'org_linkedin', 'org_discord', 'org_linktree', 'org_youtube', 
-                'org_registration_link', 'org_status', 'org_founded_date', 'org_approval_date', 'org_registration_date',
+                'org_registration_link', 'org_founded_date', 'org_approval_date', 'org_registration_date',
                 'org_original_image_path'
             );
 
@@ -661,6 +683,23 @@ class UNBC_Events_Meta_Boxes {
                 // For org managers, preserve the existing value
                 if (isset($_POST['org_is_department'])) {
                     update_post_meta($post_id, 'org_is_department', sanitize_text_field($_POST['org_is_department']));
+                }
+            }
+            
+            // Handle taxonomy fields
+            if (isset($_POST['org_status_taxonomy'])) {
+                if (!empty($_POST['org_status_taxonomy'])) {
+                    wp_set_post_terms($post_id, array($_POST['org_status_taxonomy']), 'org_status');
+                } else {
+                    wp_set_post_terms($post_id, array(), 'org_status');
+                }
+            }
+            
+            if (isset($_POST['org_size_taxonomy'])) {
+                if (!empty($_POST['org_size_taxonomy'])) {
+                    wp_set_post_terms($post_id, array($_POST['org_size_taxonomy']), 'org_size');
+                } else {
+                    wp_set_post_terms($post_id, array(), 'org_size');
                 }
             }
             

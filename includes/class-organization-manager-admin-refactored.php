@@ -358,13 +358,8 @@ class UNBC_Organization_Manager_Admin_Refactored {
                         </label><br>
                     </fieldset>
                     
-                    <label>
-                        Format: 
-                        <select name="format">
-                            <option value="json">JSON</option>
-                            <option value="zip">ZIP</option>
-                        </select>
-                    </label><br><br>
+                    <input type="hidden" name="format" value="zip">
+                    <p><strong>Format:</strong> ZIP (includes all data, images, and taxonomy information)</p>
                     <button type="submit" class="button button-primary">Export Data</button>
                 </form>
                 

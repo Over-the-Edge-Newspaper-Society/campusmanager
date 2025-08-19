@@ -31,19 +31,8 @@ class UNBC_Events_Plugin {
         new UNBC_Organization_Manager_Admin_Refactored();
         new UNBC_Organization_Manager_Dashboard();
         
-        try {
-            new UNBC_Events_Blocks();
-            error_log('Campus Manager: UNBC_Events_Blocks instantiated successfully');
-        } catch (Exception $e) {
-            error_log('Campus Manager: Error instantiating UNBC_Events_Blocks: ' . $e->getMessage());
-        }
-        
-        try {
-            new UNBC_Calendar_Blocks();
-            error_log('Campus Manager: UNBC_Calendar_Blocks instantiated successfully');
-        } catch (Exception $e) {
-            error_log('Campus Manager: Error instantiating UNBC_Calendar_Blocks: ' . $e->getMessage());
-        }
+        new UNBC_Events_Blocks();
+        new UNBC_Calendar_Blocks();
         new UNBC_Events_Settings();
         
         // Add custom rewrite rules for organizations/departments
@@ -98,9 +87,6 @@ class UNBC_Events_Plugin {
             $file_path = plugin_dir_path(__FILE__) . $file;
             if (file_exists($file_path)) {
                 require_once $file_path;
-            } else {
-                // Log error if file doesn't exist
-                error_log('UNBC Events Plugin: Missing file - ' . $file_path);
             }
         }
     }
