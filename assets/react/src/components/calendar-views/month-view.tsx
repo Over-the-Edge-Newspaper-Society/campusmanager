@@ -4,15 +4,17 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { Event, EventMetadata } from "@/types";
+import { getCategoryVariant, getVariantColorClass, type CategoryVariant } from "@/utils/categoryColors";
 
 interface MonthViewProps {
   events: Event[];
   eventMetadata: Record<string, EventMetadata>;
+  categoryMappings: { [slug: string]: CategoryVariant };
   onDateClick?: (date: Date) => void;
   onEventClick?: (event: Event) => void;
 }
 
-export function MonthView({ events, eventMetadata, onDateClick, onEventClick }: MonthViewProps) {
+export function MonthView({ events, eventMetadata, categoryMappings, onDateClick, onEventClick }: MonthViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [direction, setDirection] = useState<number>(0);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
@@ -62,16 +64,11 @@ export function MonthView({ events, eventMetadata, onDateClick, onEventClick }: 
   
   // Event Component
   const MonthEventComponent = ({ events }: { events: Event[] }) => {
-    const categoryColors = {
-      clubs: "bg-purple-500",
-      unbc: "bg-green-500",
-      organizations: "bg-red-500",
-      sports: "bg-blue-500"
-    };
 
     const eventsByCategory = events.reduce((acc, event) => {
       const metadata = eventMetadata[event.id];
-      const category = metadata?.category || 'other';
+      // Use 'uncategorized' for null/undefined categories  
+      const category = metadata?.category || 'uncategorized';
       if (!acc[category]) acc[category] = [];
       acc[category].push(event);
       return acc;
@@ -80,7 +77,9 @@ export function MonthView({ events, eventMetadata, onDateClick, onEventClick }: 
     return (
       <div className="flex flex-wrap gap-1">
         {Object.entries(eventsByCategory).map(([category, categoryEvents]) => {
-          const colorClass = categoryColors[category as keyof typeof categoryColors] || "bg-gray-500";
+          // Get variant from category mappings and convert to color class
+          const variant = getCategoryVariant(category === 'uncategorized' ? null : category, categoryMappings);
+          const colorClass = getVariantColorClass(variant);
           return (
             <div
               key={category}
@@ -213,13 +212,8 @@ export function MonthView({ events, eventMetadata, onDateClick, onEventClick }: 
                     <div className="space-y-2">
                       {dayEvents.map((event) => {
                         const metadata = eventMetadata[event.id];
-                        const categoryColors = {
-                          clubs: "bg-purple-500",
-                          unbc: "bg-green-500",
-                          organizations: "bg-red-500",
-                          sports: "bg-blue-500"
-                        };
-                        const colorClass = metadata ? categoryColors[metadata.category as keyof typeof categoryColors] : "bg-gray-500";
+                        const variant = getCategoryVariant(metadata?.category, categoryMappings);
+                        const colorClass = getVariantColorClass(variant);
                         
                         return (
                           <div 

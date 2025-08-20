@@ -1,4 +1,4 @@
-import type { Event, EventMetadata, EventCategory } from '@/types';
+import type { Event, EventMetadata } from '@/types';
 
 interface WordPressEvent {
   id: number;
@@ -126,11 +126,11 @@ class EventsAPI {
     return doc.body.textContent || '';
   }
 
-  private getCategoryVariant(categories: Array<{name: string; slug: string}>): string {
+  private getCategoryVariant(categories: Array<{name: string; slug: string}>): 'default' | 'primary' | 'success' | 'warning' | 'danger' {
     if (categories.length === 0) return 'default'; // Gray for uncategorized
     
-    // Map categories to colors based on new category system
-    const categoryMap: {[key: string]: string} = {
+    // Map categories to variants based on new category system
+    const categoryMap: {[key: string]: 'default' | 'primary' | 'success' | 'warning' | 'danger'} = {
       'clubs': 'primary',      // Purple for clubs
       'club': 'primary',
       'student-clubs': 'primary',
@@ -139,7 +139,8 @@ class EventsAPI {
       'academic': 'success',
       'organizations': 'danger', // Red for organizations
       'organization': 'danger',
-      'community': 'danger',
+      'community': 'danger',   // Red for community (same as organizations)
+      'comm': 'danger',
       'sports': 'warning',     // Blue/Orange for sports
       'athletics': 'warning',
       'recreation': 'warning'
@@ -148,26 +149,11 @@ class EventsAPI {
     return categoryMap[categories[0].slug] || 'default'; // Gray for unknown categories
   }
 
-  private mapWordPressCategory(categories: Array<{name: string; slug: string}>): EventCategory | null {
+  private mapWordPressCategory(categories: Array<{name: string; slug: string}>): string | null {
     if (categories.length === 0) return null; // No category = show as uncategorized
     
-    // Map WordPress categories to our new category system
-    const categoryMap: {[key: string]: EventCategory} = {
-      'clubs': 'clubs',
-      'club': 'clubs',
-      'student-clubs': 'clubs',
-      'unbc': 'unbc',
-      'university': 'unbc',
-      'academic': 'unbc',
-      'organizations': 'organizations',
-      'organization': 'organizations',
-      'community': 'organizations',
-      'sports': 'sports',
-      'athletics': 'sports',
-      'recreation': 'sports'
-    };
-    
-    return categoryMap[categories[0].slug] || null; // Unknown category = uncategorized
+    // Return the first category slug directly from WordPress
+    return categories[0].slug;
   }
 }
 

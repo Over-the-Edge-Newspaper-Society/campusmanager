@@ -80,7 +80,9 @@ class UNBC_Events_Plugin {
             'includes/class-organization-manager-dashboard.php',
             'includes/class-blocks.php',
             'includes/class-calendar-blocks.php',
-            'includes/class-settings.php'
+            'includes/class-settings.php',
+            'includes/class-category-colors.php',
+            'includes/class-event-importer.php'
         );
         
         foreach ($files_to_include as $file) {

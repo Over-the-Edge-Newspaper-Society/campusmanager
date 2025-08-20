@@ -21,6 +21,14 @@
         "organizationFilter": {
             "type": "string",
             "default": "all"
+        },
+        "listInitialItems": {
+            "type": "number",
+            "default": 30
+        },
+        "listLoadMoreCount": {
+            "type": "number",
+            "default": 15
         }
     },
     "supports": {

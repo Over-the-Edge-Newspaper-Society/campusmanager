@@ -60,43 +60,41 @@ class UNBC_Calendar_Blocks {
             'organizationsEndpoint' => rest_url('wp/v2/organization/')
         ));
         
-        // Register the main blocks editor script
-        wp_register_script(
-            'unbc-calendar-blocks-editor',
-            plugin_dir_url(dirname(__FILE__)) . 'assets/js/blocks-editor.js',
-            array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n'),
-            '1.0.5',
-            true
-        );
-        
-        // Only register render callbacks - blocks are registered in JS
+        // Register individual block types using block.json
         if (function_exists('register_block_type')) {
-            register_block_type('unbc/calendar-view', array(
-                'render_callback' => array($this, 'render_calendar_block')
-            ));
+            // Register calendar view block from its directory
+            register_block_type(
+                plugin_dir_path(dirname(__FILE__)) . 'blocks/calendar-view/',
+                array(
+                    'render_callback' => array($this, 'render_calendar_block')
+                )
+            );
             
-            register_block_type('unbc/events-list', array(
-                'render_callback' => array($this, 'render_events_list_block')
-            ));
+            // Register events list block from its directory 
+            register_block_type(
+                plugin_dir_path(dirname(__FILE__)) . 'blocks/events-list/',
+                array(
+                    'render_callback' => array($this, 'render_events_list_block')
+                )
+            );
             
-            error_log('Campus Manager: Calendar and Events List blocks render callbacks registered');
+            error_log('Campus Manager: Calendar and Events List blocks registered from block.json');
         }
     }
     
     public function enqueue_block_editor_assets() {
         error_log('Campus Manager: enqueue_block_editor_assets called');
-        // Enqueue the main blocks editor script
-        wp_enqueue_script('unbc-calendar-blocks-editor');
-        
-        // Also ensure React app is available for preview
+        // Individual blocks now handle their own editor scripts via block.json
+        // Just ensure React app is available for preview
         $this->enqueue_scripts();
     }
     
     public function admin_enqueue_scripts($hook) {
         error_log('Campus Manager: admin_enqueue_scripts called on hook: ' . $hook);
-        // Only enqueue on post edit screens
+        // Individual blocks now handle their own editor scripts via block.json
+        // Just ensure React app is available for admin previews
         if (in_array($hook, ['post.php', 'post-new.php', 'site-editor.php', 'widgets.php'])) {
-            wp_enqueue_script('unbc-calendar-blocks-editor');
+            $this->enqueue_scripts();
         }
     }
     
@@ -176,8 +174,10 @@ class UNBC_Calendar_Blocks {
         $view = isset($attributes['view']) ? $attributes['view'] : 'month';
         $category_filter = isset($attributes['categoryFilter']) ? $attributes['categoryFilter'] : 'all';
         $organization_filter = isset($attributes['organizationFilter']) ? $attributes['organizationFilter'] : 'all';
+        $list_initial_items = isset($attributes['listInitialItems']) ? intval($attributes['listInitialItems']) : 30;
+        $list_load_more_count = isset($attributes['listLoadMoreCount']) ? intval($attributes['listLoadMoreCount']) : 15;
         
-        return $this->render_calendar_component($view, $category_filter, $organization_filter);
+        return $this->render_calendar_component($view, $category_filter, $organization_filter, $list_initial_items, $list_load_more_count);
     }
     
     public function render_events_list_block($attributes) {
@@ -196,10 +196,12 @@ class UNBC_Calendar_Blocks {
         $atts = shortcode_atts(array(
             'view' => 'month',
             'category' => 'all',
-            'organization' => 'all'
+            'organization' => 'all',
+            'list_initial_items' => 30,
+            'list_load_more_count' => 15
         ), $atts);
         
-        return $this->render_calendar_component($atts['view'], $atts['category'], $atts['organization']);
+        return $this->render_calendar_component($atts['view'], $atts['category'], $atts['organization'], $atts['list_initial_items'], $atts['list_load_more_count']);
     }
     
     public function events_list_shortcode($atts) {
@@ -250,7 +252,7 @@ class UNBC_Calendar_Blocks {
         );
     }
     
-    private function render_calendar_component($view = 'month', $category_filter = 'all', $organization_filter = 'all') {
+    private function render_calendar_component($view = 'month', $category_filter = 'all', $organization_filter = 'all', $list_initial_items = 30, $list_load_more_count = 15) {
         $unique_id = 'unbc-calendar-' . uniqid();
         
         
@@ -261,7 +263,9 @@ class UNBC_Calendar_Blocks {
              data-component="calendar"
              data-view="<?php echo esc_attr($view); ?>"
              data-category-filter="<?php echo esc_attr($category_filter); ?>"
-             data-organization-filter="<?php echo esc_attr($organization_filter); ?>">
+             data-organization-filter="<?php echo esc_attr($organization_filter); ?>"
+             data-list-initial-items="<?php echo esc_attr($list_initial_items); ?>"
+             data-list-load-more-count="<?php echo esc_attr($list_load_more_count); ?>">
             <div class="unbc-calendar-loading">
                 <p>Loading calendar...</p>
             </div>

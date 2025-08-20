@@ -3,14 +3,16 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { Event, EventMetadata } from "@/types";
+import { getCategoryVariant, getVariantColorClass, type CategoryVariant } from "@/utils/categoryColors";
 
 interface MobileMonthViewProps {
   events: Event[];
   eventMetadata: Record<string, EventMetadata>;
+  categoryMappings: { [slug: string]: CategoryVariant };
   onEventClick?: (event: Event) => void;
 }
 
-export function MobileMonthView({ events, eventMetadata, onEventClick }: MobileMonthViewProps) {
+export function MobileMonthView({ events, eventMetadata, categoryMappings, onEventClick }: MobileMonthViewProps) {
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
   const [currentMonth, setCurrentMonth] = React.useState<Date>(new Date());
   
@@ -155,16 +157,9 @@ export function MobileMonthView({ events, eventMetadata, onEventClick }: MobileM
           ) : (
             selectedDateEvents.map((event) => {
               const metadata = eventMetadata[event.id];
-              const categoryColors = {
-                clubs: "after:bg-purple-500",
-                unbc: "after:bg-green-500",
-                organizations: "after:bg-red-500",
-                sports: "after:bg-blue-500"
-              };
-              // Handle null/undefined categories as gray
-              const categoryColor = metadata?.category && categoryColors[metadata.category as keyof typeof categoryColors] 
-                ? categoryColors[metadata.category as keyof typeof categoryColors] 
-                : "after:bg-gray-500";
+              const variant = getCategoryVariant(metadata?.category, categoryMappings);
+              const colorClass = getVariantColorClass(variant);
+              const categoryColor = colorClass.replace('bg-', 'after:bg-');
 
               return (
                 <button

@@ -8,7 +8,7 @@ export interface Event {
 }
 
 export interface EventMetadata {
-  category: EventCategory | null; // Allow null for uncategorized events
+  category: string | null; // Allow any category string from WordPress
   organization: string;
   organization_id?: string;  // Add organization_id field
   location: string;
@@ -24,10 +24,6 @@ export interface EventMetadata {
   featured?: boolean;
 }
 
-export type EventCategory = 
-  | 'clubs'
-  | 'unbc'
-  | 'organizations'
-  | 'sports';
+// EventCategory is now just a string - determined by WordPress categories
 
 export type ViewType = 'month' | 'week' | 'day' | 'list';

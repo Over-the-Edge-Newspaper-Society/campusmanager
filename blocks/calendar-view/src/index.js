@@ -1,5 +1,5 @@
 import { InspectorControls } from '@wordpress/block-editor';
-import { PanelBody, SelectControl } from '@wordpress/components';
+import { PanelBody, SelectControl, RangeControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 import { registerBlockType } from '@wordpress/blocks';
@@ -8,7 +8,7 @@ import { registerBlockType } from '@wordpress/blocks';
 registerBlockType('unbc/calendar-view', {
     edit: function(props) {
     const { attributes, setAttributes } = props;
-    const { view, categoryFilter, organizationFilter } = attributes;
+    const { view, categoryFilter, organizationFilter, listInitialItems, listLoadMoreCount } = attributes;
 
     return [
         wp.element.createElement(InspectorControls, { key: 'controls' },
@@ -52,6 +52,33 @@ registerBlockType('unbc/calendar-view', {
                     onChange: function(newOrg) {
                         setAttributes({ organizationFilter: newOrg });
                     }
+                })
+            ),
+            wp.element.createElement(PanelBody, {
+                title: __('List View Settings', 'unbc-events'),
+                initialOpen: true
+            },
+                wp.element.createElement(RangeControl, {
+                    label: __('Initial Items to Show', 'unbc-events'),
+                    help: __('Number of events to show initially in list view', 'unbc-events'),
+                    value: listInitialItems || 30,
+                    onChange: function(value) {
+                        setAttributes({ listInitialItems: value });
+                    },
+                    min: 5,
+                    max: 100,
+                    step: 5
+                }),
+                wp.element.createElement(RangeControl, {
+                    label: __('Load More Count', 'unbc-events'),
+                    help: __('Number of events to load when "Load More" is clicked', 'unbc-events'),
+                    value: listLoadMoreCount || 15,
+                    onChange: function(value) {
+                        setAttributes({ listLoadMoreCount: value });
+                    },
+                    min: 5,
+                    max: 50,
+                    step: 5
                 })
             )
         ),

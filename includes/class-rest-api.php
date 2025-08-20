@@ -12,7 +12,7 @@ class UNBC_Events_REST_API {
             'permission_callback' => '__return_true',
             'args' => array(
                 'per_page' => array(
-                    'default' => 10,
+                    'default' => 100,
                     'sanitize_callback' => 'absint'
                 ),
                 'page' => array(
@@ -36,6 +36,25 @@ class UNBC_Events_REST_API {
                 ),
                 'search' => array(
                     'sanitize_callback' => 'sanitize_text_field'
+                )
+            )
+        ));
+
+        // Category colors endpoint
+        register_rest_route('unbc-events/v1', '/category-colors', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array($this, 'get_category_colors'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route('unbc-events/v1', '/category-colors', array(
+            'methods' => WP_REST_Server::CREATABLE,
+            'callback' => array($this, 'update_category_colors'),
+            'permission_callback' => array($this, 'category_colors_permission_check'),
+            'args' => array(
+                'colors' => array(
+                    'required' => true,
+                    'type' => 'object'
                 )
             )
         ));
@@ -247,5 +266,56 @@ class UNBC_Events_REST_API {
                 )
             ));
         }
+    }
+
+    public function get_category_colors($request) {
+        // Get all event categories with their color variants
+        $terms = get_terms(array(
+            'taxonomy' => 'event_category',
+            'hide_empty' => false,
+        ));
+        
+        $colors = array();
+        if (!is_wp_error($terms)) {
+            foreach ($terms as $term) {
+                $colors[$term->slug] = UNBC_Category_Colors::get_category_color_variant($term->term_id);
+            }
+        }
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'colors' => $colors
+        ));
+    }
+
+    public function update_category_colors($request) {
+        $colors = $request->get_param('colors');
+        $color_options = UNBC_Category_Colors::get_color_options();
+        $valid_variants = array_keys($color_options);
+        
+        $updated_count = 0;
+        
+        // Validate and update each category
+        foreach ($colors as $category_slug => $variant) {
+            if (!in_array($variant, $valid_variants)) {
+                continue;
+            }
+            
+            $term = get_term_by('slug', $category_slug, 'event_category');
+            if ($term) {
+                update_term_meta($term->term_id, 'category_color', $variant);
+                $updated_count++;
+            }
+        }
+        
+        return rest_ensure_response(array(
+            'success' => $updated_count > 0,
+            'updated_count' => $updated_count,
+            'colors' => $colors
+        ));
+    }
+
+    public function category_colors_permission_check() {
+        return current_user_can('manage_options');
     }
 }

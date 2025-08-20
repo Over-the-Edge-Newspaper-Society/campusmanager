@@ -10,11 +10,13 @@ import type { Event } from "@/types";
 import { useEventsDev } from "@/hooks/useEventsDev";
 import { useEvents } from "@/hooks/useEvents";
 import { useOrganizations } from "@/hooks/useOrganizations";
+import { useEventCategories } from "@/hooks/useEventCategories";
 import { EventDialog } from "@/components/event-dialog";
 import { MonthView, WeekView, DayView } from "@/components/calendar-views";
 import { MobileMonthView } from "./mobile-month-view";
 import { EventListView, MobileListView } from "./list-views";
 import { Loader2 } from "lucide-react";
+import { createCategoryMappings, getVariantColorClass, getCategoryVariant } from "@/utils/categoryColors";
 
 // Mock organizations for development
 const mockOrganizations = [
@@ -25,12 +27,31 @@ const mockOrganizations = [
   { id: 5, title: { rendered: 'Career Services' } },
 ];
 
+
 export default function UNBCCalendar() {
   const [activeTab, setActiveTab] = useState("month");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showEventDialog, setShowEventDialog] = useState(false);
   
+  // List view pagination state
+  const [listDisplayCount, setListDisplayCount] = useState(30);
+  const [listInitialItems, setListInitialItems] = useState(30);
+  const [listLoadMoreCount, setListLoadMoreCount] = useState(15);
+  
+  // Initialize list view settings from block attributes
+  React.useEffect(() => {
+    const container = document.querySelector('.unbc-calendar-container');
+    if (container) {
+      const initialItems = parseInt(container.getAttribute('data-list-initial-items') || '30');
+      const loadMoreCount = parseInt(container.getAttribute('data-list-load-more-count') || '15');
+      
+      setListInitialItems(initialItems);
+      setListLoadMoreCount(loadMoreCount);
+      setListDisplayCount(initialItems);
+    }
+  }, []);
+
   // Minimal CSS for view-only calendar
   React.useEffect(() => {
     const style = document.createElement('style');
@@ -73,6 +94,31 @@ export default function UNBCCalendar() {
       .unbc-calendar-view [role="tabpanel"] > div > div > * {
         pointer-events: auto;
       }
+      
+      /* Fix select dropdowns - ensure they work properly */
+      .unbc-calendar-view [data-slot="select-trigger"] {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        z-index: 10 !important;
+      }
+      
+      /* Ensure select content is visible and accessible */
+      [data-slot="select-content"] {
+        z-index: 999999 !important;
+        position: fixed !important;
+        pointer-events: auto !important;
+      }
+      
+      /* Ensure select items are clickable */
+      [data-slot="select-item"] {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+      }
+      
+      /* Override any WordPress admin styles that might interfere */
+      .unbc-calendar-view [role="combobox"] {
+        pointer-events: auto !important;
+      }
     `;
     document.head.appendChild(style);
     
@@ -86,9 +132,9 @@ export default function UNBCCalendar() {
   const [organizationFilter, setOrganizationFilter] = useState("all");
   const [searchFilter, setSearchFilter] = useState("");
 
-  // Reset organization filter when category changes to something other than clubs/unbc
+  // Reset organization filter when category changes to something that doesn't support organizations
   React.useEffect(() => {
-    if (categoryFilter !== "clubs" && categoryFilter !== "unbc") {
+    if (categoryFilter !== "clubs" && categoryFilter !== "unbc" && categoryFilter !== "organizations" && categoryFilter !== "community") {
       setOrganizationFilter("all");
     }
   }, [categoryFilter]);
@@ -102,6 +148,7 @@ export default function UNBCCalendar() {
   const devData = useEventsDev();
   const prodEventsData = useEvents();
   const prodOrgsData = useOrganizations();
+  const categoriesData = useEventCategories();
   
   // Select data source based on environment
   const { 
@@ -115,18 +162,41 @@ export default function UNBCCalendar() {
 
   const organizations = isDev ? mockOrganizations : prodOrgsData.organizations;
   const orgLoading = isDev ? false : prodOrgsData.loading;
+  
+  // Event categories are always loaded from WordPress (even in dev mode)
+  const { categories: eventCategories, loading: categoriesLoading } = categoriesData;
+  
+  // Create category mappings for use in all calendar views
+  const categoryMappings = React.useMemo(() => createCategoryMappings(eventCategories), [eventCategories]);
 
   // Load all events initially and handle all filtering client-side
   React.useEffect(() => {
     if (!isDev && setFilters) {
-      // Don't send any filters to server - load all events and filter client-side
-      setFilters({});
+      // Load more events but keep it simple
+      setFilters({
+        per_page: 500 // Load more events to cover more time periods
+      });
     }
   }, [setFilters, isDev]);
 
   // Filter events client-side for better UX and to handle server-side limitations
   const events = React.useMemo(() => {
     let filtered = allEvents;
+    
+    // First, filter out past events and sort chronologically for list view
+    if (activeTab === "list") {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Start of today
+      
+      filtered = filtered.filter(event => {
+        const eventDate = new Date(event.startDate);
+        eventDate.setHours(0, 0, 0, 0); // Start of event day
+        return eventDate >= today; // Only today and future events
+      });
+      
+      // Sort chronologically (earliest first)
+      filtered = filtered.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+    }
 
     // Category filter - always client-side since server-side filtering is too strict
     if (categoryFilter !== "all") {
@@ -161,7 +231,7 @@ export default function UNBCCalendar() {
     }
 
     return filtered;
-  }, [allEvents, eventMetadata, categoryFilter, organizationFilter, searchFilter, organizations]);
+  }, [allEvents, eventMetadata, categoryFilter, organizationFilter, searchFilter, organizations, activeTab]);
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
@@ -173,8 +243,20 @@ export default function UNBCCalendar() {
     setShowEventDialog(true);
   };
 
+  const handleLoadMore = () => {
+    setListDisplayCount(prev => prev + listLoadMoreCount);
+  };
+
+  // Reset display count when switching to list view or when filters change
+  React.useEffect(() => {
+    if (activeTab === "list") {
+      setListDisplayCount(listInitialItems);
+    }
+  }, [activeTab, categoryFilter, organizationFilter, searchFilter, listInitialItems]);
+
+
   // Show loading state
-  if (loading || orgLoading) {
+  if (loading || orgLoading || categoriesLoading) {
     return (
       <div className="w-full flex items-center justify-center py-12">
         <div className="text-center">
@@ -240,16 +322,22 @@ export default function UNBCCalendar() {
                 <SelectTrigger className="w-40 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 z-[9999]">
                   <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All</SelectItem>
-                  <SelectItem value="clubs" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Clubs</SelectItem>
-                  <SelectItem value="unbc" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">UNBC</SelectItem>
-                  <SelectItem value="organizations" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Organizations</SelectItem>
-                  <SelectItem value="sports" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Sports</SelectItem>
+                  {eventCategories.map((category) => (
+                    <SelectItem 
+                      key={category.id} 
+                      value={category.slug} 
+                      className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600 flex items-center gap-2"
+                    >
+                      <span className={`w-3 h-3 rounded-full inline-block mr-2 ${getVariantColorClass(category.variant || 'default')}`}></span>
+                      {category.name} ({category.count})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
-              {(categoryFilter === "clubs" || categoryFilter === "unbc") && (
+              {(categoryFilter === "clubs" || categoryFilter === "unbc" || categoryFilter === "organizations" || categoryFilter === "community") && (
                 <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
                   <SelectTrigger className="w-44 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 [&>span]:truncate [&>span]:block">
                     <SelectValue placeholder="All Organizations" />
@@ -302,16 +390,22 @@ export default function UNBCCalendar() {
                 <SelectTrigger className="w-full h-10 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 z-[9999]">
                   <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All</SelectItem>
-                  <SelectItem value="clubs" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Clubs</SelectItem>
-                  <SelectItem value="unbc" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">UNBC</SelectItem>
-                  <SelectItem value="organizations" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Organizations</SelectItem>
-                  <SelectItem value="sports" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">Sports</SelectItem>
+                  {eventCategories.map((category) => (
+                    <SelectItem 
+                      key={category.id} 
+                      value={category.slug} 
+                      className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600 flex items-center gap-2"
+                    >
+                      <span className={`w-3 h-3 rounded-full inline-block mr-2 ${getVariantColorClass(category.variant || 'default')}`}></span>
+                      {category.name} ({category.count})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
-              {(categoryFilter === "clubs" || categoryFilter === "unbc") && (
+              {(categoryFilter === "clubs" || categoryFilter === "unbc" || categoryFilter === "organizations" || categoryFilter === "community") && (
                 <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
                   <SelectTrigger className="w-full h-10 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                     <SelectValue placeholder="All Organizations" className="truncate" />
@@ -344,14 +438,16 @@ export default function UNBCCalendar() {
               <MonthView 
                 events={events} 
                 eventMetadata={eventMetadata}
+                categoryMappings={categoryMappings}
                 onDateClick={handleDateClick} 
-                onEventClick={handleEventClick} 
+                onEventClick={handleEventClick}
               />
             </div>
             <div className="block md:hidden mobile-calendar">
               <MobileMonthView 
                 events={events} 
-                eventMetadata={eventMetadata} 
+                eventMetadata={eventMetadata}
+                categoryMappings={categoryMappings}
                 onEventClick={handleEventClick}
               />
             </div>
@@ -361,6 +457,7 @@ export default function UNBCCalendar() {
             <WeekView 
               events={events} 
               eventMetadata={eventMetadata}
+              categoryMappings={categoryMappings}
               onEventClick={handleEventClick} 
             />
           </TabsContent>
@@ -369,6 +466,7 @@ export default function UNBCCalendar() {
             <DayView 
               events={events} 
               eventMetadata={eventMetadata}
+              categoryMappings={categoryMappings}
               initialDate={selectedDate} 
               onEventClick={handleEventClick} 
             />
@@ -376,10 +474,26 @@ export default function UNBCCalendar() {
 
           <TabsContent value="list" className="p-6 pt-4">
             <div className="hidden md:block">
-              <EventListView events={events} eventMetadata={eventMetadata} onEventClick={handleEventClick} />
+              <EventListView 
+                events={events.slice(0, listDisplayCount)} 
+                eventMetadata={eventMetadata} 
+                categoryMappings={categoryMappings} 
+                onEventClick={handleEventClick}
+                onLoadMore={handleLoadMore}
+                hasMore={events.length > listDisplayCount}
+                loading={loading}
+              />
             </div>
             <div className="block md:hidden">
-              <MobileListView events={events} eventMetadata={eventMetadata} onEventClick={handleEventClick} />
+              <MobileListView 
+                events={events.slice(0, listDisplayCount)} 
+                eventMetadata={eventMetadata} 
+                categoryMappings={categoryMappings} 
+                onEventClick={handleEventClick}
+                onLoadMore={handleLoadMore}
+                hasMore={events.length > listDisplayCount}
+                loading={loading}
+              />
             </div>
           </TabsContent>
         </Tabs>

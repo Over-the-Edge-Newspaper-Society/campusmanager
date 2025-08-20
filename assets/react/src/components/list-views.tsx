@@ -2,14 +2,19 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Clock, MapPin, Building2 } from "lucide-react";
 import type { Event, EventMetadata } from "@/types";
+import { getCategoryVariant, getVariantColorClass, type CategoryVariant } from "@/utils/categoryColors";
 
 interface ListViewProps {
   events: Event[];
   eventMetadata: Record<string, EventMetadata>;
+  categoryMappings: { [slug: string]: CategoryVariant };
   onEventClick?: (event: Event) => void;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  loading?: boolean;
 }
 
-export function EventListView({ events, eventMetadata, onEventClick }: ListViewProps) {
+export function EventListView({ events, eventMetadata, categoryMappings, onEventClick, onLoadMore, hasMore, loading }: ListViewProps) {
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
@@ -18,7 +23,17 @@ export function EventListView({ events, eventMetadata, onEventClick }: ListViewP
     });
   };
 
-  const sortedEvents = [...events].sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+  // Filter to only show today's and future events
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Start of today
+  
+  const futureEvents = events.filter(event => {
+    const eventDate = new Date(event.startDate);
+    eventDate.setHours(0, 0, 0, 0); // Start of event day
+    return eventDate >= today;
+  });
+
+  const sortedEvents = [...futureEvents].sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
 
   // Group events by date
   const eventsByDate = sortedEvents.reduce((acc, event) => {
@@ -44,15 +59,20 @@ export function EventListView({ events, eventMetadata, onEventClick }: ListViewP
           const isToday = date.toDateString() === new Date().toDateString();
           const isTomorrow = date.toDateString() === new Date(Date.now() + 86400000).toDateString();
           
-          let dateLabel = date.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            month: 'long', 
-            day: 'numeric',
-            year: 'numeric'
-          });
+          let dateLabel;
           
-          if (isToday) dateLabel = `Today, ${dateLabel}`;
-          else if (isTomorrow) dateLabel = `Tomorrow, ${dateLabel}`;
+          if (isToday) {
+            dateLabel = "Today";
+          } else if (isTomorrow) {
+            dateLabel = "Tomorrow";
+          } else {
+            dateLabel = date.toLocaleDateString('en-US', { 
+              weekday: 'long', 
+              month: 'long', 
+              day: 'numeric',
+              year: 'numeric'
+            });
+          }
 
           return (
             <div key={dateKey} className="space-y-3">
@@ -69,16 +89,9 @@ export function EventListView({ events, eventMetadata, onEventClick }: ListViewP
               <div className="space-y-2">
                 {dateEvents.map((event) => {
                   const metadata = eventMetadata[event.id];
-                  const categoryColors = {
-                    clubs: "after:bg-purple-500",
-                    unbc: "after:bg-green-500",
-                    organizations: "after:bg-red-500",
-                    sports: "after:bg-blue-500"
-                  };
-                  // Handle null/undefined categories as gray
-                  const categoryColor = metadata?.category && categoryColors[metadata.category as keyof typeof categoryColors] 
-                    ? categoryColors[metadata.category as keyof typeof categoryColors] 
-                    : "after:bg-gray-500";
+                  const variant = getCategoryVariant(metadata?.category, categoryMappings);
+                  const colorClass = getVariantColorClass(variant);
+                  const categoryColor = colorClass.replace('bg-', 'after:bg-');
 
                   return (
                     <div
@@ -127,11 +140,24 @@ export function EventListView({ events, eventMetadata, onEventClick }: ListViewP
           );
         })
       )}
+      
+      {/* Load More Button */}
+      {onLoadMore && hasMore && (
+        <div className="text-center pt-6">
+          <button
+            onClick={onLoadMore}
+            disabled={loading}
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? 'Loading...' : 'Load More Events'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-export function MobileListView({ events, eventMetadata, onEventClick }: ListViewProps) {
+export function MobileListView({ events, eventMetadata, categoryMappings, onEventClick, onLoadMore, hasMore, loading }: ListViewProps) {
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
@@ -140,7 +166,17 @@ export function MobileListView({ events, eventMetadata, onEventClick }: ListView
     });
   };
 
-  const sortedEvents = [...events].sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+  // Filter to only show today's and future events
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Start of today
+  
+  const futureEvents = events.filter(event => {
+    const eventDate = new Date(event.startDate);
+    eventDate.setHours(0, 0, 0, 0); // Start of event day
+    return eventDate >= today;
+  });
+
+  const sortedEvents = [...futureEvents].sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
 
   // Group events by date
   const eventsByDate = sortedEvents.reduce((acc, event) => {
@@ -166,15 +202,20 @@ export function MobileListView({ events, eventMetadata, onEventClick }: ListView
           const isToday = date.toDateString() === new Date().toDateString();
           const isTomorrow = date.toDateString() === new Date(Date.now() + 86400000).toDateString();
           
-          let dateLabel = date.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            month: 'long', 
-            day: 'numeric',
-            year: 'numeric'
-          });
+          let dateLabel;
           
-          if (isToday) dateLabel = `Today, ${dateLabel}`;
-          else if (isTomorrow) dateLabel = `Tomorrow, ${dateLabel}`;
+          if (isToday) {
+            dateLabel = "Today";
+          } else if (isTomorrow) {
+            dateLabel = "Tomorrow";
+          } else {
+            dateLabel = date.toLocaleDateString('en-US', { 
+              weekday: 'long', 
+              month: 'long', 
+              day: 'numeric',
+              year: 'numeric'
+            });
+          }
 
           return (
             <div key={dateKey} className="space-y-3">
@@ -191,16 +232,9 @@ export function MobileListView({ events, eventMetadata, onEventClick }: ListView
               <div className="space-y-2">
                 {dateEvents.map((event) => {
                   const metadata = eventMetadata[event.id];
-                  const categoryColors = {
-                    clubs: "after:bg-purple-500",
-                    unbc: "after:bg-green-500",
-                    organizations: "after:bg-red-500",
-                    sports: "after:bg-blue-500"
-                  };
-                  // Handle null/undefined categories as gray
-                  const categoryColor = metadata?.category && categoryColors[metadata.category as keyof typeof categoryColors] 
-                    ? categoryColors[metadata.category as keyof typeof categoryColors] 
-                    : "after:bg-gray-500";
+                  const variant = getCategoryVariant(metadata?.category, categoryMappings);
+                  const colorClass = getVariantColorClass(variant);
+                  const categoryColor = colorClass.replace('bg-', 'after:bg-');
 
                   return (
                     <div
@@ -248,6 +282,19 @@ export function MobileListView({ events, eventMetadata, onEventClick }: ListView
             </div>
           );
         })
+      )}
+      
+      {/* Load More Button */}
+      {onLoadMore && hasMore && (
+        <div className="text-center pt-6">
+          <button
+            onClick={onLoadMore}
+            disabled={loading}
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? 'Loading...' : 'Load More Events'}
+          </button>
+        </div>
       )}
     </div>
   );
