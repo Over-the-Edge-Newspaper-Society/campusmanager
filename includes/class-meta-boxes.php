@@ -101,6 +101,7 @@ class UNBC_Events_Meta_Boxes {
         $contact_email = get_post_meta($post->ID, 'contact_email', true);
         $is_virtual = get_post_meta($post->ID, 'is_virtual', true);
         $virtual_link = get_post_meta($post->ID, 'virtual_link', true);
+        $website = get_post_meta($post->ID, 'website', true);
         $capacity = get_post_meta($post->ID, 'capacity', true);
         $featured = get_post_meta($post->ID, 'featured', true);
         $flyer_id = get_post_meta($post->ID, 'flyer_id', true);
@@ -186,6 +187,10 @@ class UNBC_Events_Meta_Boxes {
             <tr>
                 <th><label for="virtual_link">Virtual Link</label></th>
                 <td><input type="url" id="virtual_link" name="virtual_link" value="<?php echo esc_attr($virtual_link); ?>" /></td>
+            </tr>
+            <tr>
+                <th><label for="website">Website</label></th>
+                <td><input type="url" id="website" name="website" value="<?php echo esc_attr($website); ?>" /></td>
             </tr>
             <tr>
                 <th><label for="capacity">Capacity</label></th>
@@ -616,7 +621,7 @@ class UNBC_Events_Meta_Boxes {
             $meta_fields = array(
                 'event_date', 'start_time', 'end_time', 'location', 'building', 'room',
                 'cost', 'organization_id', 'registration_link', 'contact_email',
-                'virtual_link', 'capacity', 'flyer_id'
+                'virtual_link', 'website', 'capacity', 'flyer_id'
             );
 
             foreach ($meta_fields as $field) {

@@ -142,6 +142,11 @@
     }
 }
 
+/* Import Results - Hidden by default */
+#import-results.hidden {
+    display: none !important;
+}
+
 /* Success/Error styling */
 .notice.notice-success {
     border-left-color: #46b450;

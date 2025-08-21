@@ -1,6 +1,16 @@
 // Utility functions for handling category colors and variants across all calendar views
 
-export type CategoryVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger';
+export type CategoryVariant = 
+  | 'default'  // Gray
+  | 'primary'  // Purple
+  | 'success'  // Green
+  | 'danger'   // Red
+  | 'warning'  // Blue
+  | 'orange'   // Orange
+  | 'cyan'     // Cyan
+  | 'pink'     // Pink
+  | 'indigo'   // Indigo
+  | 'yellow';  // Yellow
 
 export interface EventCategoryInfo {
   id: number;
@@ -12,11 +22,16 @@ export interface EventCategoryInfo {
 // Helper function to get color class from variant for badges/dots with dark mode support
 export function getVariantColorClass(variant: CategoryVariant = 'default', darkMode: boolean = false): string {
   const colorMap: { [key in CategoryVariant]: { light: string, dark: string } } = {
-    'default': { light: 'bg-gray-500', dark: 'dark:bg-gray-400' },
-    'primary': { light: 'bg-purple-500', dark: 'dark:bg-purple-400' }, 
-    'success': { light: 'bg-green-500', dark: 'dark:bg-green-400' },
-    'warning': { light: 'bg-blue-500', dark: 'dark:bg-blue-400' },
-    'danger': { light: 'bg-red-500', dark: 'dark:bg-red-400' }
+    'default': { light: 'bg-gray-500', dark: 'dark:bg-gray-400' },      // #6b7280 / #9ca3af
+    'primary': { light: 'bg-purple-500', dark: 'dark:bg-purple-400' },   // #8b5cf6 / #a78bfa
+    'success': { light: 'bg-green-500', dark: 'dark:bg-green-400' },     // #22c55e / #4ade80
+    'danger': { light: 'bg-red-500', dark: 'dark:bg-red-400' },          // #ef4444 / #f87171
+    'warning': { light: 'bg-blue-500', dark: 'dark:bg-blue-400' },       // #3b82f6 / #60a5fa
+    'orange': { light: 'bg-orange-500', dark: 'dark:bg-orange-400' },    // #f97316 / #fb923c
+    'cyan': { light: 'bg-cyan-500', dark: 'dark:bg-cyan-400' },          // #06b6d4 / #22d3ee
+    'pink': { light: 'bg-pink-500', dark: 'dark:bg-pink-400' },          // #ec4899 / #f472b6
+    'indigo': { light: 'bg-indigo-500', dark: 'dark:bg-indigo-400' },    // #6366f1 / #818cf8
+    'yellow': { light: 'bg-yellow-500', dark: 'dark:bg-yellow-400' }     // #eab308 / #facc15
   };
   
   const colors = colorMap[variant] || colorMap['default'];

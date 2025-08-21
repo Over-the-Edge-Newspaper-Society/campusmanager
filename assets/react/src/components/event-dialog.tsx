@@ -18,6 +18,13 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
   const metadata = eventMetadata[event.id];
   const [isDescriptionExpanded, setIsDescriptionExpanded] = React.useState(false);
   
+  // Debug website URL
+  React.useEffect(() => {
+    if (metadata?.website) {
+      console.log('Event website URL:', metadata.website);
+    }
+  }, [metadata]);
+  
   // Function to create excerpt from description
   const createExcerpt = (text: string, maxLength: number = 180) => {
     if (!text || text.length <= maxLength) return text;
@@ -106,7 +113,7 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
               {event.description.length > 180 && (
                 <button
                   onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                  className="inline-flex items-center gap-1 mt-3 px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:bg-blue-100 dark:active:bg-blue-900/30 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className="inline-flex items-center gap-1 mt-3 px-3 py-2 text-sm text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:bg-blue-100 dark:active:bg-blue-900/30 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   {isDescriptionExpanded ? (
                     <>
@@ -183,7 +190,8 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
                       href={metadata.website} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:underline transition-colors"
+                      className="inline-block text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100 hover:underline transition-colors break-all cursor-pointer"
+                      style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}
                     >
                       Event Website
                     </a>

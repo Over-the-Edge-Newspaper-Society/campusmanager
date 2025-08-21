@@ -176,7 +176,7 @@ class UNBC_Event_Importer {
                 </div>
 
                 <!-- Import Results -->
-                <div id="import-results" style="display: none;">
+                <div id="import-results" style="display: none !important;" class="hidden">
                     <div class="notice notice-success">
                         <h3><?php _e('Import Complete'); ?></h3>
                         <div id="results-summary"></div>
@@ -522,8 +522,9 @@ class UNBC_Event_Importer {
             'cost' => 'Free', // Default
             'organization_id' => $default_organization ?: '',
             'contact_email' => '', // Not in source data
-            'registration_link' => $event_data['url'] ?? '',
-            'registration_required' => !empty($event_data['url']) ? '1' : '0',
+            'virtual_link' => $event_data['url'] ?? '',
+            'website' => $event_data['url'] ?? '',
+            'registration_required' => '0',
             'imported_organizer' => $organizer,
             'import_source_url' => $event_data['url'] ?? ''
         );

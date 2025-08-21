@@ -1,10 +1,9 @@
-import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 import { fileURLToPath, URL } from 'node:url'
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default {
   plugins: [react()],
   resolve: {
     alias: {
@@ -45,4 +44,4 @@ export default defineConfig({
       }
     }
   }
-})
+}

@@ -37,31 +37,31 @@ class UNBC_Category_Colors {
             'name' => 'Orange',
             'light' => '#f97316',
             'dark' => '#fb923c',
-            'variant' => 'warning'
+            'variant' => 'orange'
         ),
         'cyan' => array(
             'name' => 'Cyan',
             'light' => '#06b6d4',
             'dark' => '#22d3ee',
-            'variant' => 'success'
+            'variant' => 'cyan'
         ),
         'pink' => array(
             'name' => 'Pink',
             'light' => '#ec4899',
             'dark' => '#f472b6',
-            'variant' => 'danger'
+            'variant' => 'pink'
         ),
         'indigo' => array(
             'name' => 'Indigo',
             'light' => '#6366f1',
             'dark' => '#818cf8',
-            'variant' => 'primary'
+            'variant' => 'indigo'
         ),
         'yellow' => array(
             'name' => 'Yellow',
             'light' => '#eab308',
             'dark' => '#facc15',
-            'variant' => 'warning'
+            'variant' => 'yellow'
         )
     );
 

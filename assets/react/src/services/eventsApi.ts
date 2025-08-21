@@ -26,6 +26,7 @@ interface WordPressEvent {
   contact_email: string;
   is_virtual: boolean;
   virtual_link: string;
+  website: string;
   capacity: string;
   featured: boolean;
   permalink: string;
@@ -111,6 +112,7 @@ class EventsAPI {
       contactEmail: wpEvent.contact_email,
       isVirtual: wpEvent.is_virtual,
       virtualLink: wpEvent.virtual_link,
+      website: wpEvent.website,
       capacity: wpEvent.capacity,
       featured: wpEvent.featured
     };

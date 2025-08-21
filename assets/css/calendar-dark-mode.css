@@ -86,7 +86,7 @@ html[data-theme="dark"] .border-gray-200 {
 }
 
 html[data-theme="dark"] .day-card:hover {
-    background: var(--bg-elev, #141922);
+    background: #374151 !important; /* gray-700 for better contrast */
 }
 
 /* Current day */
@@ -122,11 +122,7 @@ html[data-theme="dark"] .event-card:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* Month view - event text visibility on hover */
-html[data-theme="dark"] .day-card:hover .event-card,
-html[data-theme="dark"] .day-card:hover .event-card * {
-    color: var(--text, #e6eaf2) !important;
-}
+/* Month view - removed forced text color on hover to allow proper contrast */
 
 /* Ensure event names are visible in ALL views - comprehensive targeting */
 html[data-theme="dark"] .event-card,
@@ -274,9 +270,7 @@ html[data-theme="dark"] ::placeholder {
 }
 
 /* -------------------- Buttons -------------------- */
-html[data-theme="dark"] button {
-    color: var(--text, #e6eaf2);
-}
+/* Removed blanket button color override to allow buttons to have their own colors */
 
 html[data-theme="dark"] .bg-blue-600 {
     background-color: var(--brand, #4a7c59) !important;
@@ -673,14 +667,8 @@ html[data-theme="dark"] .unbc-calendar-view h6 {
     color: var(--text, #e6eaf2) !important;
 }
 
-/* AGGRESSIVE text visibility fixes for all calendar content */
-html[data-theme="dark"] .unbc-calendar-view *,
-html[data-theme="dark"] .unbc-calendar-container *,
-html[data-theme="dark"] .bg-white *,
-html[data-theme="dark"] .rounded *,
-html[data-theme="dark"] .border * {
-    color: var(--text, #e6eaf2) !important;
-}
+/* Removed aggressive text color override that was breaking links and other colored elements
+   These rules were too broad and forced all text to be the same color */
 
 /* Re-apply specific overrides after aggressive fix */
 html[data-theme="dark"] .text-gray-500,

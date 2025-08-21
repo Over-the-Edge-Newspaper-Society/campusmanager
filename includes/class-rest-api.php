@@ -201,6 +201,7 @@ class UNBC_Events_REST_API {
             'contact_email' => get_post_meta($event_id, 'contact_email', true),
             'is_virtual' => get_post_meta($event_id, 'is_virtual', true) === '1',
             'virtual_link' => get_post_meta($event_id, 'virtual_link', true),
+            'website' => get_post_meta($event_id, 'website', true),
             'capacity' => get_post_meta($event_id, 'capacity', true),
             'featured' => get_post_meta($event_id, 'featured', true) === '1',
             'permalink' => get_permalink($event_id)
@@ -226,6 +227,7 @@ class UNBC_Events_REST_API {
             'contact_email',
             'is_virtual',
             'virtual_link',
+            'website',
             'capacity',
             'featured'
         );

@@ -5,7 +5,7 @@ interface EventCategory {
   name: string;
   slug: string;
   count: number;
-  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger';
+  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'orange' | 'cyan' | 'pink' | 'indigo' | 'yellow';
 }
 
 interface EventCategoriesHook {
@@ -77,8 +77,8 @@ export function useEventCategories(): EventCategoriesHook {
 }
 
 // Helper function to assign default variants to categories
-function getDefaultCategoryVariant(slug: string): 'default' | 'primary' | 'success' | 'warning' | 'danger' {
-  const variantMap: { [key: string]: 'default' | 'primary' | 'success' | 'warning' | 'danger' } = {
+function getDefaultCategoryVariant(slug: string): 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'orange' | 'cyan' | 'pink' | 'indigo' | 'yellow' {
+  const variantMap: { [key: string]: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'orange' | 'cyan' | 'pink' | 'indigo' | 'yellow' } = {
     'clubs': 'primary',      // Purple
     'club': 'primary',
     'student-clubs': 'primary',

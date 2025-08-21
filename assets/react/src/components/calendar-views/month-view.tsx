@@ -170,7 +170,7 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
                 <Card 
                   className={`bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-md overflow-hidden relative flex p-4 border h-full transition-shadow day-card ${
                     dayEvents.length > 0 
-                      ? "cursor-pointer hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-750" 
+                      ? "cursor-pointer hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700" 
                       : "cursor-default"
                   }`}
                   onClick={dayEvents.length > 0 ? () => onDateClick?.(new Date(currentDate.getFullYear(), currentDate.getMonth(), dayObj.day)) : undefined}
@@ -218,7 +218,7 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
                         return (
                           <div 
                             key={event.id} 
-                            className="flex items-start gap-2 p-1 -m-1 rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                            className="flex items-start gap-2 p-1 -m-1 rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
                               onEventClick?.(event);
@@ -226,7 +226,7 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
                           >
                             <div className={`w-2 h-2 rounded-full ${colorClass} flex-shrink-0 mt-1.5`}></div>
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium text-sm text-gray-800 dark:text-gray-200 leading-tight">
+                              <div className="font-medium text-sm text-gray-900 dark:text-gray-100 leading-tight">
                                 {event.title}
                               </div>
                               <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">

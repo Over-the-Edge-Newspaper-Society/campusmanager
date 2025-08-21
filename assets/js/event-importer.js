@@ -291,7 +291,7 @@ jQuery(document).ready(function($) {
         html += '</div>';
         
         $('#results-summary').html(html);
-        $('#import-results').show();
+        $('#import-results').removeClass('hidden').show();
         
         // Scroll to results
         $('html, body').animate({
