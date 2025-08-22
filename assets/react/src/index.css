@@ -140,3 +140,18 @@
   border-color: transparent !important;
   ring: none !important;
 }
+
+
+/* More specific override for mini calendar items */
+.dark button.dark\:bg-red-400,
+.dark button.dark\:bg-purple-400,
+.dark button.dark\:bg-green-400,
+.dark button.dark\:bg-blue-400,
+.dark button.dark\:bg-orange-400,
+.dark button.dark\:bg-cyan-400,
+.dark button.dark\:bg-pink-400,
+.dark button.dark\:bg-indigo-400,
+.dark button.dark\:bg-yellow-400 {
+  background-color: rgb(55 65 81) !important;
+}
+

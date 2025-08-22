@@ -29,6 +29,14 @@
         "listLoadMoreCount": {
             "type": "number",
             "default": 15
+        },
+        "showWeekView": {
+            "type": "boolean",
+            "default": true
+        },
+        "showDayView": {
+            "type": "boolean",
+            "default": true
         }
     },
     "supports": {

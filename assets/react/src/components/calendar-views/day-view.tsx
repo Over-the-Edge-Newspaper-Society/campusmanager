@@ -2,15 +2,17 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, MapPin, Building } from "lucide-react";
 import type { Event, EventMetadata } from "@/types";
+import { getCategoryVariant, getVariantEventBackgroundClass, type CategoryVariant } from "@/utils/categoryColors";
 
 interface DayViewProps {
   events: Event[];
   eventMetadata: Record<string, EventMetadata>;
+  categoryMappings: { [slug: string]: CategoryVariant };
   initialDate?: Date;
   onEventClick?: (event: Event) => void;
 }
 
-export function DayView({ events, eventMetadata, initialDate, onEventClick }: DayViewProps) {
+export function DayView({ events, eventMetadata, categoryMappings, initialDate, onEventClick }: DayViewProps) {
   const [currentDate, setCurrentDate] = React.useState(initialDate || new Date());
   
   React.useEffect(() => {
@@ -70,14 +72,6 @@ export function DayView({ events, eventMetadata, initialDate, onEventClick }: Da
 
   const dayEvents = getEventsForDay();
 
-  const categoryColors = {
-    clubs: "bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-100 border-purple-200 dark:border-purple-700",
-    unbc: "bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 border-green-200 dark:border-green-700",
-    organizations: "bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-100 border-red-200 dark:border-red-700",
-    sports: "bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100 border-blue-200 dark:border-blue-700"
-  };
-  
-  const defaultGrayColor = "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 border-gray-200 dark:border-gray-600";
 
   return (
     <div className="space-y-4">
@@ -127,10 +121,8 @@ export function DayView({ events, eventMetadata, initialDate, onEventClick }: Da
             {/* Events positioned absolutely */}
             {dayEvents.map((event, eventIndex) => {
               const metadata = eventMetadata[event.id];
-              // Handle null/undefined categories as gray
-              const colorClass = metadata?.category && categoryColors[metadata.category as keyof typeof categoryColors] 
-                ? categoryColors[metadata.category as keyof typeof categoryColors] 
-                : defaultGrayColor;
+              const variant = getCategoryVariant(metadata?.category, categoryMappings);
+              const colorClass = getVariantEventBackgroundClass(variant);
               const position = getEventPosition(event, dayEvents, eventIndex);
               
               return (

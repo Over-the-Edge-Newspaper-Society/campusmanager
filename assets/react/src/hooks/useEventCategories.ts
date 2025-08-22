@@ -21,6 +21,38 @@ export function useEventCategories(): EventCategoriesHook {
 
   useEffect(() => {
     const fetchCategories = async () => {
+      // Skip API calls in dev mode and use fallback categories with dynamic counts
+      if (import.meta.env.DEV) {
+        // Import test data to calculate counts
+        import('../data/events').then(({ eventMetadata }) => {
+          // Calculate counts based on test event metadata
+          const categoryCounts = {
+            academic: 0,
+            social: 0,
+            sports: 0,
+            workshop: 0,
+            cultural: 0
+          };
+          
+          // Count events per category
+          Object.values(eventMetadata).forEach((metadata) => {
+            if (metadata.category && categoryCounts[metadata.category as keyof typeof categoryCounts] !== undefined) {
+              categoryCounts[metadata.category as keyof typeof categoryCounts]++;
+            }
+          });
+          
+          setCategories([
+            { id: 1, name: 'Academic', slug: 'academic', count: categoryCounts.academic, variant: 'primary' },
+            { id: 2, name: 'Social', slug: 'social', count: categoryCounts.social, variant: 'success' },
+            { id: 3, name: 'Sports', slug: 'sports', count: categoryCounts.sports, variant: 'warning' },
+            { id: 4, name: 'Workshop', slug: 'workshop', count: categoryCounts.workshop, variant: 'danger' },
+            { id: 5, name: 'Cultural', slug: 'cultural', count: categoryCounts.cultural, variant: 'orange' }
+          ]);
+          setLoading(false);
+        });
+        return;
+      }
+      
       try {
         setLoading(true);
         setError(null);

@@ -1,5 +1,5 @@
 import { InspectorControls } from '@wordpress/block-editor';
-import { PanelBody, SelectControl, RangeControl } from '@wordpress/components';
+import { PanelBody, SelectControl, RangeControl, ToggleControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 import { registerBlockType } from '@wordpress/blocks';
@@ -8,7 +8,7 @@ import { registerBlockType } from '@wordpress/blocks';
 registerBlockType('unbc/calendar-view', {
     edit: function(props) {
     const { attributes, setAttributes } = props;
-    const { view, categoryFilter, organizationFilter, listInitialItems, listLoadMoreCount } = attributes;
+    const { view, categoryFilter, organizationFilter, listInitialItems, listLoadMoreCount, showWeekView, showDayView } = attributes;
 
     return [
         wp.element.createElement(InspectorControls, { key: 'controls' },
@@ -55,8 +55,29 @@ registerBlockType('unbc/calendar-view', {
                 })
             ),
             wp.element.createElement(PanelBody, {
-                title: __('List View Settings', 'unbc-events'),
+                title: __('View Options', 'unbc-events'),
                 initialOpen: true
+            },
+                wp.element.createElement(ToggleControl, {
+                    label: __('Show Week View Tab', 'unbc-events'),
+                    help: __('Allow users to switch to week view', 'unbc-events'),
+                    checked: showWeekView,
+                    onChange: function(newValue) {
+                        setAttributes({ showWeekView: newValue });
+                    }
+                }),
+                wp.element.createElement(ToggleControl, {
+                    label: __('Show Day View Tab', 'unbc-events'),
+                    help: __('Allow users to switch to day view', 'unbc-events'),
+                    checked: showDayView,
+                    onChange: function(newValue) {
+                        setAttributes({ showDayView: newValue });
+                    }
+                })
+            ),
+            wp.element.createElement(PanelBody, {
+                title: __('List View Settings', 'unbc-events'),
+                initialOpen: false
             },
                 wp.element.createElement(RangeControl, {
                     label: __('Initial Items to Show', 'unbc-events'),

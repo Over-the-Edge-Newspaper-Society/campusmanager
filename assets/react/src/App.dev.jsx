@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import UNBCCalendarDev from './components/unbc-calendar-dev';
+import UNBCCalendar from './components/unbc-calendar';
 import { Moon, Sun } from 'lucide-react';
 
 function AppDev() {
@@ -8,6 +8,9 @@ function AppDev() {
     const saved = localStorage.getItem('darkMode');
     return saved ? JSON.parse(saved) : false;
   });
+  
+  const [showWeekView, setShowWeekView] = useState(true);
+  const [showDayView, setShowDayView] = useState(true);
   
   useEffect(() => {
     // Apply dark mode class to html element
@@ -27,7 +30,7 @@ function AppDev() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <div className="container mx-auto px-4 py-8">
-        {/* Header with dark mode toggle */}
+        {/* Header with controls */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -38,18 +41,42 @@ function AppDev() {
             </p>
           </div>
           
-          {/* Dark Mode Toggle Button */}
-          <button
-            onClick={toggleDarkMode}
-            className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-            aria-label="Toggle dark mode"
-          >
-            {darkMode ? (
-              <Sun className="h-5 w-5 text-yellow-500" />
-            ) : (
-              <Moon className="h-5 w-5 text-gray-700" />
-            )}
-          </button>
+          <div className="flex items-center gap-4">
+            {/* View Toggle Controls */}
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={showWeekView}
+                  onChange={(e) => setShowWeekView(e.target.checked)}
+                  className="rounded"
+                />
+                Show Week View
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={showDayView}
+                  onChange={(e) => setShowDayView(e.target.checked)}
+                  className="rounded"
+                />
+                Show Day View
+              </label>
+            </div>
+            
+            {/* Dark Mode Toggle Button */}
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              aria-label="Toggle dark mode"
+            >
+              {darkMode ? (
+                <Sun className="h-5 w-5 text-yellow-500" />
+              ) : (
+                <Moon className="h-5 w-5 text-gray-700" />
+              )}
+            </button>
+          </div>
         </div>
         
         {/* Info Banner */}
@@ -71,7 +98,10 @@ function AppDev() {
         </div>
         
         {/* Main Calendar Component */}
-        <UNBCCalendarDev />
+        <UNBCCalendar 
+          showWeekView={showWeekView}
+          showDayView={showDayView}
+        />
       </div>
     </div>
   );

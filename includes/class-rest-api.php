@@ -58,6 +58,13 @@ class UNBC_Events_REST_API {
                 )
             )
         ));
+
+        // Category configuration endpoint
+        register_rest_route('unbc-events/v1', '/category-config', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array($this, 'get_category_config'),
+            'permission_callback' => '__return_true'
+        ));
     }
 
     public function get_events($request) {
@@ -319,5 +326,62 @@ class UNBC_Events_REST_API {
 
     public function category_colors_permission_check() {
         return current_user_can('manage_options');
+    }
+
+    public function get_category_config($request) {
+        // Get all event categories
+        $categories = get_terms(array(
+            'taxonomy' => 'event_category',
+            'hide_empty' => false,
+        ));
+
+        // Configuration for which categories show organization dropdown
+        $categories_with_organizations = array();
+        $category_relationships = array();
+
+        foreach ($categories as $category) {
+            // Get the auto-assign setting for this category
+            $auto_assign = get_term_meta($category->term_id, 'auto_assign_organizations', true);
+            
+            // If auto-assign is enabled, or it's UNBC/organizations/community, show org dropdown
+            if ($auto_assign === '1' || in_array($category->slug, ['unbc', 'organizations', 'community'])) {
+                $categories_with_organizations[] = $category->slug;
+            }
+
+            // Set up category relationships
+            switch ($category->slug) {
+                case 'unbc':
+                    // UNBC shows UNBC events AND organization events
+                    $category_relationships['unbc'] = ['unbc', 'organizations'];
+                    break;
+                case 'organizations':
+                    // Organizations shows only organization events
+                    $category_relationships['organizations'] = ['organizations'];
+                    break;
+            }
+        }
+
+        return rest_ensure_response(array(
+            'categoriesWithOrganizations' => $categories_with_organizations,
+            'categoryRelationships' => $category_relationships,
+            'autoAssignCategory' => $this->get_auto_assign_category()
+        ));
+    }
+
+    private function get_auto_assign_category() {
+        // Find the category with auto-assign enabled
+        $categories = get_terms(array(
+            'taxonomy' => 'event_category',
+            'hide_empty' => false,
+            'meta_query' => array(
+                array(
+                    'key' => 'auto_assign_organizations',
+                    'value' => '1',
+                    'compare' => '='
+                )
+            )
+        ));
+
+        return !empty($categories) ? $categories[0]->slug : null;
     }
 }

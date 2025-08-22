@@ -13,17 +13,18 @@ interface EventDialogProps {
 }
 
 export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventDialogProps) {
-  if (!event) return null;
-
-  const metadata = eventMetadata[event.id];
   const [isDescriptionExpanded, setIsDescriptionExpanded] = React.useState(false);
   
   // Debug website URL
   React.useEffect(() => {
-    if (metadata?.website) {
-      console.log('Event website URL:', metadata.website);
+    if (event && eventMetadata[event.id]?.website) {
+      console.log('Event website URL:', eventMetadata[event.id].website);
     }
-  }, [metadata]);
+  }, [event, eventMetadata]);
+
+  if (!event) return null;
+
+  const metadata = eventMetadata[event.id];
   
   // Function to create excerpt from description
   const createExcerpt = (text: string, maxLength: number = 180) => {

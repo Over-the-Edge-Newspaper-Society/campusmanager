@@ -176,8 +176,10 @@ class UNBC_Calendar_Blocks {
         $organization_filter = isset($attributes['organizationFilter']) ? $attributes['organizationFilter'] : 'all';
         $list_initial_items = isset($attributes['listInitialItems']) ? intval($attributes['listInitialItems']) : 30;
         $list_load_more_count = isset($attributes['listLoadMoreCount']) ? intval($attributes['listLoadMoreCount']) : 15;
+        $show_week_view = isset($attributes['showWeekView']) ? $attributes['showWeekView'] : true;
+        $show_day_view = isset($attributes['showDayView']) ? $attributes['showDayView'] : true;
         
-        return $this->render_calendar_component($view, $category_filter, $organization_filter, $list_initial_items, $list_load_more_count);
+        return $this->render_calendar_component($view, $category_filter, $organization_filter, $list_initial_items, $list_load_more_count, $show_week_view, $show_day_view);
     }
     
     public function render_events_list_block($attributes) {
@@ -198,10 +200,15 @@ class UNBC_Calendar_Blocks {
             'category' => 'all',
             'organization' => 'all',
             'list_initial_items' => 30,
-            'list_load_more_count' => 15
+            'list_load_more_count' => 15,
+            'show_week_view' => 'true',
+            'show_day_view' => 'true'
         ), $atts);
         
-        return $this->render_calendar_component($atts['view'], $atts['category'], $atts['organization'], $atts['list_initial_items'], $atts['list_load_more_count']);
+        $show_week_view = ($atts['show_week_view'] !== 'false');
+        $show_day_view = ($atts['show_day_view'] !== 'false');
+        
+        return $this->render_calendar_component($atts['view'], $atts['category'], $atts['organization'], $atts['list_initial_items'], $atts['list_load_more_count'], $show_week_view, $show_day_view);
     }
     
     public function events_list_shortcode($atts) {
@@ -252,7 +259,7 @@ class UNBC_Calendar_Blocks {
         );
     }
     
-    private function render_calendar_component($view = 'month', $category_filter = 'all', $organization_filter = 'all', $list_initial_items = 30, $list_load_more_count = 15) {
+    private function render_calendar_component($view = 'month', $category_filter = 'all', $organization_filter = 'all', $list_initial_items = 30, $list_load_more_count = 15, $show_week_view = true, $show_day_view = true) {
         $unique_id = 'unbc-calendar-' . uniqid();
         
         
@@ -265,7 +272,9 @@ class UNBC_Calendar_Blocks {
              data-category-filter="<?php echo esc_attr($category_filter); ?>"
              data-organization-filter="<?php echo esc_attr($organization_filter); ?>"
              data-list-initial-items="<?php echo esc_attr($list_initial_items); ?>"
-             data-list-load-more-count="<?php echo esc_attr($list_load_more_count); ?>">
+             data-list-load-more-count="<?php echo esc_attr($list_load_more_count); ?>"
+             data-show-week-view="<?php echo esc_attr($show_week_view ? 'true' : 'false'); ?>"
+             data-show-day-view="<?php echo esc_attr($show_day_view ? 'true' : 'false'); ?>">
             <div class="unbc-calendar-loading">
                 <p>Loading calendar...</p>
             </div>

@@ -19,10 +19,18 @@ window.renderUNBCCalendar = function(containerId) {
   const view = container.dataset.view || 'month';
   const categoryFilter = container.dataset.categoryFilter || 'all';
   const organizationFilter = container.dataset.organizationFilter || 'all';
+  const showWeekView = container.dataset.showWeekView !== 'false';
+  const showDayView = container.dataset.showDayView !== 'false';
 
   root.render(
     <React.StrictMode>
-      <UNBCCalendar />
+      <UNBCCalendar 
+        initialView={view}
+        initialCategoryFilter={categoryFilter}
+        initialOrganizationFilter={organizationFilter}
+        showWeekView={showWeekView}
+        showDayView={showDayView}
+      />
     </React.StrictMode>
   );
 };

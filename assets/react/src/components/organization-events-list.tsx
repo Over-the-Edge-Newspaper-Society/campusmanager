@@ -2,10 +2,12 @@ import React from "react";
 import { Badge } from "./ui/badge";
 import { CalendarDays, Clock, MapPin, Building2 } from "lucide-react";
 import type { Event, EventMetadata } from "../types";
+import { getCategoryVariant, getVariantAfterColorClass, type CategoryVariant } from "../utils/categoryColors";
 
 interface OrganizationEventsListProps {
   events: Event[];
   eventMetadata: Record<string, EventMetadata>;
+  categoryMappings: { [slug: string]: CategoryVariant };
   organizationId?: string;
   organizationName?: string;
   limit?: number;
@@ -16,6 +18,7 @@ interface OrganizationEventsListProps {
 export function OrganizationEventsList({ 
   events, 
   eventMetadata, 
+  categoryMappings,
   organizationId,
   organizationName,
   limit,
@@ -140,17 +143,8 @@ export function OrganizationEventsList({
             <div className="space-y-2">
               {dateEvents.map((event) => {
                 const metadata = eventMetadata[event.id];
-                const categoryColors = {
-                  academic: "after:bg-green-500",
-                  social: "after:bg-orange-500",
-                  cultural: "after:bg-purple-500",
-                  sports: "after:bg-red-500",
-                  professional: "after:bg-teal-500",
-                  wellness: "after:bg-blue-500",
-                  volunteer: "after:bg-yellow-500",
-                  arts: "after:bg-pink-500"
-                };
-                const categoryColor = metadata ? categoryColors[metadata.category as keyof typeof categoryColors] : "after:bg-gray-500";
+                const variant = getCategoryVariant(metadata?.category, categoryMappings);
+                const categoryColor = getVariantAfterColorClass(variant);
 
                 return (
                   <div

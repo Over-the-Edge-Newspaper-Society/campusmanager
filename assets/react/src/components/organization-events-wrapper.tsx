@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { OrganizationEventsList } from "./organization-events-list";
 import { EventDialog } from "./event-dialog";
 import { useEvents } from "@/hooks/useEvents";
+import { useEventCategories } from "@/hooks/useEventCategories";
+import { createCategoryMappings } from "@/utils/categoryColors";
 import { Loader2 } from "lucide-react";
 import type { Event } from "@/types";
 
@@ -30,6 +32,10 @@ export function OrganizationEventsWrapper({
   } = useEvents({
     per_page: 1000, // Get all events to filter client-side
   });
+
+  // Load event categories for color mapping
+  const { eventCategories } = useEventCategories();
+  const categoryMappings = createCategoryMappings(eventCategories);
 
   const handleEventClick = (event: Event) => {
     setSelectedEvent(event);
@@ -64,6 +70,7 @@ export function OrganizationEventsWrapper({
       <OrganizationEventsList
         events={allEvents}
         eventMetadata={eventMetadata}
+        categoryMappings={categoryMappings}
         organizationId={organizationId}
         organizationName={organizationName}
         limit={limit}

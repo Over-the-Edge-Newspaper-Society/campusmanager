@@ -23,6 +23,12 @@ export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
   const [filters, setFilters] = useState<EventFilters>(initialFilters);
 
   const fetchEvents = useCallback(async () => {
+    // Skip API calls in dev mode
+    if (import.meta.env.DEV) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
       setError(null);

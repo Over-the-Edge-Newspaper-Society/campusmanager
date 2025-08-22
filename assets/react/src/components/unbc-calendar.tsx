@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +12,7 @@ import { useEventsDev } from "@/hooks/useEventsDev";
 import { useEvents } from "@/hooks/useEvents";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { useEventCategories } from "@/hooks/useEventCategories";
+import { useCategoryConfig } from "@/hooks/useCategoryConfig";
 import { EventDialog } from "@/components/event-dialog";
 import { MonthView, WeekView, DayView } from "@/components/calendar-views";
 import { MobileMonthView } from "./mobile-month-view";
@@ -28,8 +30,23 @@ const mockOrganizations = [
 ];
 
 
-export default function UNBCCalendar() {
-  const [activeTab, setActiveTab] = useState("month");
+
+interface UNBCCalendarProps {
+  initialView?: string;
+  initialCategoryFilter?: string;
+  initialOrganizationFilter?: string;
+  showWeekView?: boolean;
+  showDayView?: boolean;
+}
+
+export default function UNBCCalendar({ 
+  initialView = "month", 
+  initialCategoryFilter = "all", 
+  initialOrganizationFilter = "all",
+  showWeekView = true,
+  showDayView = true 
+}: UNBCCalendarProps = {}) {
+  const [activeTab, setActiveTab] = useState(initialView);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showEventDialog, setShowEventDialog] = useState(false);
@@ -127,21 +144,7 @@ export default function UNBCCalendar() {
     };
   }, []);
   
-  // Filters
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [organizationFilter, setOrganizationFilter] = useState("all");
-  const [searchFilter, setSearchFilter] = useState("");
-
-  // Reset organization filter when category changes to something that doesn't support organizations
-  React.useEffect(() => {
-    if (categoryFilter !== "clubs" && categoryFilter !== "unbc" && categoryFilter !== "organizations" && categoryFilter !== "community") {
-      setOrganizationFilter("all");
-    }
-  }, [categoryFilter]);
-
   // Check if we're in development mode - use Vite's environment detection
-  // In development: import.meta.env.DEV is true
-  // In production: import.meta.env.DEV is false
   const isDev = import.meta.env.DEV;
   
   // Use appropriate hooks based on environment
@@ -149,6 +152,34 @@ export default function UNBCCalendar() {
   const prodEventsData = useEvents();
   const prodOrgsData = useOrganizations();
   const categoriesData = useEventCategories();
+  const categoryConfigData = useCategoryConfig();
+  
+  // Filters
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [organizationFilter, setOrganizationFilter] = useState("all");
+  const [searchFilter, setSearchFilter] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+
+  // Debounce search input to improve performance
+  React.useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setSearchFilter(searchInput);
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchInput]);
+
+  // Categories that should show organization dropdown
+  const categoriesWithOrganizations = React.useMemo(() => {
+    return categoryConfigData.config?.categoriesWithOrganizations || [];
+  }, [categoryConfigData.config]);
+
+  // Reset organization filter when category changes to something that doesn't support organizations
+  React.useEffect(() => {
+    if (!categoriesWithOrganizations.includes(categoryFilter) && categoryFilter !== "all") {
+      setOrganizationFilter("all");
+    }
+  }, [categoryFilter, categoriesWithOrganizations]);
   
   // Select data source based on environment
   const { 
@@ -166,8 +197,18 @@ export default function UNBCCalendar() {
   // Event categories are always loaded from WordPress (even in dev mode)
   const { categories: eventCategories, loading: categoriesLoading } = categoriesData;
   
+  
   // Create category mappings for use in all calendar views
   const categoryMappings = React.useMemo(() => createCategoryMappings(eventCategories), [eventCategories]);
+
+  // Memoize organization lookup for better performance
+  const organizationLookup = React.useMemo(() => {
+    const lookup = new Map();
+    organizations.forEach(org => {
+      lookup.set(org.id.toString(), org.title.rendered);
+    });
+    return lookup;
+  }, [organizations]);
 
   // Load all events initially and handle all filtering client-side
   React.useEffect(() => {
@@ -178,6 +219,23 @@ export default function UNBCCalendar() {
       });
     }
   }, [setFilters, isDev]);
+
+  // Helper function to check if event should show for category (handles category relationships)
+  const eventMatchesCategory = React.useCallback((event: any, categorySlug: string) => {
+    const metadata = eventMetadata[event.id];
+    if (!metadata) return false;
+    
+    // Check if this category has relationships defined
+    const relatedCategories = categoryConfigData.config?.categoryRelationships?.[categorySlug];
+    
+    if (relatedCategories) {
+      // This category shows events from multiple categories
+      return relatedCategories.includes(metadata.category);
+    } else {
+      // Direct category match
+      return metadata.category === categorySlug;
+    }
+  }, [eventMetadata, categoryConfigData.config]);
 
   // Filter events client-side for better UX and to handle server-side limitations
   const events = React.useMemo(() => {
@@ -200,19 +258,15 @@ export default function UNBCCalendar() {
 
     // Category filter - always client-side since server-side filtering is too strict
     if (categoryFilter !== "all") {
-      filtered = filtered.filter(event => {
-        const metadata = eventMetadata[event.id];
-        return metadata?.category === categoryFilter;
-      });
+      filtered = filtered.filter(event => eventMatchesCategory(event, categoryFilter));
     }
 
     // Organization filter - always client-side for better UX
     if (organizationFilter !== "all") {
+      const orgName = organizationLookup.get(organizationFilter);
       filtered = filtered.filter(event => {
         const metadata = eventMetadata[event.id];
-        // Find the organization name from the ID
-        const org = organizations.find(o => o.id.toString() === organizationFilter);
-        return org && metadata?.organization === org.title.rendered;
+        return orgName && metadata?.organization === orgName;
       });
     }
 
@@ -231,21 +285,21 @@ export default function UNBCCalendar() {
     }
 
     return filtered;
-  }, [allEvents, eventMetadata, categoryFilter, organizationFilter, searchFilter, organizations, activeTab]);
+  }, [allEvents, eventMetadata, categoryFilter, organizationFilter, searchFilter, organizationLookup, activeTab, eventMatchesCategory]);
 
-  const handleDateClick = (date: Date) => {
+  const handleDateClick = React.useCallback((date: Date) => {
     setSelectedDate(date);
     setActiveTab("day");
-  };
+  }, []);
 
-  const handleEventClick = (event: Event) => {
+  const handleEventClick = React.useCallback((event: Event) => {
     setSelectedEvent(event);
     setShowEventDialog(true);
-  };
+  }, []);
 
-  const handleLoadMore = () => {
+  const handleLoadMore = React.useCallback(() => {
     setListDisplayCount(prev => prev + listLoadMoreCount);
-  };
+  }, [listLoadMoreCount]);
 
   // Reset display count when switching to list view or when filters change
   React.useEffect(() => {
@@ -294,120 +348,195 @@ export default function UNBCCalendar() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Desktop: Responsive layout with stacked filters */}
           <div className="hidden md:block p-6 pb-0">
-            {/* Tabs */}
-            <div className="flex justify-center mb-4">
-              <TabsList className="h-9 bg-gray-100 dark:bg-gray-700 p-1">
-                <TabsTrigger value="day" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
-                  <Clock className="h-3 w-3" />
-                  Day
-                </TabsTrigger>
-                <TabsTrigger value="week" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
-                  <Calendar className="h-3 w-3" />
-                  Week
-                </TabsTrigger>
-                <TabsTrigger value="month" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
-                  <CalendarDays className="h-3 w-3" />
-                  Month
-                </TabsTrigger>
-                <TabsTrigger value="list" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
-                  <List className="h-3 w-3" />
-                  List
-                </TabsTrigger>
-              </TabsList>
-            </div>
-            
-            {/* Filters - Responsive flex layout */}
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-40 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 z-[9999]">
-                  <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All</SelectItem>
-                  {eventCategories.map((category) => (
-                    <SelectItem 
-                      key={category.id} 
-                      value={category.slug} 
-                      className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600 flex items-center gap-2"
-                    >
-                      <span className={`w-3 h-3 rounded-full inline-block mr-2 ${getVariantColorClass(category.variant || 'default')}`}></span>
-                      {category.name} ({category.count})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {(categoryFilter === "clubs" || categoryFilter === "unbc" || categoryFilter === "organizations" || categoryFilter === "community") && (
-                <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
-                  <SelectTrigger className="w-44 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 [&>span]:truncate [&>span]:block">
-                    <SelectValue placeholder="All Organizations" />
+            {/* Combined tabs and filters in single row */}
+            <div className="flex items-center justify-between gap-4">
+              {/* Left side - Category filter and organization filter */}
+              <div className="flex items-center gap-3">
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-40 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-3 h-3 rounded-full flex-shrink-0 ${categoryFilter === 'all' ? 'bg-gray-400' : getVariantColorClass(eventCategories.find(cat => cat.slug === categoryFilter)?.variant || 'default')}`}></span>
+                      <span>{categoryFilter === 'all' ? 'All Categories' : eventCategories.find(cat => cat.slug === categoryFilter)?.name || 'All Categories'}</span>
+                    </div>
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 max-h-[200px] overflow-y-auto">
-                    <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All Organizations</SelectItem>
-                    {organizations.map((org) => (
+                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 z-[9999] shadow-lg">
+                    <SelectItem value="all" className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-none">
+                      <div className="flex items-center gap-2 whitespace-nowrap">
+                        <span className="w-3 h-3 rounded-full flex-shrink-0 bg-gray-400"></span>
+                        <span>All</span>
+                      </div>
+                    </SelectItem>
+                    {eventCategories.map((category) => (
                       <SelectItem 
-                        key={org.id} 
-                        value={org.id.toString()} 
-                        className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600"
+                        key={category.id} 
+                        value={category.slug} 
+                        className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-none"
                       >
-                        {org.title.rendered}
+                        <div className="flex items-center gap-2 whitespace-nowrap">
+                          <span className={`w-3 h-3 rounded-full flex-shrink-0 ${getVariantColorClass(category.variant || 'default')}`}></span>
+                          <span>{category.name}</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              )}
 
-              <Input
-                placeholder="Search events..."
-                onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-40 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
-              />
+                {(categoriesWithOrganizations.includes(categoryFilter)) && (
+                  <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
+                    <SelectTrigger className="w-44 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 [&>span]:truncate [&>span]:block">
+                      <SelectValue placeholder="All Organizations" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 max-h-[200px] overflow-y-auto">
+                      <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All Organizations</SelectItem>
+                      {organizations.map((org) => (
+                        <SelectItem 
+                          key={org.id} 
+                          value={org.id.toString()} 
+                          className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600"
+                        >
+                          {org.title.rendered}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              {/* Center - Tabs */}
+              <div className="flex-1 flex justify-center">
+                <TabsList className="h-9 bg-gray-100 dark:bg-gray-700 p-1">
+                  {showDayView && (
+                    <TabsTrigger value="day" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
+                      <Clock className="h-3 w-3" />
+                      Day
+                    </TabsTrigger>
+                  )}
+                  {showWeekView && (
+                    <TabsTrigger value="week" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
+                      <Calendar className="h-3 w-3" />
+                      Week
+                    </TabsTrigger>
+                  )}
+                  <TabsTrigger value="month" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
+                    <CalendarDays className="h-3 w-3" />
+                    Month
+                  </TabsTrigger>
+                  <TabsTrigger value="list" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
+                    <List className="h-3 w-3" />
+                    List
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              {/* Right side - Search input */}
+              <div className="flex-shrink-0">
+                <Input
+                  placeholder="Search events..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="w-40 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Mobile: Tabs and Filters stacked */}
+          {/* Mobile: Single row with buttons on sides of tabs */}
           <div className="md:hidden">
-            <div className="p-6 pb-0 flex justify-center">
-              <TabsList className="h-9 bg-gray-100 dark:bg-gray-700 p-1">
-                <TabsTrigger value="day" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
-                  <Clock className="h-3 w-3" />
-                  Day
-                </TabsTrigger>
-                <TabsTrigger value="month" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
-                  <CalendarDays className="h-3 w-3" />
-                  Month
-                </TabsTrigger>
-                <TabsTrigger value="list" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
-                  <List className="h-3 w-3" />
-                  List
-                </TabsTrigger>
-              </TabsList>
-            </div>
-            
-            {/* Mobile Filters - Stacked */}
-            <div className="p-6 pt-4 space-y-4">
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-full h-10 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 z-[9999]">
-                  <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All</SelectItem>
-                  {eventCategories.map((category) => (
-                    <SelectItem 
-                      key={category.id} 
-                      value={category.slug} 
-                      className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600 flex items-center gap-2"
-                    >
-                      <span className={`w-3 h-3 rounded-full inline-block mr-2 ${getVariantColorClass(category.variant || 'default')}`}></span>
-                      {category.name} ({category.count})
+            <div className="px-4 py-4 flex items-center justify-between gap-3">
+              {/* Left side - Category Filter Button */}
+              <div className="flex-shrink-0">
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-auto min-w-[60px] h-9 px-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <div className="flex items-center gap-1">
+                      <span className={`w-3 h-3 rounded-full flex-shrink-0 ${categoryFilter === 'all' ? 'bg-gray-400' : getVariantColorClass(eventCategories.find(cat => cat.slug === categoryFilter)?.variant || 'default')}`}></span>
+                      <span className="text-xs truncate max-w-[60px]">
+                        {categoryFilter === 'all' ? 'All' : eventCategories.find(cat => cat.slug === categoryFilter)?.name || 'All'}
+                      </span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 z-[9999]">
+                    <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">
+                      <div className="flex items-center gap-2 whitespace-nowrap">
+                        <span className="w-3 h-3 rounded-full flex-shrink-0 bg-gray-400"></span>
+                        <span>All</span>
+                      </div>
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    {eventCategories.map((category) => (
+                      <SelectItem 
+                        key={category.id} 
+                        value={category.slug} 
+                        className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600"
+                      >
+                        <div className="flex items-center gap-2 whitespace-nowrap">
+                          <span className={`w-3 h-3 rounded-full flex-shrink-0 ${getVariantColorClass(category.variant || 'default')}`}></span>
+                          <span>{category.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-              {(categoryFilter === "clubs" || categoryFilter === "unbc" || categoryFilter === "organizations" || categoryFilter === "community") && (
+              {/* Center - Tabs (growing to fill available space) */}
+              <div className="flex-1 flex justify-center">
+                <TabsList className="h-9 bg-gray-100 dark:bg-gray-700 p-1">
+                  {showDayView && (
+                    <TabsTrigger value="day" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300 flex-1">
+                      <Clock className="h-3 w-3" />
+                      <span className="hidden xs:inline">Day</span>
+                    </TabsTrigger>
+                  )}
+                  <TabsTrigger value="month" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300 flex-1">
+                    <CalendarDays className="h-3 w-3" />
+                    <span className="hidden xs:inline">Month</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="list" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300 flex-1">
+                    <List className="h-3 w-3" />
+                    <span className="hidden xs:inline">List</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              {/* Right side - Search Button */}
+              <div className="flex-shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                onClick={() => {
+                  const searchInput = document.querySelector('.mobile-search-input') as HTMLInputElement;
+                  if (searchInput) {
+                    searchInput.style.display = searchInput.style.display === 'none' ? 'block' : 'none';
+                    if (searchInput.style.display !== 'none') {
+                      searchInput.focus();
+                    }
+                  }
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 dark:text-gray-300">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.35-4.35"/>
+                </svg>
+              </Button>
+              </div>
+            </div>
+
+            {/* Hidden search input that appears when search button is clicked */}
+            <div className="px-4 pb-4">
+              <Input
+                placeholder="Search events..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="mobile-search-input w-full h-9 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                style={{ display: 'none' }}
+              />
+            </div>
+
+            {/* Organization filter (if needed) - appears below */}
+            {(categoriesWithOrganizations.includes(categoryFilter)) && (
+              <div className="px-4 pb-4">
                 <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
-                  <SelectTrigger className="w-full h-10 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                  <SelectTrigger className="w-full h-9 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                     <SelectValue placeholder="All Organizations" className="truncate" />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 max-h-[200px] overflow-y-auto">
@@ -423,17 +552,11 @@ export default function UNBCCalendar() {
                     ))}
                   </SelectContent>
                 </Select>
-              )}
-
-              <Input
-                placeholder="Search events..."
-                onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
-              />
-            </div>
+              </div>
+            )}
           </div>
 
-          <TabsContent value="month" className="p-6 pt-4">
+          <TabsContent value="month" className="px-6 pb-6 md:p-6">
             <div className="hidden md:block">
               <MonthView 
                 events={events} 
@@ -453,7 +576,7 @@ export default function UNBCCalendar() {
             </div>
           </TabsContent>
 
-          <TabsContent value="week" className="p-6 pt-4">
+          <TabsContent value="week" className="px-6 pb-6 md:p-6">
             <WeekView 
               events={events} 
               eventMetadata={eventMetadata}
@@ -462,7 +585,7 @@ export default function UNBCCalendar() {
             />
           </TabsContent>
 
-          <TabsContent value="day" className="p-6 pt-4">
+          <TabsContent value="day" className="px-6 pb-6 md:p-6">
             <DayView 
               events={events} 
               eventMetadata={eventMetadata}
@@ -472,7 +595,7 @@ export default function UNBCCalendar() {
             />
           </TabsContent>
 
-          <TabsContent value="list" className="p-6 pt-4">
+          <TabsContent value="list" className="px-6 pb-6 md:p-6">
             <div className="hidden md:block">
               <EventListView 
                 events={events.slice(0, listDisplayCount)} 

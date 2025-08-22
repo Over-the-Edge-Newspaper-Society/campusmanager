@@ -8,6 +8,12 @@ export function useOrganizations() {
 
   useEffect(() => {
     const fetchOrganizations = async () => {
+      // Skip API calls in dev mode
+      if (import.meta.env.DEV) {
+        setLoading(false);
+        return;
+      }
+      
       try {
         setLoading(true);
         const data = await organizationsService.getAll();
