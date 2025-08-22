@@ -59,6 +59,16 @@ class UNBC_Events_User_Roles {
             'edit_event_terms' => true,
             'delete_event_terms' => false,
             'assign_event_terms' => true,
+            
+            // Explicitly deny staff profile capabilities
+            'edit_staff_profiles' => false,
+            'edit_others_staff_profiles' => false,
+            'publish_staff_profiles' => false,
+            'read_staff_profile' => false,
+            'delete_staff_profiles' => false,
+            'delete_others_staff_profiles' => false,
+            'delete_published_staff_profiles' => false,
+            'edit_published_staff_profiles' => false,
         ));
     }
     

@@ -7,10 +7,13 @@ class UNBC_Organization_Manager_Dashboard {
     
     public function __construct() {
         add_action('admin_menu', array($this, 'add_manager_menu'), 5);
+        add_action('admin_menu', array($this, 'remove_unwanted_menus'), 999);
         add_action('admin_init', array($this, 'handle_organization_update'));
         add_action('admin_init', array($this, 'redirect_managers_to_dashboard'));
         add_action('admin_init', array($this, 'block_standard_post_edit'));
+        add_action('admin_init', array($this, 'block_staff_profile_access'));
         add_filter('admin_body_class', array($this, 'add_manager_body_class'));
+        add_action('pre_get_posts', array($this, 'exclude_staff_profiles_from_queries'));
     }
     
     /**
@@ -59,6 +62,25 @@ class UNBC_Organization_Manager_Dashboard {
         
         // Hide the default Organizations menu for managers
         remove_menu_page('edit.php?post_type=organization');
+    }
+    
+    /**
+     * Remove unwanted menu items for organization managers
+     */
+    public function remove_unwanted_menus() {
+        $user_id = get_current_user_id();
+        
+        // Only remove menus for organization managers
+        if (!UNBC_Organization_Manager_Assignment::is_organization_manager($user_id)) {
+            return;
+        }
+        
+        // Remove Staff & Alumni menu
+        remove_menu_page('edit.php?post_type=staff_profile');
+        
+        // Also remove any submenu items related to staff profiles
+        remove_submenu_page('edit.php?post_type=staff_profile', 'edit.php?post_type=staff_profile');
+        remove_submenu_page('edit.php?post_type=staff_profile', 'post-new.php?post_type=staff_profile');
     }
     
     /**
@@ -543,6 +565,14 @@ class UNBC_Organization_Manager_Dashboard {
                 color: #666;
                 margin-top: 4px;
             }
+            
+            /* Hide staff profile menu items for organization managers */
+            body.organization-manager-view #menu-posts-staff_profile,
+            body.organization-manager-view li#menu-posts-staff_profile,
+            body.organization-manager-view .menu-icon-staff_profile,
+            body.organization-manager-view a[href*="post_type=staff_profile"] {
+                display: none !important;
+            }
         </style>
         <?php
     }
@@ -719,6 +749,42 @@ class UNBC_Organization_Manager_Dashboard {
     }
     
     /**
+     * Block organization managers from accessing staff profile pages
+     */
+    public function block_staff_profile_access() {
+        global $pagenow;
+        
+        if (!is_admin()) {
+            return;
+        }
+        
+        $user_id = get_current_user_id();
+        if (!UNBC_Organization_Manager_Assignment::is_organization_manager($user_id)) {
+            return;
+        }
+        
+        // Block access to staff profile edit pages
+        if ($pagenow === 'post.php' && isset($_GET['post'])) {
+            $post_id = intval($_GET['post']);
+            $post = get_post($post_id);
+            
+            if ($post && $post->post_type === 'staff_profile') {
+                wp_die('You do not have permission to access staff profiles. Please contact an administrator if you need assistance.');
+            }
+        }
+        
+        // Block access to new staff profile page
+        if ($pagenow === 'post-new.php' && isset($_GET['post_type']) && $_GET['post_type'] === 'staff_profile') {
+            wp_die('You do not have permission to create staff profiles. Please contact an administrator if you need assistance.');
+        }
+        
+        // Block access to staff profile list page
+        if ($pagenow === 'edit.php' && isset($_GET['post_type']) && $_GET['post_type'] === 'staff_profile') {
+            wp_die('You do not have permission to access staff profiles. Please contact an administrator if you need assistance.');
+        }
+    }
+    
+    /**
      * Redirect organization managers from default pages to custom dashboard
      */
     public function redirect_managers_to_dashboard() {
@@ -760,5 +826,36 @@ class UNBC_Organization_Manager_Dashboard {
             $classes .= ' organization-manager-view';
         }
         return $classes;
+    }
+    
+    /**
+     * Exclude staff profiles from queries for organization managers
+     */
+    public function exclude_staff_profiles_from_queries($query) {
+        if (!is_admin()) {
+            return;
+        }
+        
+        $user_id = get_current_user_id();
+        if (!UNBC_Organization_Manager_Assignment::is_organization_manager($user_id)) {
+            return;
+        }
+        
+        // Exclude staff_profile post type from all admin queries for organization managers
+        if ($query->is_main_query()) {
+            $post_types = $query->get('post_type');
+            
+            // If querying all post types, exclude staff_profile
+            if (empty($post_types) || $post_types === 'any') {
+                $query->set('post_type', array('post', 'page', 'event', 'organization', 'confession', 'club_post'));
+            } elseif (is_array($post_types) && in_array('staff_profile', $post_types)) {
+                // Remove staff_profile from the array
+                $post_types = array_diff($post_types, array('staff_profile'));
+                $query->set('post_type', $post_types);
+            } elseif ($post_types === 'staff_profile') {
+                // If specifically querying staff_profile, change to something they can access
+                $query->set('post_type', 'event');
+            }
+        }
     }
 }
