@@ -90,8 +90,11 @@ export function getCategoryVariant(
 }
 
 // Helper function to create category mappings from event categories array
-export function createCategoryMappings(eventCategories: EventCategoryInfo[]): { [slug: string]: CategoryVariant } {
+export function createCategoryMappings(eventCategories: EventCategoryInfo[] | undefined): { [slug: string]: CategoryVariant } {
   const mappings: { [slug: string]: CategoryVariant } = {};
+  if (!eventCategories || !Array.isArray(eventCategories)) {
+    return mappings;
+  }
   eventCategories.forEach(category => {
     if (category.variant) {
       mappings[category.slug] = category.variant;

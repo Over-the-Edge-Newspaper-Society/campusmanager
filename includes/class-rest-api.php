@@ -3,6 +3,11 @@ class UNBC_Events_REST_API {
     public function __construct() {
         add_action('rest_api_init', array($this, 'register_routes'));
         add_action('rest_api_init', array($this, 'register_meta_fields'));
+        
+        // Clear cache when events are modified
+        add_action('save_post_event', array($this, 'clear_events_cache'));
+        add_action('delete_post', array($this, 'clear_events_cache_on_delete'));
+        add_action('trashed_post', array($this, 'clear_events_cache_on_delete'));
     }
 
     public function register_routes() {
@@ -36,23 +41,36 @@ class UNBC_Events_REST_API {
                 ),
                 'search' => array(
                     'sanitize_callback' => 'sanitize_text_field'
+                ),
+                'view' => array(
+                    'default' => 'month',
+                    'sanitize_callback' => 'sanitize_text_field'
+                ),
+                'date' => array(
+                    'sanitize_callback' => 'sanitize_text_field'
                 )
             )
         ));
 
-        // Category colors endpoint
-        register_rest_route('unbc-events/v1', '/category-colors', array(
+        register_rest_route('unbc-events/v1', '/organizations', array(
             'methods' => WP_REST_Server::READABLE,
-            'callback' => array($this, 'get_category_colors'),
+            'callback' => array($this, 'get_organizations'),
             'permission_callback' => '__return_true'
         ));
 
-        register_rest_route('unbc-events/v1', '/category-colors', array(
+        register_rest_route('unbc-events/v1', '/categories', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array($this, 'get_categories'),
+            'permission_callback' => '__return_true'
+        ));
+
+        // New endpoint for calendar events creation
+        register_rest_route('unbc-events/v1', '/events/create-calendar-event', array(
             'methods' => WP_REST_Server::CREATABLE,
-            'callback' => array($this, 'update_category_colors'),
-            'permission_callback' => array($this, 'category_colors_permission_check'),
+            'callback' => array($this, 'create_calendar_event'),
+            'permission_callback' => '__return_true',
             'args' => array(
-                'colors' => array(
+                'event_data' => array(
                     'required' => true,
                     'type' => 'object'
                 )
@@ -68,16 +86,33 @@ class UNBC_Events_REST_API {
     }
 
     public function get_events($request) {
-        $params = $request->get_params();
-        
-        $args = array(
-            'post_type' => 'event',
-            'post_status' => 'publish',
-            'posts_per_page' => $params['per_page'],
-            'paged' => $params['page'],
-            'meta_query' => array(),
-            'tax_query' => array()
-        );
+        try {
+            $params = $request->get_params();
+            
+            // Skip view-based strategy if we have explicit start/end dates
+            if (!isset($params['start_date']) || !isset($params['end_date'])) {
+                // Apply view-based loading strategy only if no explicit dates provided
+                $this->apply_view_based_strategy($params);
+            }
+            
+            // Create cache key based on parameters
+            $cache_key = 'unbc_events_api_' . md5(serialize($params));
+            $cached_result = get_transient($cache_key);
+            
+            if ($cached_result !== false && !WP_DEBUG) {
+                // Add cache hit info
+                $cached_result['performance']['cache_hit'] = true;
+                return rest_ensure_response($cached_result);
+            }
+            
+            $args = array(
+                'post_type' => 'event',
+                'post_status' => 'publish',
+                'posts_per_page' => $params['per_page'],
+                'paged' => $params['page'],
+                'meta_query' => array(),
+                'tax_query' => array()
+            );
 
         // Date filtering
         if (!empty($params['start_date']) || !empty($params['end_date'])) {
@@ -136,27 +171,91 @@ class UNBC_Events_REST_API {
 
         $query = new WP_Query($args);
         $events = array();
+        $organizations_with_events = array();
+        $event_metadata = array();
+        $category_mappings = array();
 
         if ($query->have_posts()) {
             while ($query->have_posts()) {
                 $query->the_post();
-                $events[] = $this->format_event_data(get_the_ID());
+                $formatted_event = $this->format_event_data(get_the_ID());
+                if ($formatted_event) {
+                    // Transform to calendar-ready format
+                    $calendar_event = $this->transform_to_calendar_format($formatted_event);
+                    $events[] = $calendar_event;
+                    
+                    // Build event metadata
+                    $event_metadata[$calendar_event['id']] = $this->build_event_metadata($formatted_event);
+                    
+                    // Collect organizations (only those with events)
+                    if ($formatted_event['organization_id']) {
+                        $organizations_with_events[$formatted_event['organization_id']] = $formatted_event['organization'];
+                    }
+                    
+                    // Collect category mappings
+                    foreach ($formatted_event['categories'] as $category) {
+                        if (!isset($category_mappings[$category['slug']])) {
+                            $category_mappings[$category['slug']] = $this->get_category_variant($category['slug']);
+                        }
+                    }
+                }
             }
             wp_reset_postdata();
         }
 
-        return rest_ensure_response(array(
+        // Determine if there are more events available
+        $hasMore = $this->has_more_events(
+            $params['date'] ?? date('Y-m-d'),
+            $params['view'] ?? 'month',
+            $query->found_posts,
+            $params['per_page'],
+            $params['page']
+        );
+
+        $response = array(
             'events' => $events,
+            'eventMetadata' => $event_metadata,
+            'organizations' => array_values($organizations_with_events),
+            'categoryMappings' => $category_mappings,
             'total' => $query->found_posts,
-            'pages' => $query->max_num_pages
-        ));
+            'pages' => $query->max_num_pages,
+            'performance' => array(
+                'server_processed' => true,
+                'cache_hit' => false,
+                'processing_time' => 0
+            ),
+            'pagination' => array(
+                'hasMore' => $hasMore,
+                'nextPage' => $hasMore ? ($params['page'] + 1) : null,
+                'currentPage' => $params['page'],
+                'perPage' => $params['per_page'],
+                'view' => $params['view'] ?? 'month',
+                'loadedRange' => array(
+                    'start' => !empty($events) ? $events[0]['startDate'] : null,
+                    'end' => !empty($events) ? $events[count($events) - 1]['startDate'] : null
+                )
+            )
+        );
+
+        // Cache the result for 15 minutes
+        set_transient($cache_key, $response, 15 * MINUTE_IN_SECONDS);
+        
+        return rest_ensure_response($response);
+        
+        } catch (Exception $e) {
+            return new WP_Error('events_api_error', $e->getMessage(), array('status' => 500));
+        }
     }
 
     private function format_event_data($event_id) {
-        $event = get_post($event_id);
-        
-        // Get meta data
-        $event_date = get_post_meta($event_id, 'event_date', true);
+        try {
+            $event = get_post($event_id);
+            if (!$event) {
+                return null;
+            }
+            
+            // Get meta data
+            $event_date = get_post_meta($event_id, 'event_date', true);
         $start_time = get_post_meta($event_id, 'start_time', true) ?: '00:00';
         $end_time = get_post_meta($event_id, 'end_time', true) ?: '23:59';
         $location = get_post_meta($event_id, 'location', true);
@@ -213,175 +312,333 @@ class UNBC_Events_REST_API {
             'featured' => get_post_meta($event_id, 'featured', true) === '1',
             'permalink' => get_permalink($event_id)
         );
-    }
-    
-    public function register_meta_fields() {
-        // Register meta fields for the standard WordPress REST API
-        $meta_fields = array(
-            'start_date',
-            'end_date',
-            'start_time',
-            'end_time',
-            'location',
-            'building',
-            'room',
-            'organization',
-            'organization_id',
-            'category',
-            'cost',
-            'registration_required',
-            'registration_link',
-            'contact_email',
-            'is_virtual',
-            'virtual_link',
-            'website',
-            'capacity',
-            'featured'
-        );
-        
-        foreach ($meta_fields as $field) {
-            register_rest_field('event', $field, array(
-                'get_callback' => function($post) use ($field) {
-                    return get_post_meta($post['id'], $field, true);
-                },
-                'schema' => array(
-                    'description' => 'Event ' . $field,
-                    'type' => 'string',
-                    'context' => array('view', 'edit')
-                )
-            ));
-        }
-        
-        // Register organization meta fields for the block editor
-        $org_meta_fields = array(
-            'org_status' => 'string',
-            'org_size' => 'string',
-            'org_is_department' => 'boolean'
-        );
-        
-        foreach ($org_meta_fields as $field => $type) {
-            register_rest_field('organization', $field, array(
-                'get_callback' => function($post) use ($field) {
-                    $value = get_post_meta($post['id'], $field, true);
-                    if ($field === 'org_is_department') {
-                        return $value === '1';
-                    }
-                    return $value;
-                },
-                'schema' => array(
-                    'description' => ucfirst(str_replace('_', ' ', $field)),
-                    'type' => $type,
-                    'context' => array('view', 'edit')
-                )
-            ));
-        }
-    }
-
-    public function get_category_colors($request) {
-        // Get all event categories with their color variants
-        $terms = get_terms(array(
-            'taxonomy' => 'event_category',
-            'hide_empty' => false,
-        ));
-        
-        $colors = array();
-        if (!is_wp_error($terms)) {
-            foreach ($terms as $term) {
-                $colors[$term->slug] = UNBC_Category_Colors::get_category_color_variant($term->term_id);
-            }
-        }
-        
-        return rest_ensure_response(array(
-            'success' => true,
-            'colors' => $colors
-        ));
-    }
-
-    public function update_category_colors($request) {
-        $colors = $request->get_param('colors');
-        $color_options = UNBC_Category_Colors::get_color_options();
-        $valid_variants = array_keys($color_options);
-        
-        $updated_count = 0;
-        
-        // Validate and update each category
-        foreach ($colors as $category_slug => $variant) {
-            if (!in_array($variant, $valid_variants)) {
-                continue;
-            }
             
-            $term = get_term_by('slug', $category_slug, 'event_category');
-            if ($term) {
-                update_term_meta($term->term_id, 'category_color', $variant);
-                $updated_count++;
-            }
+        } catch (Exception $e) {
+            error_log('Error formatting event data for event ID ' . $event_id . ': ' . $e->getMessage());
+            return null;
         }
+    }
+
+    /**
+     * Transform WordPress event data to React Calendar format
+     */
+    private function transform_to_calendar_format($event_data) {
+        // Create proper DateTime objects for React
+        $start_datetime = $this->create_datetime($event_data['date'], $event_data['start_time']);
+        $end_datetime = $this->create_datetime($event_data['date'], $event_data['end_time']);
+
+        return array(
+            'id' => (string)$event_data['id'],
+            'title' => $event_data['title'],
+            'description' => $event_data['description'],
+            'startDate' => $start_datetime,
+            'endDate' => $end_datetime,
+            'category' => !empty($event_data['categories']) ? $event_data['categories'][0]['slug'] : 'academic',
+            'color' => $this->get_category_color(!empty($event_data['categories']) ? $event_data['categories'][0]['slug'] : 'academic')
+        );
+    }
+
+    /**
+     * Build metadata object for React Calendar
+     */
+    private function build_event_metadata($event_data) {
+        return array(
+            'location' => $event_data['full_location'],
+            'organization' => $event_data['organization'],
+            'organization_id' => $event_data['organization_id'],
+            'cost' => $event_data['cost'],
+            'category' => !empty($event_data['categories']) ? $event_data['categories'][0]['slug'] : 'academic',
+            'registrationRequired' => $event_data['registration_required'],
+            'website' => $event_data['registration_link'] ?: $event_data['website'],
+            'isVirtual' => $event_data['is_virtual'],
+            'virtualLink' => $event_data['virtual_link'],
+            'contactEmail' => $event_data['contact_email'],
+            'capacity' => $event_data['capacity'],
+            'featuredImage' => $event_data['featured_image'],
+            'permalink' => $event_data['permalink']
+        );
+    }
+
+    /**
+     * Create proper datetime string for React
+     */
+    private function create_datetime($date, $time) {
+        try {
+            $datetime_string = $date . ' ' . ($time ?: '00:00:00');
+            $datetime = new DateTime($datetime_string);
+            return $datetime->format('c'); // ISO 8601 format
+        } catch (Exception $e) {
+            // Fallback to date only
+            $datetime = new DateTime($date);
+            return $datetime->format('c');
+        }
+    }
+
+    /**
+     * Get category variant for mapping
+     */
+    private function get_category_variant($category_slug) {
+        // Map categories to React calendar variants
+        $mapping = array(
+            'academic' => 'primary',
+            'sports' => 'success',
+            'arts' => 'warning',
+            'social' => 'info',
+            'professional' => 'secondary',
+            'cultural' => 'danger',
+            'wellness' => 'light',
+            'general' => 'default'
+        );
         
+        return isset($mapping[$category_slug]) ? $mapping[$category_slug] : 'default';
+    }
+
+    /**
+     * Get category color for calendar
+     */
+    private function get_category_color($category_slug) {
+        $colors = array(
+            'academic' => '#007bff',
+            'sports' => '#28a745',
+            'arts' => '#ffc107',
+            'social' => '#17a2b8',
+            'professional' => '#6c757d',
+            'cultural' => '#dc3545',
+            'wellness' => '#f8f9fa',
+            'general' => '#6c757d'
+        );
+        
+        return isset($colors[$category_slug]) ? $colors[$category_slug] : '#6c757d';
+    }
+
+    public function get_organizations($request) {
+        $args = array(
+            'post_type' => 'organization',
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'orderby' => 'title',
+            'order' => 'ASC'
+        );
+
+        $query = new WP_Query($args);
+        $organizations = array();
+
+        if ($query->have_posts()) {
+            while ($query->have_posts()) {
+                $query->the_post();
+                $organizations[] = array(
+                    'id' => get_the_ID(),
+                    'name' => get_the_title(),
+                    'description' => get_the_content(),
+                    'website' => get_post_meta(get_the_ID(), 'organization_website', true),
+                    'contact_email' => get_post_meta(get_the_ID(), 'organization_email', true)
+                );
+            }
+            wp_reset_postdata();
+        }
+
         return rest_ensure_response(array(
-            'success' => $updated_count > 0,
-            'updated_count' => $updated_count,
-            'colors' => $colors
+            'organizations' => $organizations,
+            'total' => count($organizations)
         ));
     }
 
-    public function category_colors_permission_check() {
-        return current_user_can('manage_options');
+    public function get_categories($request) {
+        $categories = get_terms(array(
+            'taxonomy' => 'event_category',
+            'hide_empty' => false
+        ));
+
+        $category_data = array();
+        foreach ($categories as $category) {
+            $category_data[] = array(
+                'id' => $category->term_id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'count' => $category->count
+            );
+        }
+
+        return rest_ensure_response(array(
+            'categories' => $category_data,
+            'total' => count($category_data)
+        ));
     }
 
     public function get_category_config($request) {
-        // Get all event categories
+        // Get categories with their assigned colors/variants
         $categories = get_terms(array(
             'taxonomy' => 'event_category',
-            'hide_empty' => false,
+            'hide_empty' => false
         ));
 
-        // Configuration for which categories show organization dropdown
-        $categories_with_organizations = array();
-        $category_relationships = array();
-
+        $config = array();
         foreach ($categories as $category) {
-            // Get the auto-assign setting for this category
-            $auto_assign = get_term_meta($category->term_id, 'auto_assign_organizations', true);
+            // Get the category's assigned variant (could be stored in term meta)
+            $variant = get_term_meta($category->term_id, 'category_variant', true);
+            if (!$variant) {
+                // Fallback to default mapping
+                $variant = $this->get_category_variant($category->slug);
+            }
             
-            // If auto-assign is enabled, or it's UNBC/organizations/community, show org dropdown
-            if ($auto_assign === '1' || in_array($category->slug, ['unbc', 'organizations', 'community'])) {
-                $categories_with_organizations[] = $category->slug;
-            }
-
-            // Set up category relationships
-            switch ($category->slug) {
-                case 'unbc':
-                    // UNBC shows UNBC events AND organization events
-                    $category_relationships['unbc'] = ['unbc', 'organizations'];
-                    break;
-                case 'organizations':
-                    // Organizations shows only organization events
-                    $category_relationships['organizations'] = ['organizations'];
-                    break;
-            }
+            $config[$category->slug] = array(
+                'name' => $category->name,
+                'variant' => $variant
+            );
         }
 
-        return rest_ensure_response(array(
-            'categoriesWithOrganizations' => $categories_with_organizations,
-            'categoryRelationships' => $category_relationships,
-            'autoAssignCategory' => $this->get_auto_assign_category()
-        ));
+        return rest_ensure_response($config);
     }
 
-    private function get_auto_assign_category() {
-        // Find the category with auto-assign enabled
-        $categories = get_terms(array(
-            'taxonomy' => 'event_category',
-            'hide_empty' => false,
-            'meta_query' => array(
-                array(
-                    'key' => 'auto_assign_organizations',
-                    'value' => '1',
-                    'compare' => '='
+    public function register_meta_fields() {
+        // Register REST API fields for event post type
+        register_rest_field('event', 'event_meta', array(
+            'get_callback' => function($post) {
+                return array(
+                    'date' => get_post_meta($post['id'], 'event_date', true),
+                    'start_time' => get_post_meta($post['id'], 'start_time', true),
+                    'end_time' => get_post_meta($post['id'], 'end_time', true),
+                    'location' => get_post_meta($post['id'], 'location', true),
+                    'cost' => get_post_meta($post['id'], 'cost', true),
+                    'organization' => get_post_meta($post['id'], 'organization', true),
+                    'featured' => get_post_meta($post['id'], 'featured', true) === '1'
+                );
+            },
+            'schema' => array(
+                'type' => 'object',
+                'properties' => array(
+                    'date' => array('type' => 'string'),
+                    'start_time' => array('type' => 'string'),
+                    'end_time' => array('type' => 'string'),
+                    'location' => array('type' => 'string'),
+                    'cost' => array('type' => 'string'),
+                    'organization' => array('type' => 'string'),
+                    'featured' => array('type' => 'boolean')
                 )
             )
         ));
+    }
 
-        return !empty($categories) ? $categories[0]->slug : null;
+    public function create_calendar_event($request) {
+        $event_data = $request->get_param('event_data');
+        
+        // TODO: Add authentication check
+        // if (!current_user_can('edit_posts')) {
+        //     return new WP_Error('rest_forbidden', 'You do not have permissions to create events.', array('status' => 403));
+        // }
+        
+        // Create calendar event in appropriate calendar service
+        // This is a placeholder for calendar integration
+        
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => 'Calendar event created successfully',
+            'calendar_url' => 'https://calendar.google.com/event/...' // Example URL
+        ));
+    }
+    
+    /**
+     * Clear events cache when events are modified
+     */
+    public function clear_events_cache($post_id) {
+        if (get_post_type($post_id) !== 'event') {
+            return;
+        }
+        
+        // Clear all event-related transients
+        global $wpdb;
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_unbc_events_api_%'");
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_unbc_events_api_%'");
+    }
+    
+    /**
+     * Clear cache when post is deleted or trashed
+     */
+    public function clear_events_cache_on_delete($post_id) {
+        $this->clear_events_cache($post_id);
+    }
+    
+    /**
+     * Apply view-based loading strategy
+     */
+    private function apply_view_based_strategy(&$params) {
+        $view = $params['view'] ?? 'month';
+        $date = $params['date'] ?? date('Y-m-d');
+        $current_date = new DateTime($date);
+        
+        switch ($view) {
+            case 'month':
+                // Load 2 months of data (current + next month)
+                $start_of_month = clone $current_date;
+                $start_of_month->modify('first day of this month');
+                
+                $end_of_period = clone $current_date;
+                $end_of_period->modify('last day of next month');
+                
+                $params['start_date'] = $start_of_month->format('Y-m-d');
+                $params['end_date'] = $end_of_period->format('Y-m-d');
+                $params['per_page'] = 200; // Reasonable limit for 2 months
+                break;
+                
+            case 'week':
+                // Load 3 weeks of data (current + 2 weeks ahead)
+                $start_of_week = clone $current_date;
+                $start_of_week->modify('monday this week');
+                
+                $end_of_period = clone $current_date;
+                $end_of_period->modify('+2 weeks sunday');
+                
+                $params['start_date'] = $start_of_week->format('Y-m-d');
+                $params['end_date'] = $end_of_period->format('Y-m-d');
+                $params['per_page'] = 100; // Reasonable limit for 3 weeks
+                break;
+                
+            case 'day':
+                // Load 1 week around the selected day
+                $start_of_period = clone $current_date;
+                $start_of_period->modify('-3 days');
+                
+                $end_of_period = clone $current_date;
+                $end_of_period->modify('+3 days');
+                
+                $params['start_date'] = $start_of_period->format('Y-m-d');
+                $params['end_date'] = $end_of_period->format('Y-m-d');
+                $params['per_page'] = 50; // Small limit for day view
+                break;
+                
+            case 'list':
+                // For list view, use pagination with reasonable per_page
+                if (!isset($params['per_page']) || $params['per_page'] > 50) {
+                    $params['per_page'] = 50; // First load: 50 upcoming events
+                }
+                
+                // Set start date to today if not specified
+                if (!isset($params['start_date'])) {
+                    $params['start_date'] = date('Y-m-d');
+                }
+                break;
+                
+            default:
+                // Default to month view strategy
+                $start_of_month = clone $current_date;
+                $start_of_month->modify('first day of this month');
+                
+                $end_of_period = clone $current_date;
+                $end_of_period->modify('last day of next month');
+                
+                $params['start_date'] = $start_of_month->format('Y-m-d');
+                $params['end_date'] = $end_of_period->format('Y-m-d');
+                $params['per_page'] = 200;
+                break;
+        }
+    }
+
+    /**
+     * Check if there are more events after the given date/view
+     */
+    private function has_more_events($date, $view, $total_found, $per_page, $page) {
+        // Simple check: if we got a full page of results, there might be more
+        $current_page_count = min($per_page, $total_found - (($page - 1) * $per_page));
+        return $current_page_count >= $per_page;
     }
 }

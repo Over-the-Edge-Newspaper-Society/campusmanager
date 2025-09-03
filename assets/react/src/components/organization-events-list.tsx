@@ -7,7 +7,7 @@ import { getCategoryVariant, getVariantAfterColorClass, type CategoryVariant } f
 interface OrganizationEventsListProps {
   events: Event[];
   eventMetadata: Record<string, EventMetadata>;
-  categoryMappings: { [slug: string]: CategoryVariant };
+  categoryMappings?: { [slug: string]: CategoryVariant };
   organizationId?: string;
   organizationName?: string;
   limit?: number;

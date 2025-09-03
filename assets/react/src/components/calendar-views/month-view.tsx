@@ -12,12 +12,16 @@ interface MonthViewProps {
   categoryMappings: { [slug: string]: CategoryVariant };
   onDateClick?: (date: Date) => void;
   onEventClick?: (event: Event) => void;
+  onMonthChange?: (date: Date) => void;
+  currentDate?: Date; // Add controlled prop
 }
 
-export function MonthView({ events, eventMetadata, categoryMappings, onDateClick, onEventClick }: MonthViewProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+export function MonthView({ events, eventMetadata, categoryMappings, onDateClick, onEventClick, onMonthChange, currentDate: controlledDate }: MonthViewProps) {
+  const [internalDate, setInternalDate] = useState(new Date());
+  const currentDate = controlledDate || internalDate; // Use controlled or internal
   const [direction, setDirection] = useState<number>(0);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
+  
 
   const getDaysInMonth = (month: number, year: number) => {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -25,12 +29,16 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
   };
 
   const getEventsForDay = (day: number, currentDate: Date) => {
-    return events.filter(event => {
+    const dayEvents = events.filter(event => {
       const eventDate = new Date(event.startDate);
-      return eventDate.getDate() === day && 
+      const matches = eventDate.getDate() === day && 
              eventDate.getMonth() === currentDate.getMonth() && 
              eventDate.getFullYear() === currentDate.getFullYear();
+      return matches;
     });
+    
+    
+    return dayEvents;
   };
 
   const formatTime = (date: Date) => {
@@ -44,13 +52,19 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
   const handlePrevMonth = () => {
     setDirection(-1);
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-    setCurrentDate(newDate);
+    if (!controlledDate) {
+      setInternalDate(newDate); // Only update internal state if not controlled
+    }
+    onMonthChange?.(newDate);
   };
 
   const handleNextMonth = () => {
     setDirection(1);
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
-    setCurrentDate(newDate);
+    if (!controlledDate) {
+      setInternalDate(newDate); // Only update internal state if not controlled
+    }
+    onMonthChange?.(newDate);
   };
 
   const daysInMonth = getDaysInMonth(currentDate.getMonth(), currentDate.getFullYear());
@@ -120,6 +134,18 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
         </div>
       </div>
 
+      {/* Day headers - separate grid */}
+      <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-4">
+        {daysOfWeek.map((day, idx) => (
+          <div
+            key={idx}
+            className="text-left py-2 text-lg tracking-tighter font-medium text-gray-900 dark:text-gray-100"
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+
       <AnimatePresence initial={false} custom={direction} mode="wait">
         <motion.div
           key={`${currentDate.getFullYear()}-${currentDate.getMonth()}`}
@@ -130,15 +156,6 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
           transition={{ duration: 0.2 }}
           className="grid grid-cols-7 gap-1 sm:gap-2"
         >
-          {daysOfWeek.map((day, idx) => (
-            <div
-              key={idx}
-              className="text-left my-8 text-4xl tracking-tighter font-medium text-gray-900 dark:text-gray-100"
-            >
-              {day}
-            </div>
-          ))}
-
           {Array.from({ length: startOffset }).map((_, idx) => (
             <div key={`offset-${idx}`} className="h-[150px] opacity-50 p-4">
               <div className="font-semibold relative text-3xl mb-1 text-gray-400 dark:text-gray-500">
@@ -147,7 +164,7 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
             </div>
           ))}
 
-          {daysInMonth.map((dayObj, index) => {
+          {daysInMonth.map((dayObj) => {
             const dayEvents = getEventsForDay(dayObj.day, currentDate);
             const isToday = new Date().getDate() === dayObj.day &&
               new Date().getMonth() === currentDate.getMonth() &&
@@ -243,14 +260,20 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
             );
           })}
 
-          {/* Next month overflow days */}
-          {Array.from({ length: 42 - startOffset - daysInMonth.length }).map((_, idx) => (
-            <div key={`next-${idx}`} className="h-[150px] opacity-50 p-4">
-              <div className="font-semibold relative text-3xl mb-1 text-gray-400 dark:text-gray-500">
-                {idx + 1}
+          {/* Next month overflow days - only if needed to complete the current week */}
+          {(() => {
+            const totalDaysRendered = startOffset + daysInMonth.length;
+            const remainingDaysInWeek = totalDaysRendered % 7;
+            const nextMonthDaysNeeded = remainingDaysInWeek === 0 ? 0 : 7 - remainingDaysInWeek;
+            
+            return Array.from({ length: nextMonthDaysNeeded }).map((_, idx) => (
+              <div key={`next-${idx}`} className="h-[150px] opacity-50 p-4">
+                <div className="font-semibold relative text-3xl mb-1 text-gray-400 dark:text-gray-500">
+                  {idx + 1}
+                </div>
               </div>
-            </div>
-          ))}
+            ));
+          })()}
         </motion.div>
       </AnimatePresence>
     </div>

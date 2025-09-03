@@ -48,10 +48,6 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
     const formatDateForGoogle = (date: Date) => {
       return date.toISOString().replace(/-|:|\.\d\d\d/g, '');
     };
-    
-    const formatDateForOutlook = (date: Date) => {
-      return date.toISOString();
-    };
 
     switch (type) {
       case 'google':
@@ -66,26 +62,23 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
         return googleUrl.toString();
         
       case 'outlook':
-        const outlookUrl = new URL('https://outlook.live.com/calendar/0/deeplink/compose');
-        outlookUrl.searchParams.append('subject', event.title);
-        outlookUrl.searchParams.append('body', event.description || '');
-        outlookUrl.searchParams.append('startdt', formatDateForOutlook(startDate));
-        outlookUrl.searchParams.append('enddt', formatDateForOutlook(endDate));
-        if (metadata?.location) {
-          outlookUrl.searchParams.append('location', metadata.location);
-        }
-        return outlookUrl.toString();
-        
       case 'apple':
+        // Both Outlook and Apple use the same .ics format
         const icsContent = [
           'BEGIN:VCALENDAR',
           'VERSION:2.0',
+          'PRODID:-//UNBC Calendar//Events//EN',
+          'METHOD:PUBLISH',
           'BEGIN:VEVENT',
+          `UID:${event.id}@unbc-calendar`,
           `DTSTART:${formatDateForGoogle(startDate)}`,
           `DTEND:${formatDateForGoogle(endDate)}`,
           `SUMMARY:${event.title}`,
           `DESCRIPTION:${event.description || ''}`,
           metadata?.location ? `LOCATION:${metadata.location}` : '',
+          metadata?.website ? `URL:${metadata.website}` : '',
+          `ORGANIZER;CN=${metadata?.organization || 'UNBC'}:MAILTO:events@unbc.ca`,
+          'STATUS:CONFIRMED',
           'END:VEVENT',
           'END:VCALENDAR'
         ].filter(line => line).join('\n');
@@ -228,7 +221,13 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
             <Button
               variant="outline"
               className="flex-1 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 text-xs sm:text-sm"
-              onClick={() => window.open(generateCalendarLink('outlook'), '_blank')}
+              onClick={() => {
+                const link = generateCalendarLink('outlook');
+                const a = document.createElement('a');
+                a.href = link;
+                a.download = `${event.title.replace(/[^a-z0-9]/gi, '_')}.ics`;
+                a.click();
+              }}
             >
               <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               Outlook

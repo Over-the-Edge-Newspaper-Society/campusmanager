@@ -183,6 +183,8 @@ class UNBC_Calendar_Blocks {
     }
     
     public function render_events_list_block($attributes) {
+        global $post, $wp_query;
+        
         // Ensure scripts are loaded
         $this->enqueue_scripts();
         
@@ -191,6 +193,48 @@ class UNBC_Calendar_Blocks {
         $limit = isset($attributes['limit']) ? intval($attributes['limit']) : 5;
         $show_past = isset($attributes['showPastEvents']) ? $attributes['showPastEvents'] : false;
         
+        // If no organization specified, try to detect from context (same logic as shortcode)
+        if (empty($organization_id) && empty($organization_name)) {
+            $organization_post = null;
+            
+            // Method 1: Check if current post is organization
+            if ($post && $post->post_type === 'organization') {
+                $organization_post = $post;
+            }
+            
+            // Method 2: Check if we're on an organization single page via query vars
+            if (!$organization_post && isset($wp_query->queried_object) && $wp_query->queried_object->post_type === 'organization') {
+                $organization_post = $wp_query->queried_object;
+            }
+            
+            // Method 3: Check for organization in URL path
+            if (!$organization_post) {
+                $request_uri = $_SERVER['REQUEST_URI'];
+                $parsed_url = parse_url($request_uri);
+                $path = trim($parsed_url['path'], '/');
+                $path_parts = explode('/', $path);
+                
+                // Check for /organization/name or /clubs/name pattern
+                if (count($path_parts) >= 2 && ($path_parts[0] === 'organization' || $path_parts[0] === 'clubs')) {
+                    $org_slug = $path_parts[1];
+                    $organization_post = get_page_by_path($org_slug, OBJECT, 'organization');
+                }
+            }
+            
+            // Method 4: Check query string for organization name/slug
+            if (!$organization_post && isset($_GET['organization'])) {
+                $org_slug = sanitize_text_field($_GET['organization']);
+                $organization_post = get_page_by_path($org_slug, OBJECT, 'organization');
+            }
+            
+            // If we found an organization, use it
+            if ($organization_post) {
+                $organization_id = $organization_post->ID;
+                $organization_name = $organization_post->post_title;
+            }
+        }
+        
+        // Use React component for rendering with shared event popup
         return $this->render_events_list_component($organization_id, $organization_name, $limit, $show_past);
     }
     
@@ -221,8 +265,8 @@ class UNBC_Calendar_Blocks {
         
         $show_past = ($atts['show_past'] === 'true' || $atts['show_past'] === '1');
         
-        // Create a PHP-based events list instead of relying on React
-        return $this->render_php_events_list(
+        // Use React component for rendering with shared event popup
+        return $this->render_events_list_component(
             $atts['organization_id'], 
             $atts['organization_name'], 
             intval($atts['limit']), 
@@ -231,7 +275,7 @@ class UNBC_Calendar_Blocks {
     }
     
     public function organization_events_shortcode($atts) {
-        global $post;
+        global $post, $wp_query;
         
         $atts = shortcode_atts(array(
             'organization_id' => '',
@@ -240,18 +284,57 @@ class UNBC_Calendar_Blocks {
             'show_past' => 'false'
         ), $atts);
         
-        // If no organization specified, try to get from current post context
+        // If no organization specified, try to detect from context
         if (empty($atts['organization_id']) && empty($atts['organization_name'])) {
+            $organization_post = null;
+            
+            // Method 1: Check if current post is organization
             if ($post && $post->post_type === 'organization') {
-                $atts['organization_id'] = $post->ID;
-                $atts['organization_name'] = $post->post_title;
+                $organization_post = $post;
+            }
+            
+            // Method 2: Check if we're on an organization single page via query vars
+            if (!$organization_post && isset($wp_query->queried_object) && $wp_query->queried_object->post_type === 'organization') {
+                $organization_post = $wp_query->queried_object;
+            }
+            
+            // Method 3: Check for organization in URL path
+            if (!$organization_post) {
+                $request_uri = $_SERVER['REQUEST_URI'];
+                $parsed_url = parse_url($request_uri);
+                $path = trim($parsed_url['path'], '/');
+                $path_parts = explode('/', $path);
+                
+                // Check for /organization/name or /clubs/name pattern
+                if (count($path_parts) >= 2 && ($path_parts[0] === 'organization' || $path_parts[0] === 'clubs')) {
+                    $org_slug = $path_parts[1];
+                    $organization_post = get_page_by_path($org_slug, OBJECT, 'organization');
+                }
+            }
+            
+            // Method 4: Check query string for organization name/slug
+            if (!$organization_post && isset($_GET['organization'])) {
+                $org_slug = sanitize_text_field($_GET['organization']);
+                $organization_post = get_page_by_path($org_slug, OBJECT, 'organization');
+            }
+            
+            // If we found an organization, use it
+            if ($organization_post) {
+                $atts['organization_id'] = $organization_post->ID;
+                $atts['organization_name'] = $organization_post->post_title;
             }
         }
         
         $show_past = ($atts['show_past'] === 'true' || $atts['show_past'] === '1');
         
-        // Use the React component instead of PHP rendering
-        return $this->render_organization_events_react_component(
+        // Temporary debug info
+        $debug_info = '';
+        if (current_user_can('administrator')) {
+            $debug_info = '<!-- DEBUG: org_id=' . $atts['organization_id'] . ', org_name=' . $atts['organization_name'] . ' -->';
+        }
+        
+        // Use React component for rendering with shared event popup
+        return $debug_info . $this->render_organization_events_react_component(
             $atts['organization_id'], 
             $atts['organization_name'], 
             intval($atts['limit']), 
@@ -463,10 +546,21 @@ class UNBC_Calendar_Blocks {
         
         if (!$events_query->have_posts()) {
             ?>
-            <div style="text-align: center; padding: 3rem 0; color: #9ca3af;">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">📅</div>
-                <h3 style="font-size: 1.125rem; font-weight: 500; margin-bottom: 0.5rem; color: #374151;">No upcoming events</h3>
-                <p style="margin: 0; font-size: 0.875rem;"><?php echo $organization_name ? esc_html($organization_name) . ' has no upcoming events.' : 'No events found for this organization.'; ?></p>
+            <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-days mx-auto h-8 w-8 mb-3 opacity-50">
+                    <path d="M8 2v4"></path>
+                    <path d="M16 2v4"></path>
+                    <rect width="18" height="18" x="3" y="4" rx="2"></rect>
+                    <path d="M3 10h18"></path>
+                    <path d="M8 14h.01"></path>
+                    <path d="M12 14h.01"></path>
+                    <path d="M16 14h.01"></path>
+                    <path d="M8 18h.01"></path>
+                    <path d="M12 18h.01"></path>
+                    <path d="M16 18h.01"></path>
+                </svg>
+                <h3 class="text-base font-medium mb-1">No upcoming events</h3>
+                <p class="text-sm"><?php echo $organization_name ? esc_html($organization_name) . ' has no upcoming events.' : 'No events found for this organization.'; ?></p>
             </div>
             <?php
         } else {

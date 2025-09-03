@@ -23,14 +23,15 @@ export function OrganizationEventsWrapper({
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showEventDialog, setShowEventDialog] = useState(false);
 
-  // Load events using the same hook as the calendar
+  // Load events using the same hook as the calendar with list view for organization pages
   const { 
     events: allEvents, 
     eventMetadata, 
     loading, 
     error 
   } = useEvents({
-    per_page: 1000, // Get all events to filter client-side
+    view: 'list', // Use list view for organization pages
+    organization: organizationId, // Filter by organization
   });
 
   // Load event categories for color mapping

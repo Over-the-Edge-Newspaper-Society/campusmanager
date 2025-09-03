@@ -48,6 +48,7 @@ export default function UNBCCalendar({
 }: UNBCCalendarProps = {}) {
   const [activeTab, setActiveTab] = useState(initialView);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [calendarViewDate, setCalendarViewDate] = useState(new Date()); // Separate state for calendar navigation
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showEventDialog, setShowEventDialog] = useState(false);
   
@@ -136,6 +137,146 @@ export default function UNBCCalendar({
       .unbc-calendar-view [role="combobox"] {
         pointer-events: auto !important;
       }
+
+      /* FORCE calendar tabs styling with maximum specificity - isolate from theme CSS */
+      #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"] {
+        background-color: rgb(243 244 246) !important; /* bg-gray-100 */
+        border: none !important;
+        box-shadow: none !important;
+      }
+      
+      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"] {
+        background-color: rgb(55 65 81) !important; /* dark:bg-gray-700 */
+      }
+      
+      /* Force tab text colors with high specificity */
+      #unbc-calendar-react-component[data-calendar-isolated] button[data-slot="tabs-trigger"] {
+        color: rgb(107 114 128) !important; /* text-gray-500 */
+        background: transparent !important;
+      }
+      
+      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] button[data-slot="tabs-trigger"] {
+        color: rgb(209 213 219) !important; /* dark:text-gray-300 */
+      }
+      
+      /* Force active tab styling */
+      #unbc-calendar-react-component[data-calendar-isolated] button[data-slot="tabs-trigger"][data-state="active"] {
+        background-color: white !important;
+        color: rgb(17 24 39) !important; /* text-gray-900 */
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+      }
+      
+      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] button[data-slot="tabs-trigger"][data-state="active"] {
+        background-color: rgb(75 85 99) !important; /* dark:bg-gray-600 */
+        color: white !important;
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.25) !important;
+      }
+      
+      /* Nuclear option: completely isolate calendar styling */
+      #unbc-calendar-react-component[data-calendar-isolated] {
+        --calendar-tab-bg: rgb(243 244 246);
+        --calendar-tab-bg-dark: rgb(55 65 81);
+        --calendar-tab-text: rgb(107 114 128);
+        --calendar-tab-text-dark: rgb(209 213 219);
+        --calendar-tab-active-bg: white;
+        --calendar-tab-active-bg-dark: rgb(75 85 99);
+        --calendar-tab-active-text: rgb(17 24 39);
+        --calendar-tab-active-text-dark: white;
+        font-family: inherit !important;
+        
+        /* Override theme variables within calendar scope */
+        --muted: rgb(55 65 81) !important;
+        --tw-bg-opacity: 1 !important;
+      }
+      
+      /* Override any nested theme selectors */
+      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
+      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
+      html[data-theme="dark"] body div #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"] {
+        background-color: var(--calendar-tab-bg-dark) !important;
+        background: var(--calendar-tab-bg-dark) !important;
+      }
+      
+      html[data-theme="light"] #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
+      body #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
+      #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"] {
+        background-color: var(--calendar-tab-bg) !important;
+        background: var(--calendar-tab-bg) !important;
+      }
+      
+      /* ULTRA NUCLEAR: Override the specific theme selector that's causing issues */
+      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] .bg-gray-100,
+      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] .dark\\:bg-gray-700,
+      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="tabs-list"].bg-gray-100,
+      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="tabs-list"].dark\\:bg-gray-700,
+      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] .bg-gray-100,
+      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] .dark\\:bg-gray-700,
+      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] [data-slot="tabs-list"] {
+        background-color: rgb(55, 65, 81) !important;
+        background: rgb(55, 65, 81) !important;
+        --muted: rgb(55, 65, 81) !important;
+      }
+      
+      /* Force exact Tailwind color values */
+      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [role="tablist"] {
+        background-color: rgb(55 65 81) !important;
+        background: rgb(55 65 81) !important;
+      }
+      
+      /* Protect dropdown/select components from theme interference */
+      #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-content"] {
+        background-color: white !important;
+        border-color: rgb(229 231 235) !important; /* border-gray-200 */
+        color: rgb(17 24 39) !important; /* text-gray-900 */
+      }
+      
+      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-content"],
+      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-content"] {
+        background-color: rgb(31 41 55) !important; /* dark:bg-gray-800 */
+        border-color: rgb(75 85 99) !important; /* dark:border-gray-600 */
+        color: rgb(243 244 246) !important; /* dark:text-gray-100 */
+      }
+      
+      /* Protect select items */
+      #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"] {
+        background-color: transparent !important;
+        color: rgb(17 24 39) !important; /* text-gray-900 */
+      }
+      
+      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"],
+      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"] {
+        background-color: transparent !important;
+        color: rgb(243 244 246) !important; /* dark:text-gray-100 */
+      }
+      
+      /* Protect select item hover states */
+      #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"]:hover,
+      #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"][data-highlighted] {
+        background-color: rgb(243 244 246) !important; /* hover:bg-gray-100 */
+        color: rgb(17 24 39) !important;
+      }
+      
+      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"]:hover,
+      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"][data-highlighted],
+      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"]:hover,
+      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"][data-highlighted] {
+        background-color: rgb(55 65 81) !important; /* dark:hover:bg-gray-700 */
+        color: rgb(243 244 246) !important;
+      }
+      
+      /* Protect select trigger */
+      #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-trigger"] {
+        background-color: transparent !important;
+        border-color: rgb(229 231 235) !important; /* border-gray-200 */
+        color: rgb(17 24 39) !important; /* text-gray-900 */
+      }
+      
+      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-trigger"],
+      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-trigger"] {
+        background-color: rgb(55 65 81 / 0.3) !important; /* dark:bg-gray-700/30 */
+        border-color: rgb(75 85 99) !important; /* dark:border-gray-600 */
+        color: rgb(243 244 246) !important; /* dark:text-gray-100 */
+      }
     `;
     document.head.appendChild(style);
     
@@ -147,18 +288,42 @@ export default function UNBCCalendar({
   // Check if we're in development mode - use Vite's environment detection
   const isDev = import.meta.env.DEV;
   
-  // Use appropriate hooks based on environment
-  const devData = useEventsDev();
-  const prodEventsData = useEvents();
-  const prodOrgsData = useOrganizations();
-  const categoriesData = useEventCategories();
-  const categoryConfigData = useCategoryConfig();
-  
   // Filters
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [organizationFilter, setOrganizationFilter] = useState("all");
   const [searchFilter, setSearchFilter] = useState("");
   const [searchInput, setSearchInput] = useState("");
+
+  // Calculate month-based date range like Calendar Plus approach
+  const dateFilters = React.useMemo(() => {
+    // Use calendarViewDate for month-based loading
+    const baseDate = new Date(calendarViewDate.getTime());
+    const year = baseDate.getFullYear();
+    const month = baseDate.getMonth();
+    
+    // Start: First day of current month
+    const startDate = new Date(year, month, 1);
+    
+    // End: Last day of current month
+    const endDate = new Date(year, month + 1, 0);
+    
+    return {
+      per_page: 500,
+      start_date: startDate.toISOString().split('T')[0],
+      end_date: endDate.toISOString().split('T')[0],
+      year: year,
+      month: month + 1, // Calendar Plus uses 1-based months
+      category: categoryFilter === "all" ? "" : categoryFilter,
+      search: searchFilter
+    };
+  }, [calendarViewDate, categoryFilter, searchFilter]); // Depends on navigation date and filters
+
+  // Use appropriate hooks based on environment
+  const devData = useEventsDev(dateFilters);
+  const prodEventsData = useEvents(dateFilters);
+  const prodOrgsData = useOrganizations();
+  const categoriesData = useEventCategories();
+  const categoryConfigData = useCategoryConfig();
 
   // Debounce search input to improve performance
   React.useEffect(() => {
@@ -188,7 +353,11 @@ export default function UNBCCalendar({
     loading, 
     error, 
     total, 
-    setFilters 
+    setFilters,
+    hasMore,
+    loadMore,
+    loadingMore,
+    pagination
   } = isDev ? devData : prodEventsData;
 
   const organizations = isDev ? mockOrganizations : prodOrgsData.organizations;
@@ -210,15 +379,7 @@ export default function UNBCCalendar({
     return lookup;
   }, [organizations]);
 
-  // Load all events initially and handle all filtering client-side
-  React.useEffect(() => {
-    if (!isDev && setFilters) {
-      // Load more events but keep it simple
-      setFilters({
-        per_page: 500 // Load more events to cover more time periods
-      });
-    }
-  }, [setFilters, isDev]);
+  // Note: Date range filtering is now handled automatically by the dateFilters useMemo above
 
   // Helper function to check if event should show for category (handles category relationships)
   const eventMatchesCategory = React.useCallback((event: any, categorySlug: string) => {
@@ -240,6 +401,7 @@ export default function UNBCCalendar({
   // Filter events client-side for better UX and to handle server-side limitations
   const events = React.useMemo(() => {
     let filtered = allEvents;
+    
     
     // First, filter out past events and sort chronologically for list view
     if (activeTab === "list") {
@@ -284,6 +446,7 @@ export default function UNBCCalendar({
       });
     }
 
+
     return filtered;
   }, [allEvents, eventMetadata, categoryFilter, organizationFilter, searchFilter, organizationLookup, activeTab, eventMatchesCategory]);
 
@@ -292,12 +455,17 @@ export default function UNBCCalendar({
     setActiveTab("day");
   }, []);
 
+  const handleMonthChange = React.useCallback((date: Date) => {
+    setCalendarViewDate(date); // Only update calendar navigation, not API calls
+  }, []);
+
   const handleEventClick = React.useCallback((event: Event) => {
     setSelectedEvent(event);
     setShowEventDialog(true);
   }, []);
 
   const handleLoadMore = React.useCallback(() => {
+    // Use client-side pagination to maintain consistent data across views
     setListDisplayCount(prev => prev + listLoadMoreCount);
   }, [listLoadMoreCount]);
 
@@ -309,8 +477,8 @@ export default function UNBCCalendar({
   }, [activeTab, categoryFilter, organizationFilter, searchFilter, listInitialItems]);
 
 
-  // Show loading state
-  if (loading || orgLoading || categoriesLoading) {
+  // Show loading state only on initial load (when we have no events yet)
+  if ((loading || orgLoading || categoriesLoading) && (!allEvents || allEvents.length === 0)) {
     return (
       <div className="w-full flex items-center justify-center py-12">
         <div className="text-center">
@@ -341,7 +509,7 @@ export default function UNBCCalendar({
   }
 
   return (
-    <div className="w-full space-y-6">
+    <div id="unbc-calendar-react-component" data-calendar-isolated="true" className="w-full space-y-6">
 
       {/* Calendar Views */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm unbc-calendar-view">
@@ -428,8 +596,11 @@ export default function UNBCCalendar({
                 </TabsList>
               </div>
 
-              {/* Right side - Search input */}
-              <div className="flex-shrink-0">
+              {/* Right side - Search input and loading indicator */}
+              <div className="flex-shrink-0 flex items-center gap-2">
+                {loading && allEvents && allEvents.length > 0 && (
+                  <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                )}
                 <Input
                   placeholder="Search events..."
                   value={searchInput}
@@ -497,8 +668,11 @@ export default function UNBCCalendar({
                 </TabsList>
               </div>
 
-              {/* Right side - Search Button */}
-              <div className="flex-shrink-0">
+              {/* Right side - Loading indicator and Search Button */}
+              <div className="flex-shrink-0 flex items-center gap-2">
+                {loading && allEvents && allEvents.length > 0 && (
+                  <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                )}
                 <Button
                   variant="outline"
                   size="sm"
@@ -564,6 +738,8 @@ export default function UNBCCalendar({
                 categoryMappings={categoryMappings}
                 onDateClick={handleDateClick} 
                 onEventClick={handleEventClick}
+                onMonthChange={handleMonthChange}
+                currentDate={calendarViewDate}
               />
             </div>
             <div className="block md:hidden mobile-calendar">
@@ -572,6 +748,8 @@ export default function UNBCCalendar({
                 eventMetadata={eventMetadata}
                 categoryMappings={categoryMappings}
                 onEventClick={handleEventClick}
+                onMonthChange={handleMonthChange}
+                currentDate={calendarViewDate}
               />
             </div>
           </TabsContent>

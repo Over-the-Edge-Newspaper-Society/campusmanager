@@ -34,6 +34,7 @@ class UNBC_Events_Plugin {
         new UNBC_Events_Blocks();
         new UNBC_Calendar_Blocks();
         new UNBC_Events_Settings();
+        new UNBC_Events_Admin_Columns();
         
         // Add custom rewrite rules for organizations/departments
         add_action('init', array($this, 'add_rewrite_rules'));
@@ -82,7 +83,8 @@ class UNBC_Events_Plugin {
             'includes/class-calendar-blocks.php',
             'includes/class-settings.php',
             'includes/class-category-colors.php',
-            'includes/class-event-importer.php'
+            'includes/class-event-importer.php',
+            'includes/class-events-admin-columns.php'
         );
         
         foreach ($files_to_include as $file) {

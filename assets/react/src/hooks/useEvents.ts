@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { eventsAPI, type EventFilters } from '@/services/eventsApi';
 import type { Event, EventMetadata } from '@/types';
 
@@ -11,45 +11,97 @@ interface UseEventsResult {
   pages: number;
   refetch: () => void;
   setFilters: (filters: EventFilters) => void;
+  // New: pagination support
+  hasMore: boolean;
+  loadMore: () => void;
+  loadingMore: boolean;
+  pagination?: {
+    hasMore: boolean;
+    nextPage: number | null;
+    currentPage: number;
+    perPage: number;
+    view: string;
+    loadedRange: {
+      start: string | null;
+      end: string | null;
+    };
+  };
 }
 
 export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
   const [events, setEvents] = useState<Event[]>([]);
   const [eventMetadata, setEventMetadata] = useState<Record<string, EventMetadata>>({});
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
   const [filters, setFilters] = useState<EventFilters>(initialFilters);
-
-  const fetchEvents = useCallback(async () => {
-    // Skip API calls in dev mode
-    if (import.meta.env.DEV) {
-      setLoading(false);
+  const [pagination, setPagination] = useState<UseEventsResult['pagination']>();
+  
+  // Track previous values to avoid unnecessary updates and infinite loops
+  const prevFilters = useRef<string>('');
+  const isInitialMount = useRef(true);
+  
+  useEffect(() => {
+    // Create stable filter hash to detect actual changes
+    const currentFilterHash = JSON.stringify(initialFilters);
+    
+    // Skip initial mount if we already have the same filters
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      prevFilters.current = currentFilterHash;
+      setFilters(initialFilters);
       return;
     }
     
+    // Only update if filters actually changed
+    if (prevFilters.current !== currentFilterHash) {
+      prevFilters.current = currentFilterHash;
+      setFilters(initialFilters);
+    }
+  }, [initialFilters]);
+
+  const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
       const response = await eventsAPI.fetchEvents(filters);
       
-      const transformedEvents: Event[] = [];
-      const transformedMetadata: Record<string, EventMetadata> = {};
-      
-      response.events.forEach(wpEvent => {
-        const event = eventsAPI.transformWordPressEventToEvent(wpEvent);
-        const metadata = eventsAPI.transformWordPressEventToMetadata(wpEvent);
+      // Server now sends pre-transformed data - no client-side transformation needed!
+      if (response.performance?.server_processed) {
+        // New optimized format - events are already transformed
+        const events = response.events.map(event => ({
+          ...event,
+          startDate: new Date(event.startDate),
+          endDate: new Date(event.endDate)
+        }));
         
-        transformedEvents.push(event);
-        transformedMetadata[event.id] = metadata;
-      });
-      
-      setEvents(transformedEvents);
-      setEventMetadata(transformedMetadata);
-      setTotal(response.total);
-      setPages(response.pages);
+        setEvents(events);
+        setEventMetadata(response.eventMetadata || {});
+        setTotal(response.total);
+        setPages(response.pages);
+        setPagination(response.pagination);
+      } else {
+        // Fallback to old transformation for backwards compatibility
+        const transformedEvents: Event[] = [];
+        const transformedMetadata: Record<string, EventMetadata> = {};
+        
+        response.events.forEach(wpEvent => {
+          const event = eventsAPI.transformWordPressEventToEvent(wpEvent);
+          const metadata = eventsAPI.transformWordPressEventToMetadata(wpEvent);
+          
+          transformedEvents.push(event);
+          transformedMetadata[event.id] = metadata;
+        });
+        
+        setEvents(transformedEvents);
+        setEventMetadata(transformedMetadata);
+        setTotal(response.total);
+        setPages(response.pages);
+        setPagination(response.pagination);
+      }
     } catch (err) {
       console.error('Error fetching events:', err);
       // Set error state without fallback data
@@ -61,7 +113,7 @@ export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [JSON.stringify(filters)]); // Use JSON.stringify for stable dependency
 
   useEffect(() => {
     fetchEvents();
@@ -70,6 +122,57 @@ export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
   const refetch = useCallback(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  const loadMore = useCallback(async () => {
+    if (!pagination?.hasMore || loadingMore) return;
+    
+    try {
+      setLoadingMore(true);
+      setError(null);
+      
+      const nextPageFilters = {
+        ...filters,
+        page: pagination.nextPage || (filters.page || 1) + 1
+      };
+      
+      const response = await eventsAPI.fetchEvents(nextPageFilters);
+      
+      // Handle server-processed format
+      if (response.performance?.server_processed) {
+        const newEvents = response.events.map(event => ({
+          ...event,
+          startDate: new Date(event.startDate),
+          endDate: new Date(event.endDate)
+        }));
+        
+        // Merge with existing events
+        setEvents(prev => [...prev, ...newEvents]);
+        setEventMetadata(prev => ({ ...prev, ...response.eventMetadata || {} }));
+        setPagination(response.pagination);
+      } else {
+        // Fallback transformation
+        const newTransformedEvents: Event[] = [];
+        const newTransformedMetadata: Record<string, EventMetadata> = {};
+        
+        response.events.forEach(wpEvent => {
+          const event = eventsAPI.transformWordPressEventToEvent(wpEvent);
+          const metadata = eventsAPI.transformWordPressEventToMetadata(wpEvent);
+          
+          newTransformedEvents.push(event);
+          newTransformedMetadata[event.id] = metadata;
+        });
+        
+        setEvents(prev => [...prev, ...newTransformedEvents]);
+        setEventMetadata(prev => ({ ...prev, ...newTransformedMetadata }));
+        setPagination(response.pagination);
+      }
+    } catch (err) {
+      console.error('Error loading more events:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load more events');
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [JSON.stringify(filters), JSON.stringify(pagination), loadingMore]); // Stable dependencies
 
   const updateFilters = useCallback((newFilters: EventFilters) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
@@ -83,6 +186,10 @@ export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
     total,
     pages,
     refetch,
-    setFilters: updateFilters
+    setFilters: updateFilters,
+    hasMore: pagination?.hasMore || false,
+    loadMore,
+    loadingMore,
+    pagination
   };
 }

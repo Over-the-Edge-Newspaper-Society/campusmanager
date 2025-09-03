@@ -5,6 +5,22 @@
 (function() {
     'use strict';
     
+    // Function to update filter buttons theme
+    function updateFilterButtonsTheme() {
+        const html = document.documentElement;
+        const isDarkMode = html.getAttribute('data-theme') === 'dark';
+        
+        // Update filter buttons to match theme
+        const filterButtons = document.querySelectorAll('.ote-chip, .ote-filter-item, .ote-tab');
+        filterButtons.forEach(function(button) {
+            if (isDarkMode) {
+                button.classList.add('dark-mode-chip');
+            } else {
+                button.classList.remove('dark-mode-chip');
+            }
+        });
+    }
+    
     // Function to observe dark mode changes
     function observeDarkModeChanges() {
         const html = document.documentElement;
@@ -29,6 +45,9 @@
                             container.classList.remove('theme-transitioning');
                         }, 300);
                     });
+                    
+                    // Update filter buttons to match theme
+                    updateFilterButtonsTheme();
                 }
             });
         });
@@ -41,11 +60,51 @@
     }
     
     // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', observeDarkModeChanges);
-    } else {
+    function initializeDarkMode() {
+        // Set initial theme for filter buttons
+        updateFilterButtonsTheme();
+        
+        // Start observing changes
         observeDarkModeChanges();
     }
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeDarkMode);
+    } else {
+        initializeDarkMode();
+    }
+    
+    // Also re-initialize when new content is added dynamically
+    document.addEventListener('DOMContentLoaded', function() {
+        // Use MutationObserver to detect when new filter buttons are added
+        const bodyObserver = new MutationObserver(function(mutations) {
+            let hasNewButtons = false;
+            mutations.forEach(function(mutation) {
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1) { // Element node
+                        if (node.classList && (node.classList.contains('ote-chip') || node.classList.contains('ote-filter-item'))) {
+                            hasNewButtons = true;
+                        }
+                        // Check children too
+                        const newButtons = node.querySelectorAll && node.querySelectorAll('.ote-chip, .ote-filter-item');
+                        if (newButtons && newButtons.length > 0) {
+                            hasNewButtons = true;
+                        }
+                    }
+                });
+            });
+            
+            if (hasNewButtons) {
+                // Apply theme to new buttons
+                setTimeout(updateFilterButtonsTheme, 100);
+            }
+        });
+        
+        bodyObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    });
     
     // Also listen for the dark mode toggle click event
     document.addEventListener('click', function(e) {

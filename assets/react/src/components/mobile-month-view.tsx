@@ -10,18 +10,29 @@ interface MobileMonthViewProps {
   eventMetadata: Record<string, EventMetadata>;
   categoryMappings: { [slug: string]: CategoryVariant };
   onEventClick?: (event: Event) => void;
+  onMonthChange?: (date: Date) => void;
+  currentDate?: Date; // Add controlled prop
 }
 
-export function MobileMonthView({ events, eventMetadata, categoryMappings, onEventClick }: MobileMonthViewProps) {
+export function MobileMonthView({ events, eventMetadata, categoryMappings, onEventClick, onMonthChange, currentDate: controlledDate }: MobileMonthViewProps) {
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
-  const [currentMonth, setCurrentMonth] = React.useState<Date>(new Date());
+  const [internalMonth, setInternalMonth] = React.useState<Date>(new Date());
+  const currentMonth = controlledDate || internalMonth; // Use controlled or internal
   
   const handlePrevMonth = () => {
-    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    const newMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+    if (!controlledDate) {
+      setInternalMonth(newMonth); // Only update internal state if not controlled
+    }
+    onMonthChange?.(newMonth);
   };
 
   const handleNextMonth = () => {
-    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    const newMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+    if (!controlledDate) {
+      setInternalMonth(newMonth); // Only update internal state if not controlled
+    }
+    onMonthChange?.(newMonth);
   };
 
   const formatTime = (date: Date) => {

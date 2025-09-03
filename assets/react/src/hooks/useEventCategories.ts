@@ -57,11 +57,8 @@ export function useEventCategories(): EventCategoriesHook {
         setLoading(true);
         setError(null);
 
-        // Fetch categories and custom variants in parallel
-        const [categoriesResponse, variantsResponse] = await Promise.all([
-          fetch('/wp-json/wp/v2/event_category?per_page=100&orderby=name&order=asc'),
-          fetch('/wp-json/unbc-events/v1/category-colors')
-        ]);
+        // Fetch categories
+        const categoriesResponse = await fetch('/wp-json/wp/v2/event_category?per_page=100&orderby=name&order=asc');
         
         if (!categoriesResponse.ok) {
           throw new Error(`HTTP error! status: ${categoriesResponse.status}`);
@@ -69,12 +66,6 @@ export function useEventCategories(): EventCategoriesHook {
 
         const wpCategories = await categoriesResponse.json();
         let customVariants: { [key: string]: string } = {};
-        
-        // Try to get custom variants, but don't fail if the endpoint is not available
-        if (variantsResponse.ok) {
-          const variantsData = await variantsResponse.json();
-          customVariants = variantsData.colors || {};
-        }
         
         // Transform WordPress categories to our format and use custom or default variants
         const transformedCategories: EventCategory[] = wpCategories.map((cat: any) => ({

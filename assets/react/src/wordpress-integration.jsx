@@ -52,7 +52,7 @@ window.renderUNBCEventsList = function(containerId) {
 
   root.render(
     <React.StrictMode>
-      <EventsListWrapper 
+      <OrganizationEventsWrapper 
         organizationId={organizationId}
         organizationName={organizationName}
         limit={limit}
@@ -90,19 +90,6 @@ window.renderUNBCOrganizationEvents = function(containerId) {
   );
 };
 
-// Wrapper component for events list with organization filtering
-function EventsListWrapper({ organizationId, organizationName, limit, showPastEvents }) {
-  return (
-    <OrganizationEventsList
-      events={[]} // Will be fetched by the component
-      eventMetadata={{}}
-      organizationId={organizationId}
-      organizationName={organizationName}
-      limit={limit}
-      showPastEvents={showPastEvents}
-    />
-  );
-}
 
 // Auto-initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
