@@ -292,11 +292,13 @@ class UNBC_Events_REST_API {
             );
         }
 
+        $sanitized_description = $this->sanitize_event_description($event->post_content);
+
         return array(
             'id' => $event_id,
             'title' => $event->post_title,
-            'description' => $event->post_content,
-            'excerpt' => $event->post_excerpt,
+            'description' => $sanitized_description,
+            'excerpt' => $event->post_excerpt ?: $sanitized_description,
             'date' => $event_date,
             'start_time' => $start_time,
             'end_time' => $end_time,
@@ -396,6 +398,45 @@ class UNBC_Events_REST_API {
             $datetime = new DateTime($date, wp_timezone());
             return $datetime->format('c');
         }
+    }
+
+    /**
+     * Convert stored WordPress content into human-friendly plain text
+     */
+    private function sanitize_event_description($content) {
+        if (empty($content)) {
+            return '';
+        }
+
+        // Convert anchor tags to "text (URL)" before stripping HTML
+        $content_with_links = preg_replace_callback(
+            '/<a[^>]*href\s*=\s*"([^"]+)"[^>]*>(.*?)<\/a>/is',
+            function ($matches) {
+                $url = trim($matches[1]);
+                $link_text = trim(strip_tags($matches[2]));
+                if ($link_text === '') {
+                    $link_text = $url;
+                }
+                return $link_text . ' (' . $url . ')';
+            },
+            $content
+        );
+
+        // Convert common block/line break tags to new lines before stripping tags
+        $normalized = preg_replace('/<(\/?)(p|div|li)[^>]*>/i', "\n", $content_with_links);
+        $normalized = preg_replace('/<br\s*\/?>(\s*)/i', "\n", $normalized);
+
+        // Remove any remaining HTML while preserving entities
+        $stripped = wp_strip_all_tags($normalized);
+
+        // Decode HTML entities (e.g. &amp;) and normalise whitespace
+        $decoded = html_entity_decode($stripped, ENT_QUOTES | ENT_HTML5, get_bloginfo('charset') ?: 'UTF-8');
+
+        // Collapse excessive blank lines and trim
+        $lines_collapsed = preg_replace("/\n{3,}/", "\n\n", $decoded);
+        $whitespace_normalized = preg_replace('/[\t ]+/u', ' ', $lines_collapsed);
+
+        return trim($whitespace_normalized);
     }
 
     /**
