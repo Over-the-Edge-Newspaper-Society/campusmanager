@@ -1,0 +1,187 @@
+.unbc-importer-container {
+    max-width: 1000px;
+}
+
+.unbc-importer-container .postbox {
+    margin-bottom: 20px;
+}
+
+/* Organizer Mappings */
+#organizer-mappings {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    max-height: 500px;
+    overflow-y: auto;
+    background: #f9f9f9;
+    padding: 10px;
+}
+
+.organizer-mapping {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    padding: 15px;
+    cursor: move;
+    transition: box-shadow 0.2s;
+}
+
+.organizer-mapping:hover {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.organizer-mapping.ui-sortable-helper {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    transform: rotate(2deg);
+}
+
+.mapping-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.drag-handle {
+    color: #666;
+    margin-right: 10px;
+    cursor: grab;
+    font-weight: bold;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.event-count {
+    color: #666;
+    font-size: 14px;
+    margin-left: auto;
+}
+
+.mapping-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.mapping-controls select {
+    min-width: 200px;
+}
+
+.sortable-placeholder {
+    height: 80px;
+    background: #f0f0f0;
+    border: 2px dashed #ccc;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+/* Preview and Results */
+.preview-summary,
+.import-summary {
+    background: #f9f9f9;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.preview-summary h4,
+.import-summary h4 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.preview-summary ul,
+.import-summary ul {
+    list-style-type: disc;
+    margin-left: 20px;
+}
+
+/* Form improvements */
+.form-table th {
+    width: 180px;
+}
+
+#file-info {
+    margin-top: 10px !important;
+}
+
+/* Step styling */
+.postbox h2.hndle {
+    background: #f1f1f1;
+    padding: 15px 20px;
+    margin: 0;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .mapping-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .mapping-controls select {
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .mapping-header {
+        flex-wrap: wrap;
+    }
+    
+    .event-count {
+        margin-left: 0;
+        order: -1;
+        width: 100%;
+        text-align: right;
+        font-size: 12px;
+    }
+}
+
+/* Import Results - Hidden by default */
+#import-results.hidden {
+    display: none !important;
+}
+
+/* Success/Error styling */
+.notice.notice-success {
+    border-left-color: #46b450;
+}
+
+.notice h3 {
+    margin-top: 0;
+}
+
+/* Loading states */
+button[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Import options */
+input[type="radio"] {
+    margin-right: 8px;
+}
+
+label {
+    margin-bottom: 8px;
+    display: block;
+}
+
+/* File input styling */
+input[type="file"] {
+    padding: 10px;
+    border: 2px dashed #ddd;
+    border-radius: 5px;
+    background: #fafafa;
+    width: 100%;
+}
+
+input[type="file"]:hover {
+    border-color: #0073aa;
+    background: #f0f8ff;
+}

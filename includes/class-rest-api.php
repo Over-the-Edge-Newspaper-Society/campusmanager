@@ -83,6 +83,13 @@ class UNBC_Events_REST_API {
             'callback' => array($this, 'get_category_config'),
             'permission_callback' => '__return_true'
         ));
+
+        // Category colors endpoint
+        register_rest_route('unbc-events/v1', '/category-colors', array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => array($this, 'get_category_colors'),
+            'permission_callback' => '__return_true'
+        ));
     }
 
     public function get_events($request) {
@@ -488,6 +495,21 @@ class UNBC_Events_REST_API {
         }
 
         return rest_ensure_response($config);
+    }
+
+    public function get_category_colors($request) {
+        // Return the color configuration from UNBC_Category_Colors class
+        if (!class_exists('UNBC_Category_Colors')) {
+            return new WP_Error('missing_class', 'Category colors class not found', array('status' => 500));
+        }
+
+        // Get color options from the Category Colors class
+        $reflection = new ReflectionClass('UNBC_Category_Colors');
+        $color_options_property = $reflection->getProperty('color_options');
+        $color_options_property->setAccessible(true);
+        $color_options = $color_options_property->getValue();
+
+        return rest_ensure_response($color_options);
     }
 
     public function register_meta_fields() {

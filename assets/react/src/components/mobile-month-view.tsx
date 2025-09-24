@@ -75,7 +75,13 @@ export function MobileMonthView({ events, eventMetadata, categoryMappings, onEve
   const days = [];
   const current = new Date(startDate);
   
-  for (let i = 0; i < 42; i++) { // 6 weeks * 7 days
+  // Calculate minimum days needed (only complete weeks)
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const totalDaysNeeded = firstDayOfMonth.getDay() + daysInMonth;
+  const weeksNeeded = Math.ceil(totalDaysNeeded / 7);
+  const totalDays = weeksNeeded * 7;
+  
+  for (let i = 0; i < totalDays; i++) {
     days.push(new Date(current));
     current.setDate(current.getDate() + 1);
   }

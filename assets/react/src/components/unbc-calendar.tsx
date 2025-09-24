@@ -172,25 +172,54 @@ export default function UNBCCalendar({
         box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.25) !important;
       }
       
-      /* Nuclear option: completely isolate calendar styling */
+      /* Nuclear option: completely isolate calendar styling with theme CSS variable support */
       #unbc-calendar-react-component[data-calendar-isolated] {
-        --calendar-tab-bg: rgb(243 244 246);
-        --calendar-tab-bg-dark: rgb(55 65 81);
-        --calendar-tab-text: rgb(107 114 128);
-        --calendar-tab-text-dark: rgb(209 213 219);
-        --calendar-tab-active-bg: white;
-        --calendar-tab-active-bg-dark: rgb(75 85 99);
-        --calendar-tab-active-text: rgb(17 24 39);
-        --calendar-tab-active-text-dark: white;
+        --calendar-tab-bg: var(--wp--preset--color--base, var(--background, rgb(243 244 246)));
+        --calendar-tab-bg-dark: var(--wp--preset--color--contrast, var(--background-dark, rgb(55 65 81)));
+        --calendar-tab-text: var(--wp--preset--color--contrast, var(--foreground, rgb(107 114 128)));
+        --calendar-tab-text-dark: var(--wp--preset--color--base, var(--foreground-dark, rgb(209 213 219)));
+        --calendar-tab-active-bg: var(--wp--preset--color--surface, var(--card, white));
+        --calendar-tab-active-bg-dark: var(--wp--preset--color--surface-dark, var(--card-dark, rgb(75 85 99)));
+        --calendar-tab-active-text: var(--wp--preset--color--heading, var(--card-foreground, rgb(17 24 39)));
+        --calendar-tab-active-text-dark: var(--wp--preset--color--heading-dark, var(--card-foreground-dark, white));
         font-family: inherit !important;
         
         /* Override theme variables within calendar scope */
-        --muted: rgb(55 65 81) !important;
+        --muted: var(--wp--preset--color--tertiary, var(--muted, rgb(55 65 81))) !important;
         --tw-bg-opacity: 1 !important;
       }
       
-      /* Override any nested theme selectors */
+      /* Dynamic theme detection support */
+      @media (prefers-color-scheme: dark) {
+        #unbc-calendar-react-component[data-calendar-isolated]:not([data-theme-override]) {
+          --calendar-tab-bg: var(--calendar-tab-bg-dark);
+          --calendar-tab-text: var(--calendar-tab-text-dark);
+          --calendar-tab-active-bg: var(--calendar-tab-active-bg-dark);
+          --calendar-tab-active-text: var(--calendar-tab-active-text-dark);
+        }
+      }
+      
+      /* JavaScript-detected theme support */
+      #unbc-calendar-react-component[data-detected-theme="dark"] [data-slot="tabs-list"] {
+        background-color: var(--calendar-tab-bg-dark) !important;
+        background: var(--calendar-tab-bg-dark) !important;
+      }
+      
+      #unbc-calendar-react-component[data-detected-theme="dark"] [data-slot="tabs-trigger"] {
+        color: var(--calendar-tab-text-dark) !important;
+      }
+      
+      #unbc-calendar-react-component[data-detected-theme="dark"] [data-slot="tabs-trigger"][data-state="active"] {
+        background-color: var(--calendar-tab-active-bg-dark) !important;
+        color: var(--calendar-tab-active-text-dark) !important;
+      }
+      
+      /* Override any nested theme selectors - support multiple theme detection patterns */
       html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
+      html.dark #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
+      body.dark #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
+      [data-color-scheme="dark"] #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
+      .is-dark-theme #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
       html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
       html[data-theme="dark"] body div #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"] {
         background-color: var(--calendar-tab-bg-dark) !important;
@@ -198,6 +227,10 @@ export default function UNBCCalendar({
       }
       
       html[data-theme="light"] #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
+      html.light #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
+      body.light #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
+      [data-color-scheme="light"] #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
+      .is-light-theme #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
       body #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
       #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"] {
         background-color: var(--calendar-tab-bg) !important;
@@ -206,15 +239,19 @@ export default function UNBCCalendar({
       
       /* ULTRA NUCLEAR: Override the specific theme selector that's causing issues */
       html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] .bg-gray-100,
+      html.dark #unbc-calendar-react-component[data-calendar-isolated] .bg-gray-100,
+      body.dark #unbc-calendar-react-component[data-calendar-isolated] .bg-gray-100,
+      [data-color-scheme="dark"] #unbc-calendar-react-component[data-calendar-isolated] .bg-gray-100,
+      .is-dark-theme #unbc-calendar-react-component[data-calendar-isolated] .bg-gray-100,
       html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] .dark\\:bg-gray-700,
       html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="tabs-list"].bg-gray-100,
       html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="tabs-list"].dark\\:bg-gray-700,
       html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] .bg-gray-100,
       html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] .dark\\:bg-gray-700,
       html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] [data-slot="tabs-list"] {
-        background-color: rgb(55, 65, 81) !important;
-        background: rgb(55, 65, 81) !important;
-        --muted: rgb(55, 65, 81) !important;
+        background-color: var(--calendar-tab-bg-dark) !important;
+        background: var(--calendar-tab-bg-dark) !important;
+        --muted: var(--calendar-tab-bg-dark) !important;
       }
       
       /* Force exact Tailwind color values */
@@ -280,8 +317,43 @@ export default function UNBCCalendar({
     `;
     document.head.appendChild(style);
     
+    // Dynamic theme detection for WordPress themes that don't use standard selectors
+    const detectTheme = () => {
+      const calendarComponent = document.getElementById('unbc-calendar-react-component');
+      if (!calendarComponent) return;
+      
+      // Check various theme detection methods
+      const isDark = 
+        // Standard selectors
+        document.documentElement.hasAttribute('data-theme') && document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.documentElement.classList.contains('dark') ||
+        document.body.classList.contains('dark') ||
+        document.documentElement.hasAttribute('data-color-scheme') && document.documentElement.getAttribute('data-color-scheme') === 'dark' ||
+        document.documentElement.classList.contains('is-dark-theme') ||
+        document.body.classList.contains('is-dark-theme') ||
+        // Check computed styles
+        getComputedStyle(document.documentElement).getPropertyValue('--wp--preset--color--background')?.includes('0, 0, 0') ||
+        getComputedStyle(document.body).backgroundColor === 'rgb(0, 0, 0)' ||
+        // Media query fallback
+        window.matchMedia('(prefers-color-scheme: dark)').matches;
+      
+      calendarComponent.setAttribute('data-detected-theme', isDark ? 'dark' : 'light');
+    };
+    
+    // Run detection initially and on changes
+    detectTheme();
+    const observer = new MutationObserver(detectTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    
+    // Also listen for media query changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', detectTheme);
+    
     return () => {
       document.head.removeChild(style);
+      observer.disconnect();
+      mediaQuery.removeEventListener('change', detectTheme);
     };
   }, []);
   
