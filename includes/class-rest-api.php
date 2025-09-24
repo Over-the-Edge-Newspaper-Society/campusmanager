@@ -300,6 +300,7 @@ class UNBC_Events_REST_API {
             'date' => $event_date,
             'start_time' => $start_time,
             'end_time' => $end_time,
+            'timezone' => get_post_meta($event_id, 'timezone', true) ?: '',
             'location' => $location,
             'building' => $building,
             'room' => $room,
@@ -331,8 +332,8 @@ class UNBC_Events_REST_API {
      */
     private function transform_to_calendar_format($event_data) {
         // Create proper DateTime objects for React
-        $start_datetime = $this->create_datetime($event_data['date'], $event_data['start_time']);
-        $end_datetime = $this->create_datetime($event_data['date'], $event_data['end_time']);
+        $start_datetime = $this->create_datetime($event_data['date'], $event_data['start_time'], $event_data['timezone'] ?? null);
+        $end_datetime = $this->create_datetime($event_data['date'], $event_data['end_time'], $event_data['timezone'] ?? null);
 
         return array(
             'id' => (string)$event_data['id'],
@@ -362,21 +363,37 @@ class UNBC_Events_REST_API {
             'contactEmail' => $event_data['contact_email'],
             'capacity' => $event_data['capacity'],
             'featuredImage' => $event_data['featured_image'],
-            'permalink' => $event_data['permalink']
+            'permalink' => $event_data['permalink'],
+            'timezone' => $event_data['timezone'] ?? ''
         );
     }
 
     /**
      * Create proper datetime string for React
      */
-    private function create_datetime($date, $time) {
+    private function create_datetime($date, $time, $timezone = null) {
         try {
-            $datetime_string = $date . ' ' . ($time ?: '00:00:00');
-            $datetime = new DateTime($datetime_string);
+            $time_part = $time ?: '00:00:00';
+            // Normalise to include seconds so DateTime gets a full time component
+            if (strlen($time_part) === 5) {
+                $time_part .= ':00';
+            }
+
+            $datetime_string = trim($date . ' ' . $time_part);
+
+            $timezone_object = null;
+
+            if (!empty($timezone)) {
+                $timezone_object = new DateTimeZone($timezone);
+            } else {
+                $timezone_object = wp_timezone();
+            }
+
+            $datetime = new DateTime($datetime_string, $timezone_object);
             return $datetime->format('c'); // ISO 8601 format
         } catch (Exception $e) {
-            // Fallback to date only
-            $datetime = new DateTime($date);
+            // Fallback to date only using site timezone
+            $datetime = new DateTime($date, wp_timezone());
             return $datetime->format('c');
         }
     }
