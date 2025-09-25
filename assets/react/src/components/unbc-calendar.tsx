@@ -419,6 +419,8 @@ export default function UNBCCalendar({
   }, [categoryFilter, categoriesWithOrganizations]);
   
   // Select data source based on environment
+  const dataSource = isDev ? devData : prodEventsData;
+
   const { 
     events: allEvents, 
     eventMetadata, 
@@ -429,8 +431,9 @@ export default function UNBCCalendar({
     hasMore,
     loadMore,
     loadingMore,
-    pagination
-  } = isDev ? devData : prodEventsData;
+    pagination,
+    categoryMappings: categoryMappingsFromEvents
+  } = dataSource;
 
   const organizations = isDev ? mockOrganizations : prodOrgsData.organizations;
   const orgLoading = isDev ? false : prodOrgsData.loading;
@@ -438,9 +441,18 @@ export default function UNBCCalendar({
   // Event categories are always loaded from WordPress (even in dev mode)
   const { categories: eventCategories, loading: categoriesLoading } = categoriesData;
   
-  
-  // Create category mappings for use in all calendar views
-  const categoryMappings = React.useMemo(() => createCategoryMappings(eventCategories), [eventCategories]);
+  const taxonomyCategoryMappings = React.useMemo(
+    () => createCategoryMappings(eventCategories),
+    [eventCategories]
+  );
+
+  // Prefer the server-provided mappings (respecting admin color choices) with taxonomy data as fallback
+  const categoryMappings = React.useMemo(() => {
+    if (categoryMappingsFromEvents && Object.keys(categoryMappingsFromEvents).length > 0) {
+      return categoryMappingsFromEvents;
+    }
+    return taxonomyCategoryMappings;
+  }, [categoryMappingsFromEvents, taxonomyCategoryMappings]);
 
   // Memoize organization lookup for better performance
   const organizationLookup = React.useMemo(() => {

@@ -240,6 +240,23 @@ class UNBC_Category_Colors {
                 // but probably better to leave them as they are
             }
         }
+
+        // Category appearance or auto-assign changes affect the front-end cache
+        $this->clear_events_cache_transients();
+    }
+
+    /**
+     * Clear the cached REST responses so colour updates appear immediately on the calendar.
+     */
+    private function clear_events_cache_transients() {
+        global $wpdb;
+
+        if (!isset($wpdb->options)) {
+            return;
+        }
+
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_unbc_events_api_%'");
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_unbc_events_api_%'");
     }
 
     public function get_organization_auto_assign_category() {

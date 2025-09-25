@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Event, EventMetadata } from '@/types';
 import type { EventFilters } from '@/services/eventsApi';
+import type { CategoryVariant } from '@/utils/categoryColors';
 import { unbcEvents, eventMetadata as unbcEventMetadata } from '@/data/events';
 
 // Generate sample events for development based on date range
@@ -280,10 +281,32 @@ export function useEventsDev(filters: EventFilters = {}) {
     return generateEventMetadata(events);
   }, [events]);
   
-  
+  const categoryMappings = React.useMemo(() => {
+    const baseMappings: Record<string, CategoryVariant> = {
+      academic: 'primary',
+      social: 'success',
+      sports: 'warning',
+      cultural: 'orange',
+      professional: 'indigo',
+      wellness: 'cyan',
+      arts: 'pink',
+    };
+
+    const mappings: Record<string, CategoryVariant> = {};
+
+    Object.values(eventMetadata).forEach((metadata) => {
+      if (metadata?.category && baseMappings[metadata.category]) {
+        mappings[metadata.category] = baseMappings[metadata.category];
+      }
+    });
+
+    return mappings;
+  }, [eventMetadata]);
+
   return {
     events,
     eventMetadata,
+    categoryMappings,
     loading,
     error: null,
     total: events.length,

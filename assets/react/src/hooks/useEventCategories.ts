@@ -65,7 +65,23 @@ export function useEventCategories(): EventCategoriesHook {
         }
 
         const wpCategories = await categoriesResponse.json();
-        let customVariants: { [key: string]: string } = {};
+        let customVariants: Record<string, string> = {};
+
+        try {
+          const configResponse = await fetch('/wp-json/unbc-events/v1/category-config');
+          if (configResponse.ok) {
+            const configData = await configResponse.json();
+            Object.entries(configData).forEach(([slug, value]) => {
+              if (typeof value === 'string') {
+                customVariants[slug] = value;
+              } else if (value && typeof value === 'object' && 'variant' in value && value.variant) {
+                customVariants[slug] = value.variant as string;
+              }
+            });
+          }
+        } catch (configError) {
+          console.warn('Error fetching category color config:', configError);
+        }
         
         // Transform WordPress categories to our format and use custom or default variants
         const transformedCategories: EventCategory[] = wpCategories.map((cat: any) => ({
@@ -73,7 +89,7 @@ export function useEventCategories(): EventCategoriesHook {
           name: cat.name,
           slug: cat.slug,
           count: cat.count,
-          variant: customVariants[cat.slug] || getDefaultCategoryVariant(cat.slug)
+          variant: (customVariants[cat.slug] as EventCategory['variant']) || 'default'
         }));
 
         setCategories(transformedCategories);
@@ -83,10 +99,10 @@ export function useEventCategories(): EventCategoriesHook {
         
         // Fallback to hardcoded categories if API fails
         setCategories([
-          { id: 1, name: 'Clubs', slug: 'clubs', count: 0, variant: 'primary' },
-          { id: 2, name: 'UNBC', slug: 'unbc', count: 0, variant: 'success' },
-          { id: 3, name: 'Organizations', slug: 'organizations', count: 0, variant: 'danger' },
-          { id: 4, name: 'Sports', slug: 'sports', count: 0, variant: 'warning' }
+          { id: 1, name: 'Clubs', slug: 'clubs', count: 0, variant: 'default' },
+          { id: 2, name: 'UNBC', slug: 'unbc', count: 0, variant: 'default' },
+          { id: 3, name: 'Organizations', slug: 'organizations', count: 0, variant: 'default' },
+          { id: 4, name: 'Sports', slug: 'sports', count: 0, variant: 'default' }
         ]);
       } finally {
         setLoading(false);
@@ -97,24 +113,4 @@ export function useEventCategories(): EventCategoriesHook {
   }, []);
 
   return { categories, loading, error };
-}
-
-// Helper function to assign default variants to categories
-function getDefaultCategoryVariant(slug: string): 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'orange' | 'cyan' | 'pink' | 'indigo' | 'yellow' {
-  const variantMap: { [key: string]: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'orange' | 'cyan' | 'pink' | 'indigo' | 'yellow' } = {
-    'clubs': 'primary',      // Purple
-    'club': 'primary',
-    'student-clubs': 'primary',
-    'unbc': 'success',       // Green
-    'university': 'success',
-    'academic': 'success',
-    'organizations': 'danger', // Red
-    'organization': 'danger',
-    'community': 'danger',
-    'sports': 'warning',     // Blue/Orange
-    'athletics': 'warning',
-    'recreation': 'warning'
-  };
-  
-  return variantMap[slug] || 'default'; // Default gray
 }

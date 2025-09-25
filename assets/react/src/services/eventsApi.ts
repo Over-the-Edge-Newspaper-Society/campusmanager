@@ -187,26 +187,9 @@ class EventsAPI {
   }
 
   private getCategoryVariant(categories?: Array<{name: string; slug: string}>): 'default' | 'primary' | 'success' | 'warning' | 'danger' {
-    if (!categories || !Array.isArray(categories) || categories.length === 0) return 'default'; // Gray for uncategorized or missing categories
-    
-    // Map categories to variants based on new category system
-    const categoryMap: {[key: string]: 'default' | 'primary' | 'success' | 'warning' | 'danger'} = {
-      'clubs': 'primary',      // Purple for clubs
-      'club': 'primary',
-      'student-clubs': 'primary',
-      'unbc': 'success',       // Green for UNBC
-      'university': 'success',
-      'academic': 'success',
-      'organizations': 'danger', // Red for organizations
-      'organization': 'danger',
-      'community': 'danger',   // Red for community (same as organizations)
-      'comm': 'danger',
-      'sports': 'warning',     // Blue/Orange for sports
-      'athletics': 'warning',
-      'recreation': 'warning'
-    };
-    
-    return categoryMap[categories[0].slug] || 'default'; // Gray for unknown categories
+    if (!categories || !Array.isArray(categories) || categories.length === 0) return 'default';
+
+    return 'default';
   }
 
   private mapWordPressCategory(categories?: Array<{name: string; slug: string}>): string | null {

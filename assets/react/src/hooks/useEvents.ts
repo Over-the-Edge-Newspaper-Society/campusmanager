@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { eventsAPI, type EventFilters } from '@/services/eventsApi';
 import type { Event, EventMetadata } from '@/types';
+import type { CategoryVariant } from '@/utils/categoryColors';
 
 interface UseEventsResult {
   events: Event[];
   eventMetadata: Record<string, EventMetadata>;
+  categoryMappings: Record<string, CategoryVariant>;
   loading: boolean;
   error: string | null;
   total: number;
@@ -28,9 +30,39 @@ interface UseEventsResult {
   };
 }
 
+const VALID_CATEGORY_VARIANTS: CategoryVariant[] = [
+  'default',
+  'primary',
+  'success',
+  'danger',
+  'warning',
+  'orange',
+  'cyan',
+  'pink',
+  'indigo',
+  'yellow',
+];
+
+const normalizeCategoryMappings = (raw?: Record<string, string> | null): Record<string, CategoryVariant> => {
+  if (!raw || typeof raw !== 'object') {
+    return {};
+  }
+
+  const normalized: Record<string, CategoryVariant> = {};
+
+  Object.entries(raw).forEach(([slug, variant]) => {
+    if (VALID_CATEGORY_VARIANTS.includes(variant as CategoryVariant)) {
+      normalized[slug] = variant as CategoryVariant;
+    }
+  });
+
+  return normalized;
+};
+
 export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
   const [events, setEvents] = useState<Event[]>([]);
   const [eventMetadata, setEventMetadata] = useState<Record<string, EventMetadata>>({});
+  const [categoryMappings, setCategoryMappings] = useState<Record<string, CategoryVariant>>({});
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +112,7 @@ export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
         
         setEvents(events);
         setEventMetadata(response.eventMetadata || {});
+        setCategoryMappings(normalizeCategoryMappings(response.categoryMappings));
         setTotal(response.total);
         setPages(response.pages);
         setPagination(response.pagination);
@@ -107,6 +140,7 @@ export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
       // Set error state without fallback data
       setEvents([]);
       setEventMetadata({});
+      setCategoryMappings({});
       setTotal(0);
       setPages(0);
       setError(err instanceof Error ? err.message : 'Failed to load events');
@@ -148,6 +182,10 @@ export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
         // Merge with existing events
         setEvents(prev => [...prev, ...newEvents]);
         setEventMetadata(prev => ({ ...prev, ...response.eventMetadata || {} }));
+        setCategoryMappings(prev => ({
+          ...prev,
+          ...normalizeCategoryMappings(response.categoryMappings),
+        }));
         setPagination(response.pagination);
       } else {
         // Fallback transformation
@@ -190,6 +228,7 @@ export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
     hasMore: pagination?.hasMore || false,
     loadMore,
     loadingMore,
-    pagination
+    pagination,
+    categoryMappings,
   };
 }

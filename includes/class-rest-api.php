@@ -443,37 +443,61 @@ class UNBC_Events_REST_API {
      * Get category variant for mapping
      */
     private function get_category_variant($category_slug) {
-        // Map categories to React calendar variants
-        $mapping = array(
-            'academic' => 'primary',
-            'sports' => 'success',
-            'arts' => 'warning',
-            'social' => 'info',
-            'professional' => 'secondary',
-            'cultural' => 'danger',
-            'wellness' => 'light',
-            'general' => 'default'
-        );
-        
-        return isset($mapping[$category_slug]) ? $mapping[$category_slug] : 'default';
+        if (empty($category_slug)) {
+            return 'default';
+        }
+
+        // Try to look up the variant from the saved category color settings first
+        $term = get_term_by('slug', $category_slug, 'event_category');
+        if ($term && !is_wp_error($term)) {
+            if (class_exists('UNBC_Category_Colors')) {
+                $variant = UNBC_Category_Colors::get_category_color_variant($term->term_id);
+                if (!empty($variant)) {
+                    return $variant;
+                }
+            }
+
+            // Legacy support in case another process stored a custom variant meta value
+            $variant_meta = get_term_meta($term->term_id, 'category_variant', true);
+            if (!empty($variant_meta)) {
+                return $variant_meta;
+            }
+        }
+
+        return 'default';
     }
 
     /**
      * Get category color for calendar
      */
     private function get_category_color($category_slug) {
-        $colors = array(
-            'academic' => '#007bff',
-            'sports' => '#28a745',
-            'arts' => '#ffc107',
-            'social' => '#17a2b8',
-            'professional' => '#6c757d',
-            'cultural' => '#dc3545',
-            'wellness' => '#f8f9fa',
-            'general' => '#6c757d'
-        );
-        
-        return isset($colors[$category_slug]) ? $colors[$category_slug] : '#6c757d';
+        if (empty($category_slug)) {
+            return '#6b7280'; // Default gray
+        }
+
+        $term = get_term_by('slug', $category_slug, 'event_category');
+        if ($term && !is_wp_error($term) && class_exists('UNBC_Category_Colors')) {
+            $color = UNBC_Category_Colors::get_category_color($term->term_id, 'light');
+            if (!empty($color)) {
+                return $color;
+            }
+        }
+
+        if (class_exists('UNBC_Category_Colors')) {
+            $variant = $this->get_category_variant($category_slug);
+            $color_options = UNBC_Category_Colors::get_color_options();
+
+            if (!empty($variant) && isset($color_options[$variant]['light'])) {
+                return $color_options[$variant]['light'];
+            }
+
+            if (isset($color_options['default']['light'])) {
+                return $color_options['default']['light'];
+            }
+        }
+
+        // Final fallback to a neutral gray to avoid missing colors entirely
+        return '#6b7280';
     }
 
     public function get_organizations($request) {
@@ -541,9 +565,14 @@ class UNBC_Events_REST_API {
         foreach ($categories as $category) {
             // Get the category's assigned variant (could be stored in term meta)
             $variant = get_term_meta($category->term_id, 'category_variant', true);
+
+            if (!$variant && class_exists('UNBC_Category_Colors')) {
+                $variant = UNBC_Category_Colors::get_category_color_variant($category->term_id);
+            }
+
             if (!$variant) {
-                // Fallback to default mapping
-                $variant = $this->get_category_variant($category->slug);
+                // Final fallback ensures the key exists but remains neutral when no color configured
+                $variant = 'default';
             }
             
             $config[$category->slug] = array(

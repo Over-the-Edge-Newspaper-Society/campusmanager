@@ -28,15 +28,26 @@ export function OrganizationEventsWrapper({
     events: allEvents, 
     eventMetadata, 
     loading, 
-    error 
+    error,
+    categoryMappings: categoryMappingsFromEvents
   } = useEvents({
     view: 'list', // Use list view for organization pages
     organization: organizationId, // Filter by organization
   });
 
   // Load event categories for color mapping
-  const { eventCategories } = useEventCategories();
-  const categoryMappings = createCategoryMappings(eventCategories);
+  const { categories: eventCategories } = useEventCategories();
+  const taxonomyCategoryMappings = React.useMemo(
+    () => createCategoryMappings(eventCategories),
+    [eventCategories]
+  );
+
+  const categoryMappings = React.useMemo(() => {
+    if (categoryMappingsFromEvents && Object.keys(categoryMappingsFromEvents).length > 0) {
+      return categoryMappingsFromEvents;
+    }
+    return taxonomyCategoryMappings;
+  }, [categoryMappingsFromEvents, taxonomyCategoryMappings]);
 
   const handleEventClick = (event: Event) => {
     setSelectedEvent(event);
