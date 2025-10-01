@@ -609,9 +609,50 @@ class UNBC_Events_REST_API {
                     'end_time' => get_post_meta($post['id'], 'end_time', true),
                     'location' => get_post_meta($post['id'], 'location', true),
                     'cost' => get_post_meta($post['id'], 'cost', true),
-                    'organization' => get_post_meta($post['id'], 'organization', true),
-                    'featured' => get_post_meta($post['id'], 'featured', true) === '1'
+                    'organization' => get_post_meta($post['id'], 'organization_id', true),
+                    'featured' => get_post_meta($post['id'], 'featured', true) === '1',
+                    'website' => get_post_meta($post['id'], 'website', true),
+                    'virtual_link' => get_post_meta($post['id'], 'virtual_link', true),
+                    'registration_link' => get_post_meta($post['id'], 'registration_link', true)
                 );
+            },
+            'update_callback' => function($value, $post) {
+                if (!is_array($value)) {
+                    return false;
+                }
+
+                if (isset($value['date'])) {
+                    update_post_meta($post->ID, 'event_date', sanitize_text_field($value['date']));
+                }
+                if (isset($value['start_time'])) {
+                    update_post_meta($post->ID, 'start_time', sanitize_text_field($value['start_time']));
+                }
+                if (isset($value['end_time'])) {
+                    update_post_meta($post->ID, 'end_time', sanitize_text_field($value['end_time']));
+                }
+                if (isset($value['location'])) {
+                    update_post_meta($post->ID, 'location', sanitize_text_field($value['location']));
+                }
+                if (isset($value['cost'])) {
+                    update_post_meta($post->ID, 'cost', sanitize_text_field($value['cost']));
+                }
+                if (isset($value['organization'])) {
+                    update_post_meta($post->ID, 'organization_id', sanitize_text_field($value['organization']));
+                }
+                if (isset($value['featured'])) {
+                    update_post_meta($post->ID, 'featured', $value['featured'] ? '1' : '0');
+                }
+                if (isset($value['website'])) {
+                    update_post_meta($post->ID, 'website', esc_url_raw($value['website']));
+                }
+                if (isset($value['virtual_link'])) {
+                    update_post_meta($post->ID, 'virtual_link', esc_url_raw($value['virtual_link']));
+                }
+                if (isset($value['registration_link'])) {
+                    update_post_meta($post->ID, 'registration_link', esc_url_raw($value['registration_link']));
+                }
+
+                return true;
             },
             'schema' => array(
                 'type' => 'object',
@@ -622,7 +663,10 @@ class UNBC_Events_REST_API {
                     'location' => array('type' => 'string'),
                     'cost' => array('type' => 'string'),
                     'organization' => array('type' => 'string'),
-                    'featured' => array('type' => 'boolean')
+                    'featured' => array('type' => 'boolean'),
+                    'website' => array('type' => 'string'),
+                    'virtual_link' => array('type' => 'string'),
+                    'registration_link' => array('type' => 'string')
                 )
             )
         ));

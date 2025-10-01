@@ -4,7 +4,7 @@ class UNBC_Events_Post_Types {
         // Register immediately since we're called from init already
         $this->register_post_types();
         $this->register_taxonomies();
-        
+
         add_filter('use_block_editor_for_post_type', array($this, 'disable_gutenberg_for_events'), 10, 2);
         add_filter('post_link', array($this, 'custom_organization_permalink'), 10, 2);
         add_filter('post_type_link', array($this, 'custom_organization_permalink'), 10, 2);
@@ -21,6 +21,7 @@ class UNBC_Events_Post_Types {
         add_action('add_meta_boxes', array($this, 'remove_page_attributes_metabox'));
         add_action('admin_head', array($this, 'hide_post_attributes_css'));
         add_action('save_post', array($this, 'prevent_template_changes'), 1);
+        add_action('rest_api_init', array($this, 'register_meta_fields'));
     }
 
     public function register_post_types() {
@@ -57,6 +58,24 @@ class UNBC_Events_Post_Types {
             'capability_type' => array('event', 'events'),
             'map_meta_cap' => true
         ));
+
+        // Add event capabilities to editor role
+        $editor = get_role('editor');
+        if ($editor) {
+            $editor->add_cap('edit_event');
+            $editor->add_cap('read_event');
+            $editor->add_cap('delete_event');
+            $editor->add_cap('edit_events');
+            $editor->add_cap('edit_others_events');
+            $editor->add_cap('publish_events');
+            $editor->add_cap('read_private_events');
+            $editor->add_cap('delete_events');
+            $editor->add_cap('delete_private_events');
+            $editor->add_cap('delete_published_events');
+            $editor->add_cap('delete_others_events');
+            $editor->add_cap('edit_private_events');
+            $editor->add_cap('edit_published_events');
+        }
         }
 
         // Organization/Clubs post type (using existing 'organization' to preserve data)
@@ -228,7 +247,37 @@ class UNBC_Events_Post_Types {
             ));
         }
     }
-    
+
+    public function register_meta_fields() {
+        // Register organization meta fields for REST API using register_rest_field
+        register_rest_field('organization', 'org_instagram', array(
+            'get_callback' => function($object) {
+                return get_post_meta($object['id'], 'org_instagram', true);
+            },
+            'update_callback' => function($value, $object) {
+                return update_post_meta($object->ID, 'org_instagram', $value);
+            },
+            'schema' => array(
+                'type' => 'string',
+                'context' => array('view', 'edit'),
+            )
+        ));
+
+        // Register event meta fields for REST API using register_rest_field
+        register_rest_field('event', 'external_id', array(
+            'get_callback' => function($object) {
+                return get_post_meta($object['id'], 'external_id', true);
+            },
+            'update_callback' => function($value, $object) {
+                return update_post_meta($object->ID, 'external_id', $value);
+            },
+            'schema' => array(
+                'type' => 'string',
+                'context' => array('view', 'edit'),
+            )
+        ));
+    }
+
     public function disable_gutenberg_for_events($use_block_editor, $post_type) {
         if ($post_type === 'event' || $post_type === 'organization') {
             return false; // Disable Gutenberg for events and organizations

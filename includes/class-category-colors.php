@@ -76,7 +76,10 @@ class UNBC_Category_Colors {
         
         // Auto-assign categories when saving events
         add_action('save_post', array($this, 'auto_assign_event_category'), 20, 1);
-        
+
+        // Auto-assign categories when creating events via REST API
+        add_action('rest_insert_event', array($this, 'auto_assign_event_category'), 20, 1);
+
         // Add a periodic check to ensure organization events maintain correct categorization
         add_action('wp_loaded', array($this, 'maybe_sync_organization_categories'));
         

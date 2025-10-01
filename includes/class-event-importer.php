@@ -17,7 +17,7 @@ class UNBC_Event_Importer {
             'edit.php?post_type=event',
             __('Import Events'),
             __('Import Events'),
-            'manage_options',
+            'edit_events',
             'event-importer',
             array($this, 'admin_page')
         );
@@ -230,7 +230,7 @@ class UNBC_Event_Importer {
     public function ajax_save_preset() {
         check_ajax_referer('unbc_import_nonce', 'nonce');
         
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can('edit_events')) {
             wp_die(__('Insufficient permissions'));
         }
 
@@ -266,7 +266,7 @@ class UNBC_Event_Importer {
     public function ajax_load_preset() {
         check_ajax_referer('unbc_import_nonce', 'nonce');
         
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can('edit_events')) {
             wp_die(__('Insufficient permissions'));
         }
 
@@ -283,7 +283,7 @@ class UNBC_Event_Importer {
     public function ajax_preview_import() {
         check_ajax_referer('unbc_import_nonce', 'nonce');
         
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can('edit_events')) {
             wp_die(__('Insufficient permissions'));
         }
 
@@ -300,7 +300,7 @@ class UNBC_Event_Importer {
     public function ajax_execute_import() {
         check_ajax_referer('unbc_import_nonce', 'nonce');
         
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can('edit_events')) {
             wp_die(__('Insufficient permissions'));
         }
 
