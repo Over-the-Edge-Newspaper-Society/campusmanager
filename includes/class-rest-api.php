@@ -372,6 +372,7 @@ class UNBC_Events_REST_API {
 
     /**
      * Create proper datetime string for React
+     * Note: Times are stored in local time already, so we just need to add timezone info
      */
     private function create_datetime($date, $time, $timezone = null) {
         try {
@@ -383,13 +384,9 @@ class UNBC_Events_REST_API {
 
             $datetime_string = trim($date . ' ' . $time_part);
 
-            $timezone_object = null;
-
-            if (!empty($timezone)) {
-                $timezone_object = new DateTimeZone($timezone);
-            } else {
-                $timezone_object = wp_timezone();
-            }
+            // Times are already stored in local timezone, so always use site timezone
+            // regardless of what's in the timezone field
+            $timezone_object = wp_timezone();
 
             $datetime = new DateTime($datetime_string, $timezone_object);
             return $datetime->format('c'); // ISO 8601 format
