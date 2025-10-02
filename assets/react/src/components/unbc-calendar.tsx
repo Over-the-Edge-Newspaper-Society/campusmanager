@@ -51,7 +51,8 @@ export default function UNBCCalendar({
   const [calendarViewDate, setCalendarViewDate] = useState(new Date()); // Separate state for calendar navigation
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showEventDialog, setShowEventDialog] = useState(false);
-  
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
   // List view pagination state
   const [listDisplayCount, setListDisplayCount] = useState(30);
   const [listInitialItems, setListInitialItems] = useState(30);
@@ -138,220 +139,67 @@ export default function UNBCCalendar({
         pointer-events: auto !important;
       }
 
-      /* FORCE calendar tabs styling with maximum specificity - isolate from theme CSS */
-      #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"] {
-        background-color: rgb(243 244 246) !important; /* bg-gray-100 */
-        border: none !important;
-        box-shadow: none !important;
-      }
-      
-      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"] {
-        background-color: rgb(55 65 81) !important; /* dark:bg-gray-700 */
-      }
-      
-      /* Force tab text colors with high specificity */
-      #unbc-calendar-react-component[data-calendar-isolated] button[data-slot="tabs-trigger"] {
-        color: rgb(107 114 128) !important; /* text-gray-500 */
-        background: transparent !important;
-      }
-      
-      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] button[data-slot="tabs-trigger"] {
-        color: rgb(209 213 219) !important; /* dark:text-gray-300 */
-      }
-      
-      /* Force active tab styling */
-      #unbc-calendar-react-component[data-calendar-isolated] button[data-slot="tabs-trigger"][data-state="active"] {
-        background-color: white !important;
-        color: rgb(17 24 39) !important; /* text-gray-900 */
-        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
-      }
-      
-      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] button[data-slot="tabs-trigger"][data-state="active"] {
-        background-color: rgb(75 85 99) !important; /* dark:bg-gray-600 */
-        color: white !important;
-        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.25) !important;
-      }
-      
-      /* Nuclear option: completely isolate calendar styling with theme CSS variable support */
-      #unbc-calendar-react-component[data-calendar-isolated] {
-        --calendar-tab-bg: var(--wp--preset--color--base, var(--background, rgb(243 244 246)));
-        --calendar-tab-bg-dark: var(--wp--preset--color--contrast, var(--background-dark, rgb(55 65 81)));
-        --calendar-tab-text: var(--wp--preset--color--contrast, var(--foreground, rgb(107 114 128)));
-        --calendar-tab-text-dark: var(--wp--preset--color--base, var(--foreground-dark, rgb(209 213 219)));
-        --calendar-tab-active-bg: var(--wp--preset--color--surface, var(--card, white));
-        --calendar-tab-active-bg-dark: var(--wp--preset--color--surface-dark, var(--card-dark, rgb(75 85 99)));
-        --calendar-tab-active-text: var(--wp--preset--color--heading, var(--card-foreground, rgb(17 24 39)));
-        --calendar-tab-active-text-dark: var(--wp--preset--color--heading-dark, var(--card-foreground-dark, white));
-        font-family: inherit !important;
-        
-        /* Override theme variables within calendar scope */
-        --muted: var(--wp--preset--color--tertiary, var(--muted, rgb(55 65 81))) !important;
-        --tw-bg-opacity: 1 !important;
-      }
-      
-      /* Dynamic theme detection support */
-      @media (prefers-color-scheme: dark) {
-        #unbc-calendar-react-component[data-calendar-isolated]:not([data-theme-override]) {
-          --calendar-tab-bg: var(--calendar-tab-bg-dark);
-          --calendar-tab-text: var(--calendar-tab-text-dark);
-          --calendar-tab-active-bg: var(--calendar-tab-active-bg-dark);
-          --calendar-tab-active-text: var(--calendar-tab-active-text-dark);
-        }
-      }
-      
-      /* JavaScript-detected theme support */
-      #unbc-calendar-react-component[data-detected-theme="dark"] [data-slot="tabs-list"] {
-        background-color: var(--calendar-tab-bg-dark) !important;
-        background: var(--calendar-tab-bg-dark) !important;
-      }
-      
-      #unbc-calendar-react-component[data-detected-theme="dark"] [data-slot="tabs-trigger"] {
-        color: var(--calendar-tab-text-dark) !important;
-      }
-      
-      #unbc-calendar-react-component[data-detected-theme="dark"] [data-slot="tabs-trigger"][data-state="active"] {
-        background-color: var(--calendar-tab-active-bg-dark) !important;
-        color: var(--calendar-tab-active-text-dark) !important;
-      }
-      
-      /* Override any nested theme selectors - support multiple theme detection patterns */
-      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
-      html.dark #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
-      body.dark #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
-      [data-color-scheme="dark"] #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
-      .is-dark-theme #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
-      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
-      html[data-theme="dark"] body div #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"] {
-        background-color: var(--calendar-tab-bg-dark) !important;
-        background: var(--calendar-tab-bg-dark) !important;
-      }
-      
-      html[data-theme="light"] #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
-      html.light #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
-      body.light #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
-      [data-color-scheme="light"] #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
-      .is-light-theme #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
-      body #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"],
-      #unbc-calendar-react-component[data-calendar-isolated] div[data-slot="tabs-list"] {
-        background-color: var(--calendar-tab-bg) !important;
-        background: var(--calendar-tab-bg) !important;
-      }
-      
-      /* ULTRA NUCLEAR: Override the specific theme selector that's causing issues */
-      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] .bg-gray-100,
-      html.dark #unbc-calendar-react-component[data-calendar-isolated] .bg-gray-100,
-      body.dark #unbc-calendar-react-component[data-calendar-isolated] .bg-gray-100,
-      [data-color-scheme="dark"] #unbc-calendar-react-component[data-calendar-isolated] .bg-gray-100,
-      .is-dark-theme #unbc-calendar-react-component[data-calendar-isolated] .bg-gray-100,
-      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] .dark\\:bg-gray-700,
-      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="tabs-list"].bg-gray-100,
-      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="tabs-list"].dark\\:bg-gray-700,
-      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] .bg-gray-100,
-      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] .dark\\:bg-gray-700,
-      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] [data-slot="tabs-list"] {
-        background-color: var(--calendar-tab-bg-dark) !important;
-        background: var(--calendar-tab-bg-dark) !important;
-        --muted: var(--calendar-tab-bg-dark) !important;
-      }
-      
-      /* Force exact Tailwind color values */
-      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [role="tablist"] {
-        background-color: rgb(55 65 81) !important;
-        background: rgb(55 65 81) !important;
-      }
-      
-      /* Protect dropdown/select components from theme interference */
-      #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-content"] {
-        background-color: white !important;
-        border-color: rgb(229 231 235) !important; /* border-gray-200 */
-        color: rgb(17 24 39) !important; /* text-gray-900 */
-      }
-      
-      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-content"],
-      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-content"] {
-        background-color: rgb(31 41 55) !important; /* dark:bg-gray-800 */
-        border-color: rgb(75 85 99) !important; /* dark:border-gray-600 */
-        color: rgb(243 244 246) !important; /* dark:text-gray-100 */
-      }
-      
-      /* Protect select items */
-      #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"] {
-        background-color: transparent !important;
-        color: rgb(17 24 39) !important; /* text-gray-900 */
-      }
-      
-      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"],
-      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"] {
-        background-color: transparent !important;
-        color: rgb(243 244 246) !important; /* dark:text-gray-100 */
-      }
-      
-      /* Protect select item hover states */
-      #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"]:hover,
-      #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"][data-highlighted] {
-        background-color: rgb(243 244 246) !important; /* hover:bg-gray-100 */
-        color: rgb(17 24 39) !important;
-      }
-      
-      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"]:hover,
-      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"][data-highlighted],
-      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"]:hover,
-      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-item"][data-highlighted] {
-        background-color: rgb(55 65 81) !important; /* dark:hover:bg-gray-700 */
-        color: rgb(243 244 246) !important;
-      }
-      
-      /* Protect select trigger */
-      #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-trigger"] {
-        background-color: transparent !important;
-        border-color: rgb(229 231 235) !important; /* border-gray-200 */
-        color: rgb(17 24 39) !important; /* text-gray-900 */
-      }
-      
-      html[data-theme="dark"] #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-trigger"],
-      html[data-theme="dark"] body #unbc-calendar-react-component[data-calendar-isolated] [data-slot="select-trigger"] {
-        background-color: rgb(55 65 81 / 0.3) !important; /* dark:bg-gray-700/30 */
-        border-color: rgb(75 85 99) !important; /* dark:border-gray-600 */
-        color: rgb(243 244 246) !important; /* dark:text-gray-100 */
-      }
     `;
     document.head.appendChild(style);
     
-    // Dynamic theme detection for WordPress themes that don't use standard selectors
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  // Detect and apply dark mode directly to calendar component
+  React.useEffect(() => {
+    let observer: MutationObserver;
+
     const detectTheme = () => {
-      const calendarComponent = document.getElementById('unbc-calendar-react-component');
-      if (!calendarComponent) return;
-      
-      // Check various theme detection methods
-      const isDark = 
-        // Standard selectors
-        document.documentElement.hasAttribute('data-theme') && document.documentElement.getAttribute('data-theme') === 'dark' ||
-        document.documentElement.classList.contains('dark') ||
+      // Check various theme detection methods (but don't check html.dark to avoid circular detection)
+      const isDark =
+        // Priority 1: Explicit theme attributes
+        (document.documentElement.hasAttribute('data-theme') && document.documentElement.getAttribute('data-theme') === 'dark') ||
+        (document.documentElement.hasAttribute('data-color-scheme') && document.documentElement.getAttribute('data-color-scheme') === 'dark') ||
+        // Priority 2: Theme classes on body or html
         document.body.classList.contains('dark') ||
-        document.documentElement.hasAttribute('data-color-scheme') && document.documentElement.getAttribute('data-color-scheme') === 'dark' ||
         document.documentElement.classList.contains('is-dark-theme') ||
         document.body.classList.contains('is-dark-theme') ||
-        // Check computed styles
-        getComputedStyle(document.documentElement).getPropertyValue('--wp--preset--color--background')?.includes('0, 0, 0') ||
-        getComputedStyle(document.body).backgroundColor === 'rgb(0, 0, 0)' ||
-        // Media query fallback
-        window.matchMedia('(prefers-color-scheme: dark)').matches;
-      
-      calendarComponent.setAttribute('data-detected-theme', isDark ? 'dark' : 'light');
+        // Priority 3: Computed styles
+        (getComputedStyle(document.documentElement).getPropertyValue('--wp--preset--color--background')?.includes('0, 0, 0')) ||
+        (getComputedStyle(document.body).backgroundColor === 'rgb(0, 0, 0)') ||
+        // Priority 4: System preference (lowest priority)
+        (!document.documentElement.hasAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+      setIsDarkMode(isDark);
+
+      // Temporarily disconnect observer to prevent infinite loop
+      if (observer) {
+        observer.disconnect();
+      }
+
+      // Apply dark class to html element for global Tailwind dark mode support
+      // This ensures portaled components (dialogs, selects) also get dark mode
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+
+      // Reconnect observer after making changes
+      if (observer) {
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-color-scheme'] });
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+      }
     };
-    
+
     // Run detection initially and on changes
     detectTheme();
-    const observer = new MutationObserver(detectTheme);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+    observer = new MutationObserver(detectTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-color-scheme'] });
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    
+
     // Also listen for media query changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     mediaQuery.addEventListener('change', detectTheme);
-    
+
     return () => {
-      document.head.removeChild(style);
       observer.disconnect();
       mediaQuery.removeEventListener('change', detectTheme);
     };
@@ -372,13 +220,13 @@ export default function UNBCCalendar({
     const baseDate = new Date(calendarViewDate.getTime());
     const year = baseDate.getFullYear();
     const month = baseDate.getMonth();
-    
+
     // Start: First day of current month
     const startDate = new Date(year, month, 1);
-    
+
     // End: Last day of current month
     const endDate = new Date(year, month + 1, 0);
-    
+
     return {
       per_page: 500,
       start_date: startDate.toISOString().split('T')[0],
@@ -386,9 +234,9 @@ export default function UNBCCalendar({
       year: year,
       month: month + 1, // Calendar Plus uses 1-based months
       category: categoryFilter === "all" ? "" : categoryFilter,
-      search: searchFilter
+      // Don't send search to API - handle client-side only for better UX
     };
-  }, [calendarViewDate, categoryFilter, searchFilter]); // Depends on navigation date and filters
+  }, [calendarViewDate, categoryFilter]); // Removed searchFilter dependency
 
   // Use appropriate hooks based on environment
   const devData = useEventsDev(dateFilters);
@@ -593,7 +441,7 @@ export default function UNBCCalendar({
   }
 
   return (
-    <div id="unbc-calendar-react-component" data-calendar-isolated="true" className="w-full space-y-6">
+    <div id="unbc-calendar-react-component" data-calendar-isolated="true" className={`w-full space-y-6 ${isDarkMode ? 'dark' : ''}`}>
 
       {/* Calendar Views */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm unbc-calendar-view">

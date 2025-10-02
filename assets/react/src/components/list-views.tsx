@@ -96,7 +96,7 @@ export function EventListView({ events, eventMetadata, categoryMappings, onEvent
                   return (
                     <div
                       key={event.id}
-                      className={`bg-muted dark:bg-gray-700 relative rounded-md p-3 pl-6 text-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors ${categoryColor}`}
+                      className={`bg-muted dark:bg-gray-700 relative rounded-md p-3 pl-6 text-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ${categoryColor}`}
                       onClick={() => onEventClick?.(event)}
                     >
                       <div className="flex items-start justify-between">
@@ -239,7 +239,7 @@ export function MobileListView({ events, eventMetadata, categoryMappings, onEven
                   return (
                     <div
                       key={event.id}
-                      className={`bg-muted dark:bg-gray-700 relative rounded-md p-3 pl-6 text-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors ${categoryColor}`}
+                      className={`bg-muted dark:bg-gray-700 relative rounded-md p-3 pl-6 text-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ${categoryColor}`}
                       onClick={() => onEventClick?.(event)}
                     >
                       <div className="flex items-start justify-between">
