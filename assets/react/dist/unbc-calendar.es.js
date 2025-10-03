@@ -13221,7 +13221,7 @@ function Y0({ event: e, eventMetadata: t, open: n, onOpenChange: r }) {
           `DESCRIPTION:${e.description || ""}`,
           i != null && i.location ? `LOCATION:${i.location}` : "",
           i != null && i.website ? `URL:${i.website}` : "",
-          `ORGANIZER;CN=${(i == null ? void 0 : i.organization) || "UNBC"}:MAILTO:events@unbc.ca`,
+          `ORGANIZER;CN=${(i == null ? void 0 : i.organization) || "Over the Edge"}:MAILTO:ote@unbc.ca`,
           "STATUS:CONFIRMED",
           "END:VEVENT",
           "END:VCALENDAR"

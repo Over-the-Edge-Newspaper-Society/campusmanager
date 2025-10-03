@@ -22,6 +22,7 @@ class UNBC_Events_Post_Types {
         add_action('admin_head', array($this, 'hide_post_attributes_css'));
         add_action('save_post', array($this, 'prevent_template_changes'), 1);
         add_action('rest_api_init', array($this, 'register_meta_fields'));
+        add_filter('rest_pre_insert_event', array($this, 'check_duplicate_external_id'), 10, 2);
     }
 
     public function register_post_types() {
@@ -276,6 +277,39 @@ class UNBC_Events_Post_Types {
                 'context' => array('view', 'edit'),
             )
         ));
+    }
+
+    /**
+     * Check for duplicate external_id before inserting event via REST API
+     * If duplicate found, convert INSERT to UPDATE
+     */
+    public function check_duplicate_external_id($prepared_post, $request) {
+        // Only check if external_id is provided
+        $external_id = $request->get_param('external_id');
+
+        if (empty($external_id)) {
+            return $prepared_post;
+        }
+
+        // Check if an event with this external_id already exists
+        global $wpdb;
+        $existing_post_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT post_id FROM {$wpdb->postmeta}
+            WHERE meta_key = 'external_id'
+            AND meta_value = %s
+            LIMIT 1",
+            $external_id
+        ));
+
+        if ($existing_post_id) {
+            // Event exists - modify the prepared post to update instead of insert
+            $prepared_post->ID = $existing_post_id;
+            error_log("EventScrape: Found existing event with external_id={$external_id}, updating post_id={$existing_post_id}");
+        } else {
+            error_log("EventScrape: No existing event with external_id={$external_id}, creating new");
+        }
+
+        return $prepared_post;
     }
 
     public function disable_gutenberg_for_events($use_block_editor, $post_type) {

@@ -77,7 +77,7 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
           `DESCRIPTION:${event.description || ''}`,
           metadata?.location ? `LOCATION:${metadata.location}` : '',
           metadata?.website ? `URL:${metadata.website}` : '',
-          `ORGANIZER;CN=${metadata?.organization || 'UNBC'}:MAILTO:events@unbc.ca`,
+          `ORGANIZER;CN=${metadata?.organization || 'Over the Edge'}:MAILTO:ote@unbc.ca`,
           'STATUS:CONFIRMED',
           'END:VEVENT',
           'END:VCALENDAR'
