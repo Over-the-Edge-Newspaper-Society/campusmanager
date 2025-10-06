@@ -1096,7 +1096,10 @@ class UNBC_Events_REST_API {
         require_once(ABSPATH . 'wp-admin/includes/file.php');
         require_once(ABSPATH . 'wp-admin/includes/image.php');
 
-        $filename = basename($image_url);
+        // Generate hash-based filename for deduplication
+        $hash = substr(md5($image_url), 0, 12);
+        $extension = $this->get_image_extension($image_url);
+        $filename = "event-{$hash}.{$extension}";
 
         // Check if image with this filename already exists in media library
         global $wpdb;
@@ -1138,5 +1141,19 @@ class UNBC_Events_REST_API {
         set_post_thumbnail($post_id, $media_id);
         error_log("Uploaded new media ID: $media_id for file: $filename");
         return $media_id;
+    }
+
+    /**
+     * Get image extension from URL
+     */
+    private function get_image_extension($url) {
+        $url_path = parse_url($url, PHP_URL_PATH);
+        $extension = pathinfo($url_path, PATHINFO_EXTENSION);
+
+        // Handle common image extensions
+        $valid_extensions = array('jpg', 'jpeg', 'png', 'gif', 'webp', 'svg');
+        $extension = strtolower($extension);
+
+        return in_array($extension, $valid_extensions) ? $extension : 'jpg';
     }
 }
