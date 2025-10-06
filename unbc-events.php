@@ -26,19 +26,20 @@ class UNBC_Events_Plugin {
         new UNBC_Events_Post_Types();
         new UNBC_Events_Meta_Boxes();
         new UNBC_Events_User_Roles();
-        
+        new UNBC_Event_Series(); // NEW: Initialize event series manager
+
         // Use refactored organization manager classes
         new UNBC_Organization_Manager_Admin_Refactored();
         new UNBC_Organization_Manager_Dashboard();
-        
+
         new UNBC_Events_Blocks();
         new UNBC_Calendar_Blocks();
         new UNBC_Events_Settings();
         new UNBC_Events_Admin_Columns();
-        
+
         // Add custom rewrite rules for organizations/departments
         add_action('init', array($this, 'add_rewrite_rules'));
-        
+
         // Force menu icon update
         add_action('admin_menu', array($this, 'update_menu_icons'), 999);
     }
@@ -73,6 +74,7 @@ class UNBC_Events_Plugin {
             'includes/class-rest-api.php',
             'includes/class-meta-boxes.php',
             'includes/class-user-roles.php',
+            'includes/class-event-series.php', // NEW: Event series and occurrences
             // Include refactored classes
             'includes/class-organization-manager-assignment.php',
             'includes/class-organization-import-export.php',
@@ -86,7 +88,7 @@ class UNBC_Events_Plugin {
             'includes/class-event-importer.php',
             'includes/class-events-admin-columns.php'
         );
-        
+
         foreach ($files_to_include as $file) {
             $file_path = plugin_dir_path(__FILE__) . $file;
             if (file_exists($file_path)) {

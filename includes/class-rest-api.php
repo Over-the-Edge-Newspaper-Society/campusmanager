@@ -90,6 +90,44 @@ class UNBC_Events_REST_API {
             'callback' => array($this, 'get_category_colors'),
             'permission_callback' => '__return_true'
         ));
+
+        // EventScrape import endpoint - accepts events with series/occurrence data
+        register_rest_route('unbc-events/v1', '/import-event', array(
+            'methods' => WP_REST_Server::CREATABLE,
+            'callback' => array($this, 'import_event_with_occurrences'),
+            'permission_callback' => array($this, 'check_import_permission'),
+            'args' => array(
+                'event' => array(
+                    'required' => true,
+                    'type' => 'object',
+                    'description' => 'Event data with series and occurrence information'
+                )
+            )
+        ));
+    }
+
+    /**
+     * Permission check for event import
+     */
+    public function check_import_permission($request) {
+        // For now, allow authenticated users with edit_posts capability
+        // You can make this more restrictive by checking for application password or API key
+        return current_user_can('edit_posts') || $this->validate_api_key($request);
+    }
+
+    /**
+     * Validate API key (for EventScrape integration)
+     */
+    private function validate_api_key($request) {
+        $api_key = $request->get_header('X-API-Key');
+        $stored_key = get_option('unbc_eventscrape_api_key');
+
+        // If no API key is set, fall back to basic auth
+        if (empty($stored_key)) {
+            return true; // Will rely on WordPress basic auth
+        }
+
+        return !empty($api_key) && hash_equals($stored_key, $api_key);
     }
 
     public function get_events($request) {
@@ -121,27 +159,54 @@ class UNBC_Events_REST_API {
                 'tax_query' => array()
             );
 
-        // Date filtering
-        if (!empty($params['start_date']) || !empty($params['end_date'])) {
-            $date_query = array('relation' => 'AND');
-            
-            if (!empty($params['start_date'])) {
-                $date_query[] = array(
-                    'key' => 'event_date',
-                    'value' => $params['start_date'],
-                    'compare' => '>='
-                );
+        // Date filtering - need to handle both regular events and events with occurrences
+        $date_filtered_post_ids = array();
+        if (!empty($params['start_date']) && !empty($params['end_date'])) {
+            global $wpdb;
+            $occurrences_table = $wpdb->prefix . 'event_occurrences';
+
+            // Get post IDs that have occurrences in the date range
+            $posts_with_occurrences = $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT o.post_id
+                FROM $occurrences_table o
+                WHERE DATE(o.start_datetime) >= %s
+                AND DATE(o.start_datetime) <= %s",
+                $params['start_date'],
+                $params['end_date']
+            ));
+
+            // Also get regular events in the date range using meta_query
+            $date_args = array(
+                'post_type' => 'event',
+                'post_status' => 'publish',
+                'posts_per_page' => -1,
+                'fields' => 'ids',
+                'meta_query' => array(
+                    'relation' => 'AND',
+                    array(
+                        'key' => 'event_date',
+                        'value' => $params['start_date'],
+                        'compare' => '>='
+                    ),
+                    array(
+                        'key' => 'event_date',
+                        'value' => $params['end_date'],
+                        'compare' => '<='
+                    )
+                )
+            );
+
+            $regular_events = get_posts($date_args);
+
+            // Combine both sets of post IDs
+            $date_filtered_post_ids = array_unique(array_merge($posts_with_occurrences, $regular_events));
+
+            if (!empty($date_filtered_post_ids)) {
+                $args['post__in'] = $date_filtered_post_ids;
+            } else {
+                // No events found in date range, return empty
+                $args['post__in'] = array(0); // Will return no results
             }
-            
-            if (!empty($params['end_date'])) {
-                $date_query[] = array(
-                    'key' => 'event_date',
-                    'value' => $params['end_date'],
-                    'compare' => '<='
-                );
-            }
-            
-            $args['meta_query'][] = $date_query;
         }
 
         // Category filtering
@@ -185,24 +250,70 @@ class UNBC_Events_REST_API {
         if ($query->have_posts()) {
             while ($query->have_posts()) {
                 $query->the_post();
-                $formatted_event = $this->format_event_data(get_the_ID());
+                $post_id = get_the_ID();
+                $formatted_event = $this->format_event_data($post_id);
+
                 if ($formatted_event) {
-                    // Transform to calendar-ready format
-                    $calendar_event = $this->transform_to_calendar_format($formatted_event);
-                    $events[] = $calendar_event;
-                    
-                    // Build event metadata
-                    $event_metadata[$calendar_event['id']] = $this->build_event_metadata($formatted_event);
-                    
-                    // Collect organizations (only those with events)
-                    if ($formatted_event['organization_id']) {
-                        $organizations_with_events[$formatted_event['organization_id']] = $formatted_event['organization'];
-                    }
-                    
-                    // Collect category mappings
-                    foreach ($formatted_event['categories'] as $category) {
-                        if (!isset($category_mappings[$category['slug']])) {
-                            $category_mappings[$category['slug']] = $this->get_category_variant($category['slug']);
+                    // Check if this event has occurrences
+                    $occurrences = $this->get_event_occurrences($post_id);
+
+                    if (!empty($occurrences) && count($occurrences) > 1) {
+                        // Event has multiple occurrences - create separate calendar entries for each
+                        foreach ($occurrences as $index => $occurrence) {
+                            $occ_date = date('Y-m-d', strtotime($occurrence->start_datetime));
+
+                            // Filter by date range if specified
+                            if (!empty($params['start_date']) && $occ_date < $params['start_date']) {
+                                continue;
+                            }
+                            if (!empty($params['end_date']) && $occ_date > $params['end_date']) {
+                                continue;
+                            }
+
+                            // Clone the formatted event and update with occurrence-specific data
+                            $occurrence_event = $formatted_event;
+                            $occurrence_event['id'] = $post_id . '_occ_' . $occurrence->sequence;
+                            $occurrence_event['date'] = $occ_date;
+                            $occurrence_event['start_time'] = date('H:i:s', strtotime($occurrence->start_datetime));
+                            $occurrence_event['end_time'] = $occurrence->end_datetime ? date('H:i:s', strtotime($occurrence->end_datetime)) : '';
+
+                            // Transform to calendar-ready format
+                            $calendar_event = $this->transform_to_calendar_format($occurrence_event);
+                            $events[] = $calendar_event;
+
+                            // Build event metadata for this occurrence
+                            $event_metadata[$calendar_event['id']] = $this->build_event_metadata($occurrence_event);
+
+                            // Collect organizations (only those with events)
+                            if ($formatted_event['organization_id']) {
+                                $organizations_with_events[$formatted_event['organization_id']] = $formatted_event['organization'];
+                            }
+
+                            // Collect category mappings
+                            foreach ($formatted_event['categories'] as $category) {
+                                if (!isset($category_mappings[$category['slug']])) {
+                                    $category_mappings[$category['slug']] = $this->get_category_variant($category['slug']);
+                                }
+                            }
+                        }
+                    } else {
+                        // Single occurrence event - process normally
+                        $calendar_event = $this->transform_to_calendar_format($formatted_event);
+                        $events[] = $calendar_event;
+
+                        // Build event metadata
+                        $event_metadata[$calendar_event['id']] = $this->build_event_metadata($formatted_event);
+
+                        // Collect organizations (only those with events)
+                        if ($formatted_event['organization_id']) {
+                            $organizations_with_events[$formatted_event['organization_id']] = $formatted_event['organization'];
+                        }
+
+                        // Collect category mappings
+                        foreach ($formatted_event['categories'] as $category) {
+                            if (!isset($category_mappings[$category['slug']])) {
+                                $category_mappings[$category['slug']] = $this->get_category_variant($category['slug']);
+                            }
                         }
                     }
                 }
@@ -790,5 +901,222 @@ class UNBC_Events_REST_API {
         // Simple check: if we got a full page of results, there might be more
         $current_page_count = min($per_page, $total_found - (($page - 1) * $per_page));
         return $current_page_count >= $per_page;
+    }
+
+    /**
+     * Import event with series and occurrence data from EventScrape
+     */
+    public function import_event_with_occurrences($request) {
+        $event_data = $request->get_param('event');
+
+        if (empty($event_data)) {
+            return new WP_Error('missing_data', 'Event data is required', array('status' => 400));
+        }
+
+        try {
+            // Extract event data
+            $title = sanitize_text_field($event_data['title'] ?? '');
+            $content = wp_kses_post($event_data['description'] ?? '');
+            $external_id = sanitize_text_field($event_data['external_id'] ?? '');
+
+            // Check if event already exists by external_id
+            $existing_post = null;
+            if (!empty($external_id)) {
+                $existing = get_posts(array(
+                    'post_type' => 'event',
+                    'meta_key' => 'external_id',
+                    'meta_value' => $external_id,
+                    'posts_per_page' => 1,
+                    'post_status' => 'any'
+                ));
+                if (!empty($existing)) {
+                    $existing_post = $existing[0];
+                }
+            }
+
+            // Prepare post data
+            $post_data = array(
+                'post_title' => $title,
+                'post_content' => $content,
+                'post_type' => 'event',
+                'post_status' => $event_data['status'] ?? 'publish',
+            );
+
+            if ($existing_post) {
+                // Update existing event
+                $post_data['ID'] = $existing_post->ID;
+                $post_id = wp_update_post($post_data);
+                $action = 'updated';
+            } else {
+                // Create new event
+                $post_id = wp_insert_post($post_data);
+                $action = 'created';
+            }
+
+            if (is_wp_error($post_id)) {
+                return new WP_Error('post_creation_failed', $post_id->get_error_message(), array('status' => 500));
+            }
+
+            // Save standard event meta
+            $meta = $event_data['meta'] ?? array();
+            update_post_meta($post_id, 'external_id', $external_id);
+            update_post_meta($post_id, 'event_date', sanitize_text_field($meta['date'] ?? ''));
+            update_post_meta($post_id, 'start_time', sanitize_text_field($meta['start_time'] ?? ''));
+            update_post_meta($post_id, 'end_time', sanitize_text_field($meta['end_time'] ?? ''));
+            update_post_meta($post_id, 'location', sanitize_text_field($meta['location'] ?? ''));
+            update_post_meta($post_id, 'cost', sanitize_text_field($meta['cost'] ?? ''));
+            update_post_meta($post_id, 'website', esc_url_raw($meta['website'] ?? ''));
+            update_post_meta($post_id, 'virtual_link', esc_url_raw($meta['virtual_link'] ?? ''));
+            update_post_meta($post_id, 'is_virtual', !empty($meta['virtual_link']) ? 1 : 0);
+
+            // Handle series and occurrence data
+            $series_data = $event_data['series_data'] ?? null;
+            $occurrences = $event_data['occurrences'] ?? array();
+
+            if ($series_data || !empty($occurrences)) {
+                // Get or create Event Series manager instance
+                if (class_exists('UNBC_Event_Series')) {
+                    $series_manager = new UNBC_Event_Series();
+
+                    // Save series metadata to custom tables
+                    global $wpdb;
+                    $series_table = $wpdb->prefix . 'event_series';
+
+                    $series_db_data = array(
+                        'post_id' => $post_id,
+                        'occurrence_type' => sanitize_text_field($series_data['occurrence_type'] ?? 'single'),
+                        'recurrence_type' => sanitize_text_field($series_data['recurrence_type'] ?? 'none'),
+                        'recurrence_pattern' => sanitize_text_field($series_data['recurrence_pattern'] ?? ''),
+                        'is_all_day' => !empty($series_data['is_all_day']) ? 1 : 0,
+                        'is_virtual' => !empty($series_data['is_virtual']) ? 1 : 0,
+                        'event_status' => sanitize_text_field($series_data['event_status'] ?? 'scheduled'),
+                        'status_reason' => sanitize_textarea_field($series_data['status_reason'] ?? ''),
+                    );
+
+                    // Check if series exists
+                    $existing_series = $wpdb->get_row($wpdb->prepare(
+                        "SELECT id FROM $series_table WHERE post_id = %d",
+                        $post_id
+                    ));
+
+                    if ($existing_series) {
+                        $wpdb->update($series_table, $series_db_data, array('post_id' => $post_id));
+                        $series_id = $existing_series->id;
+                    } else {
+                        $wpdb->insert($series_table, $series_db_data);
+                        $series_id = $wpdb->insert_id;
+                    }
+
+                    // Create occurrences
+                    if (!empty($occurrences) && $series_id) {
+                        $occurrences_table = $wpdb->prefix . 'event_occurrences';
+
+                        // Clear existing occurrences
+                        $wpdb->delete($occurrences_table, array('series_id' => $series_id));
+
+                        // Insert new occurrences
+                        foreach ($occurrences as $index => $occ) {
+                            $start_dt = new DateTime($occ['start_datetime']);
+                            $end_dt = !empty($occ['end_datetime']) ? new DateTime($occ['end_datetime']) : null;
+                            $duration = $end_dt ? ($end_dt->getTimestamp() - $start_dt->getTimestamp()) : null;
+                            $hash = md5($series_id . $start_dt->format('Y-m-d H:i:s') . ($end_dt ? $end_dt->format('Y-m-d H:i:s') : ''));
+
+                            $wpdb->insert($occurrences_table, array(
+                                'series_id' => $series_id,
+                                'post_id' => $post_id,
+                                'sequence' => $occ['sequence'] ?? ($index + 1),
+                                'occurrence_hash' => $hash,
+                                'start_datetime' => $start_dt->format('Y-m-d H:i:s'),
+                                'end_datetime' => $end_dt ? $end_dt->format('Y-m-d H:i:s') : null,
+                                'duration_seconds' => $duration,
+                                'has_recurrence' => count($occurrences) > 1 ? 1 : 0,
+                                'is_provisional' => !empty($occ['is_provisional']) ? 1 : 0,
+                            ));
+                        }
+                    }
+                }
+            }
+
+            // Handle featured media
+            if (!empty($event_data['featured_media_url'])) {
+                $this->set_featured_image_from_url($post_id, $event_data['featured_media_url']);
+            }
+
+            // Handle categories
+            if (!empty($event_data['categories'])) {
+                wp_set_object_terms($post_id, $event_data['categories'], 'event_category');
+            }
+
+            return rest_ensure_response(array(
+                'success' => true,
+                'action' => $action,
+                'post_id' => $post_id,
+                'post_url' => get_permalink($post_id),
+                'series_created' => !empty($series_id),
+                'occurrences_created' => count($occurrences ?? []),
+            ));
+
+        } catch (Exception $e) {
+            return new WP_Error('import_failed', $e->getMessage(), array('status' => 500));
+        }
+    }
+
+    /**
+     * Get event occurrences from custom table
+     */
+    private function get_event_occurrences($post_id) {
+        global $wpdb;
+        $series_table = $wpdb->prefix . 'event_series';
+        $occurrences_table = $wpdb->prefix . 'event_occurrences';
+
+        // Get series ID for this event
+        $series_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $series_table WHERE post_id = %d",
+            $post_id
+        ));
+
+        if (!$series_id) {
+            return array();
+        }
+
+        // Get all occurrences for this series
+        $occurrences = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $occurrences_table WHERE series_id = %d ORDER BY sequence ASC",
+            $series_id
+        ));
+
+        return $occurrences ?: array();
+    }
+
+    /**
+     * Set featured image from URL
+     */
+    private function set_featured_image_from_url($post_id, $image_url) {
+        require_once(ABSPATH . 'wp-admin/includes/media.php');
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+        require_once(ABSPATH . 'wp-admin/includes/image.php');
+
+        // Download image
+        $tmp = download_url($image_url);
+        if (is_wp_error($tmp)) {
+            return false;
+        }
+
+        $file_array = array(
+            'name' => basename($image_url),
+            'tmp_name' => $tmp
+        );
+
+        // Upload to media library
+        $media_id = media_handle_sideload($file_array, $post_id);
+
+        if (is_wp_error($media_id)) {
+            @unlink($file_array['tmp_name']);
+            return false;
+        }
+
+        // Set as featured image
+        set_post_thumbnail($post_id, $media_id);
+        return $media_id;
     }
 }
