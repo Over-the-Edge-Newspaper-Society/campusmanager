@@ -1089,21 +1089,40 @@ class UNBC_Events_REST_API {
     }
 
     /**
-     * Set featured image from URL
+     * Set featured image from URL (with deduplication)
      */
     private function set_featured_image_from_url($post_id, $image_url) {
         require_once(ABSPATH . 'wp-admin/includes/media.php');
         require_once(ABSPATH . 'wp-admin/includes/file.php');
         require_once(ABSPATH . 'wp-admin/includes/image.php');
 
-        // Download image
+        $filename = basename($image_url);
+
+        // Check if image with this filename already exists in media library
+        global $wpdb;
+        $existing_attachment = $wpdb->get_var($wpdb->prepare(
+            "SELECT ID FROM {$wpdb->posts}
+            WHERE post_type = 'attachment'
+            AND guid LIKE %s
+            ORDER BY ID DESC LIMIT 1",
+            '%' . $wpdb->esc_like($filename)
+        ));
+
+        if ($existing_attachment) {
+            // Reuse existing image
+            set_post_thumbnail($post_id, $existing_attachment);
+            error_log("Reusing existing media ID: $existing_attachment for file: $filename");
+            return $existing_attachment;
+        }
+
+        // Image doesn't exist, download and upload it
         $tmp = download_url($image_url);
         if (is_wp_error($tmp)) {
             return false;
         }
 
         $file_array = array(
-            'name' => basename($image_url),
+            'name' => $filename,
             'tmp_name' => $tmp
         );
 
@@ -1117,6 +1136,7 @@ class UNBC_Events_REST_API {
 
         // Set as featured image
         set_post_thumbnail($post_id, $media_id);
+        error_log("Uploaded new media ID: $media_id for file: $filename");
         return $media_id;
     }
 }
