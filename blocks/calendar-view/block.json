@@ -37,6 +37,11 @@
         "showDayView": {
             "type": "boolean",
             "default": true
+        },
+        "eventSortOrder": {
+            "type": "string",
+            "default": "asc",
+            "enum": ["asc", "desc"]
         }
     },
     "supports": {

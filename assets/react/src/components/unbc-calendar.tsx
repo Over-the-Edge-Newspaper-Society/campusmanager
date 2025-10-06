@@ -37,14 +37,16 @@ interface UNBCCalendarProps {
   initialOrganizationFilter?: string;
   showWeekView?: boolean;
   showDayView?: boolean;
+  eventSortOrder?: 'asc' | 'desc';
 }
 
-export default function UNBCCalendar({ 
-  initialView = "month", 
-  initialCategoryFilter = "all", 
+export default function UNBCCalendar({
+  initialView = "month",
+  initialCategoryFilter = "all",
   initialOrganizationFilter = "all",
   showWeekView = true,
-  showDayView = true 
+  showDayView = true,
+  eventSortOrder = 'asc'
 }: UNBCCalendarProps = {}) {
   const [activeTab, setActiveTab] = useState(initialView);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -333,21 +335,32 @@ export default function UNBCCalendar({
   // Filter events client-side for better UX and to handle server-side limitations
   const events = React.useMemo(() => {
     let filtered = allEvents;
-    
-    
-    // First, filter out past events and sort chronologically for list view
+
+
+    // First, filter out past events and sort for list view
     if (activeTab === "list") {
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Start of today
-      
+
       filtered = filtered.filter(event => {
         const eventDate = new Date(event.startDate);
         eventDate.setHours(0, 0, 0, 0); // Start of event day
         return eventDate >= today; // Only today and future events
       });
-      
-      // Sort chronologically (earliest first)
-      filtered = filtered.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+
+      // Sort based on eventSortOrder prop
+      filtered = filtered.sort((a, b) => {
+        const timeA = a.startDate.getTime();
+        const timeB = b.startDate.getTime();
+        return eventSortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+      });
+    } else {
+      // Apply sorting to all other views as well
+      filtered = filtered.sort((a, b) => {
+        const timeA = a.startDate.getTime();
+        const timeB = b.startDate.getTime();
+        return eventSortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+      });
     }
 
     // Category filter - always client-side since server-side filtering is too strict
@@ -380,7 +393,7 @@ export default function UNBCCalendar({
 
 
     return filtered;
-  }, [allEvents, eventMetadata, categoryFilter, organizationFilter, searchFilter, organizationLookup, activeTab, eventMatchesCategory]);
+  }, [allEvents, eventMetadata, categoryFilter, organizationFilter, searchFilter, organizationLookup, activeTab, eventMatchesCategory, eventSortOrder]);
 
   const handleDateClick = React.useCallback((date: Date) => {
     setSelectedDate(date);

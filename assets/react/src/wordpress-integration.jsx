@@ -21,15 +21,17 @@ window.renderUNBCCalendar = function(containerId) {
   const organizationFilter = container.dataset.organizationFilter || 'all';
   const showWeekView = container.dataset.showWeekView !== 'false';
   const showDayView = container.dataset.showDayView !== 'false';
+  const eventSortOrder = container.dataset.eventSortOrder || 'asc';
 
   root.render(
     <React.StrictMode>
-      <UNBCCalendar 
+      <UNBCCalendar
         initialView={view}
         initialCategoryFilter={categoryFilter}
         initialOrganizationFilter={organizationFilter}
         showWeekView={showWeekView}
         showDayView={showDayView}
+        eventSortOrder={eventSortOrder}
       />
     </React.StrictMode>
   );

@@ -8,7 +8,7 @@ import { registerBlockType } from '@wordpress/blocks';
 registerBlockType('unbc/calendar-view', {
     edit: function(props) {
     const { attributes, setAttributes } = props;
-    const { view, categoryFilter, organizationFilter, listInitialItems, listLoadMoreCount, showWeekView, showDayView } = attributes;
+    const { view, categoryFilter, organizationFilter, listInitialItems, listLoadMoreCount, showWeekView, showDayView, eventSortOrder } = attributes;
 
     return [
         wp.element.createElement(InspectorControls, { key: 'controls' },
@@ -100,6 +100,23 @@ registerBlockType('unbc/calendar-view', {
                     min: 5,
                     max: 50,
                     step: 5
+                })
+            ),
+            wp.element.createElement(PanelBody, {
+                title: __('Sorting Settings', 'unbc-events'),
+                initialOpen: false
+            },
+                wp.element.createElement(SelectControl, {
+                    label: __('Event Sort Order', 'unbc-events'),
+                    help: __('Sort events by time in ascending or descending order', 'unbc-events'),
+                    value: eventSortOrder || 'asc',
+                    options: [
+                        { label: 'Ascending (Earliest First)', value: 'asc' },
+                        { label: 'Descending (Latest First)', value: 'desc' }
+                    ],
+                    onChange: function(value) {
+                        setAttributes({ eventSortOrder: value });
+                    }
                 })
             )
         ),

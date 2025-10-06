@@ -184,12 +184,12 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
                 onMouseEnter={() => setHoveredDay(dayObj.day)}
                 onMouseLeave={() => setHoveredDay(null)}
               >
-                <Card 
+                <Card
                   className={`bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-md overflow-hidden relative flex p-4 border h-full transition-shadow day-card ${
-                    dayEvents.length > 0 
-                      ? "cursor-pointer hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700" 
+                    dayEvents.length > 0
+                      ? "cursor-pointer hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                       : "cursor-default"
-                  }`}
+                  } ${isToday ? "!border-red-500 !border-2" : ""}`}
                   onClick={dayEvents.length > 0 ? () => onDateClick?.(new Date(currentDate.getFullYear(), currentDate.getMonth(), dayObj.day)) : undefined}
                 >
                   <div className={`font-semibold relative text-3xl mb-1 ${
