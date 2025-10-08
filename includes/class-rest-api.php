@@ -908,6 +908,7 @@ class UNBC_Events_REST_API {
      */
     public function import_event_with_occurrences($request) {
         $event_data = $request->get_param('event');
+        $update_if_exists = $request->get_param('update_if_exists') ?? false;
 
         if (empty($event_data)) {
             return new WP_Error('missing_data', 'Event data is required', array('status' => 400));
@@ -932,6 +933,18 @@ class UNBC_Events_REST_API {
                 if (!empty($existing)) {
                     $existing_post = $existing[0];
                 }
+            }
+
+            // If event exists and we should skip updates, return skipped
+            if ($existing_post && !$update_if_exists) {
+                return rest_ensure_response(array(
+                    'success' => true,
+                    'action' => 'skipped',
+                    'post_id' => $existing_post->ID,
+                    'post_url' => get_permalink($existing_post->ID),
+                    'series_created' => false,
+                    'occurrences_created' => 0,
+                ));
             }
 
             // Prepare post data
