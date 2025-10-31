@@ -22,6 +22,8 @@ window.renderUNBCCalendar = function(containerId) {
   const showWeekView = container.dataset.showWeekView !== 'false';
   const showDayView = container.dataset.showDayView !== 'false';
   const eventSortOrder = container.dataset.eventSortOrder || 'asc';
+  const monthDisplayMode = container.dataset.monthDisplayMode || 'popover';
+  const monthSidebarPosition = container.dataset.monthSidebarPosition || 'right';
 
   root.render(
     <React.StrictMode>
@@ -32,6 +34,8 @@ window.renderUNBCCalendar = function(containerId) {
         showWeekView={showWeekView}
         showDayView={showDayView}
         eventSortOrder={eventSortOrder}
+        initialMonthDisplayMode={monthDisplayMode}
+        initialMonthSidebarPosition={monthSidebarPosition}
       />
     </React.StrictMode>
   );

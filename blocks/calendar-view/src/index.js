@@ -12,7 +12,7 @@ registerBlockType('unbc/calendar-view', {
 
     const sidebarDescription = (() => {
         if (monthDisplayMode === 'sidebar') {
-            const positionLabel = monthSidebarPosition === 'left' ? __('left', 'unbc-events') : __('right', 'unbc-events');
+            const positionLabel = monthSidebarPosition === 'left' ? __('Left', 'unbc-events') : __('Right', 'unbc-events');
             return __('Sidebar on ', 'unbc-events') + positionLabel;
         }
         if (monthDisplayMode === 'dropdown') {
@@ -104,8 +104,8 @@ registerBlockType('unbc/calendar-view', {
                     }
                 }),
                 wp.element.createElement(SelectControl, {
-                    label: __('Sidebar position', 'unbc-events'),
-                    help: __('Placement for the sidebar panel when enabled.', 'unbc-events'),
+                    label: __('Right side', 'unbc-events'),
+                    help: __('Choose which side the sidebar appears on when enabled.', 'unbc-events'),
                     value: monthSidebarPosition,
                     options: [
                         { label: __('Left', 'unbc-events'), value: 'left' },

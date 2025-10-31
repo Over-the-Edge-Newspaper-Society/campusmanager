@@ -19594,7 +19594,7 @@ window.renderUNBCCalendar = function(e) {
     console.error("Calendar container not found:", e);
     return;
   }
-  const n = za(t), r = t.dataset.view || "month", o = t.dataset.categoryFilter || "all", s = t.dataset.organizationFilter || "all", i = t.dataset.showWeekView !== "false", a = t.dataset.showDayView !== "false", l = t.dataset.eventSortOrder || "asc";
+  const n = za(t), r = t.dataset.view || "month", o = t.dataset.categoryFilter || "all", s = t.dataset.organizationFilter || "all", i = t.dataset.showWeekView !== "false", a = t.dataset.showDayView !== "false", l = t.dataset.eventSortOrder || "asc", c = t.dataset.monthDisplayMode || "popover", u = t.dataset.monthSidebarPosition || "right";
   n.render(
     /* @__PURE__ */ p.jsx(Y.StrictMode, { children: /* @__PURE__ */ p.jsx(
       KM,
@@ -19604,7 +19604,9 @@ window.renderUNBCCalendar = function(e) {
         initialOrganizationFilter: s,
         showWeekView: i,
         showDayView: a,
-        eventSortOrder: l
+        eventSortOrder: l,
+        initialMonthDisplayMode: c,
+        initialMonthSidebarPosition: u
       }
     ) })
   );

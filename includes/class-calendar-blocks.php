@@ -155,8 +155,18 @@ class UNBC_Calendar_Blocks {
         $show_week_view = isset($attributes['showWeekView']) ? $attributes['showWeekView'] : true;
         $show_day_view = isset($attributes['showDayView']) ? $attributes['showDayView'] : true;
         $event_sort_order = isset($attributes['eventSortOrder']) ? $attributes['eventSortOrder'] : 'asc';
+        $month_display_mode = isset($attributes['monthDisplayMode']) ? $attributes['monthDisplayMode'] : 'popover';
+        $month_sidebar_position = isset($attributes['monthSidebarPosition']) ? $attributes['monthSidebarPosition'] : 'right';
 
-        return $this->render_calendar_component($view, $category_filter, $organization_filter, $list_initial_items, $list_load_more_count, $show_week_view, $show_day_view, $event_sort_order);
+        if (!in_array($month_display_mode, array('popover', 'dropdown', 'sidebar'), true)) {
+            $month_display_mode = 'popover';
+        }
+
+        if (!in_array($month_sidebar_position, array('left', 'right'), true)) {
+            $month_sidebar_position = 'right';
+        }
+
+        return $this->render_calendar_component($view, $category_filter, $organization_filter, $list_initial_items, $list_load_more_count, $show_week_view, $show_day_view, $event_sort_order, $month_display_mode, $month_sidebar_position);
     }
     
     public function render_events_list_block($attributes) {
@@ -224,13 +234,26 @@ class UNBC_Calendar_Blocks {
             'list_load_more_count' => 15,
             'show_week_view' => 'true',
             'show_day_view' => 'true',
-            'event_sort_order' => 'asc'
+            'event_sort_order' => 'asc',
+            'month_display_mode' => 'popover',
+            'month_sidebar_position' => 'right'
         ), $atts);
 
         $show_week_view = ($atts['show_week_view'] !== 'false');
         $show_day_view = ($atts['show_day_view'] !== 'false');
 
-        return $this->render_calendar_component($atts['view'], $atts['category'], $atts['organization'], $atts['list_initial_items'], $atts['list_load_more_count'], $show_week_view, $show_day_view, $atts['event_sort_order']);
+        return $this->render_calendar_component(
+            $atts['view'],
+            $atts['category'],
+            $atts['organization'],
+            $atts['list_initial_items'],
+            $atts['list_load_more_count'],
+            $show_week_view,
+            $show_day_view,
+            $atts['event_sort_order'],
+            $atts['month_display_mode'],
+            $atts['month_sidebar_position']
+        );
     }
     
     public function events_list_shortcode($atts) {
@@ -320,8 +343,18 @@ class UNBC_Calendar_Blocks {
         );
     }
     
-    private function render_calendar_component($view = 'month', $category_filter = 'all', $organization_filter = 'all', $list_initial_items = 30, $list_load_more_count = 15, $show_week_view = true, $show_day_view = true, $event_sort_order = 'asc') {
+    private function render_calendar_component($view = 'month', $category_filter = 'all', $organization_filter = 'all', $list_initial_items = 30, $list_load_more_count = 15, $show_week_view = true, $show_day_view = true, $event_sort_order = 'asc', $month_display_mode = 'popover', $month_sidebar_position = 'right') {
         $unique_id = 'unbc-calendar-' . uniqid();
+
+        $allowed_modes = array('popover', 'dropdown', 'sidebar');
+        if (!in_array($month_display_mode, $allowed_modes, true)) {
+            $month_display_mode = 'popover';
+        }
+
+        $allowed_positions = array('left', 'right');
+        if (!in_array($month_sidebar_position, $allowed_positions, true)) {
+            $month_sidebar_position = 'right';
+        }
 
 
         ob_start();
@@ -336,7 +369,9 @@ class UNBC_Calendar_Blocks {
              data-list-load-more-count="<?php echo esc_attr($list_load_more_count); ?>"
              data-show-week-view="<?php echo esc_attr($show_week_view ? 'true' : 'false'); ?>"
              data-show-day-view="<?php echo esc_attr($show_day_view ? 'true' : 'false'); ?>"
-             data-event-sort-order="<?php echo esc_attr($event_sort_order); ?>">
+             data-event-sort-order="<?php echo esc_attr($event_sort_order); ?>"
+             data-month-display-mode="<?php echo esc_attr($month_display_mode); ?>"
+             data-month-sidebar-position="<?php echo esc_attr($month_sidebar_position); ?>">
             <div class="unbc-calendar-loading">
                 <p>Loading calendar...</p>
             </div>
