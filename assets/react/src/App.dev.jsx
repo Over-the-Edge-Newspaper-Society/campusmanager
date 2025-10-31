@@ -11,6 +11,8 @@ function AppDev() {
   
   const [showWeekView, setShowWeekView] = useState(true);
   const [showDayView, setShowDayView] = useState(true);
+  const [monthDisplayMode, setMonthDisplayMode] = useState('popover');
+  const [sidebarPosition, setSidebarPosition] = useState('right');
   
   useEffect(() => {
     // Apply dark mode class to html element
@@ -41,7 +43,7 @@ function AppDev() {
             </p>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             {/* View Toggle Controls */}
             <div className="flex items-center gap-3">
               <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -63,7 +65,45 @@ function AppDev() {
                 Show Day View
               </label>
             </div>
-            
+
+            {/* Sidebar Controls */}
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <span className="font-semibold">Sidebar</span>
+                <select
+                  value={monthDisplayMode}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === 'popover' || value === 'dropdown' || value === 'sidebar') {
+                      setMonthDisplayMode(value);
+                    }
+                  }}
+                  className="rounded border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                >
+                  <option value="popover">Hover card</option>
+                  <option value="dropdown">Dropdown</option>
+                  <option value="sidebar">Sidebar</option>
+                </select>
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <span className="font-semibold">Right side</span>
+                <select
+                  value={sidebarPosition}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === 'left' || value === 'right') {
+                      setSidebarPosition(value);
+                    }
+                  }}
+                  disabled={monthDisplayMode !== 'sidebar'}
+                  className="rounded border border-gray-300 bg-white px-2 py-1 text-sm disabled:opacity-60 disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                >
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
+                </select>
+              </label>
+            </div>
+
             {/* Dark Mode Toggle Button */}
             <button
               onClick={toggleDarkMode}
@@ -101,6 +141,8 @@ function AppDev() {
         <UNBCCalendar 
           showWeekView={showWeekView}
           showDayView={showDayView}
+          initialMonthDisplayMode={monthDisplayMode}
+          initialMonthSidebarPosition={sidebarPosition}
         />
       </div>
     </div>

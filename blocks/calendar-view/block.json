@@ -42,6 +42,16 @@
             "type": "string",
             "default": "asc",
             "enum": ["asc", "desc"]
+        },
+        "monthDisplayMode": {
+            "type": "string",
+            "default": "popover",
+            "enum": ["popover", "dropdown", "sidebar"]
+        },
+        "monthSidebarPosition": {
+            "type": "string",
+            "default": "right",
+            "enum": ["left", "right"]
         }
     },
     "supports": {

@@ -15,6 +15,7 @@ import { useEventCategories } from "@/hooks/useEventCategories";
 import { useCategoryConfig } from "@/hooks/useCategoryConfig";
 import { EventDialog } from "@/components/event-dialog";
 import { MonthView, WeekView, DayView } from "@/components/calendar-views";
+import type { MonthDisplayMode } from "@/components/calendar-views";
 import { MobileMonthView } from "./mobile-month-view";
 import { EventListView, MobileListView } from "./list-views";
 import { Loader2 } from "lucide-react";
@@ -38,6 +39,8 @@ interface UNBCCalendarProps {
   showWeekView?: boolean;
   showDayView?: boolean;
   eventSortOrder?: 'asc' | 'desc';
+  initialMonthDisplayMode?: MonthDisplayMode;
+  initialMonthSidebarPosition?: "left" | "right";
 }
 
 export default function UNBCCalendar({
@@ -46,7 +49,9 @@ export default function UNBCCalendar({
   initialOrganizationFilter = "all",
   showWeekView = true,
   showDayView = true,
-  eventSortOrder = 'asc'
+  eventSortOrder = 'asc',
+  initialMonthDisplayMode = "popover",
+  initialMonthSidebarPosition = "right"
 }: UNBCCalendarProps = {}) {
   const [activeTab, setActiveTab] = useState(initialView);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -54,6 +59,9 @@ export default function UNBCCalendar({
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showEventDialog, setShowEventDialog] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [monthDisplayMode, setMonthDisplayMode] = useState<MonthDisplayMode>(initialMonthDisplayMode);
+  const [monthSidebarPosition, setMonthSidebarPosition] = useState<"left" | "right">(initialMonthSidebarPosition);
+  const isSidebarMode = monthDisplayMode === "sidebar";
 
   // List view pagination state
   const [listDisplayCount, setListDisplayCount] = useState(30);
@@ -70,8 +78,26 @@ export default function UNBCCalendar({
       setListInitialItems(initialItems);
       setListLoadMoreCount(loadMoreCount);
       setListDisplayCount(initialItems);
+
+      const modeAttr = container.getAttribute('data-month-display-mode');
+      if (modeAttr === 'popover' || modeAttr === 'dropdown' || modeAttr === 'sidebar') {
+        setMonthDisplayMode(modeAttr as MonthDisplayMode);
+      }
+
+      const sidebarAttr = container.getAttribute('data-month-sidebar-position');
+      if (sidebarAttr === 'left' || sidebarAttr === 'right') {
+        setMonthSidebarPosition(sidebarAttr as 'left' | 'right');
+      }
     }
   }, []);
+
+  React.useEffect(() => {
+    setMonthDisplayMode(initialMonthDisplayMode);
+  }, [initialMonthDisplayMode]);
+
+  React.useEffect(() => {
+    setMonthSidebarPosition(initialMonthSidebarPosition);
+  }, [initialMonthSidebarPosition]);
 
   // Minimal CSS for view-only calendar
   React.useEffect(() => {
@@ -397,8 +423,14 @@ export default function UNBCCalendar({
 
   const handleDateClick = React.useCallback((date: Date) => {
     setSelectedDate(date);
-    setActiveTab("day");
-  }, []);
+    if (!isSidebarMode) {
+      if (showDayView) {
+        setActiveTab("day");
+      } else if (showWeekView) {
+        setActiveTab("week");
+      }
+    }
+  }, [isSidebarMode, showDayView, showWeekView]);
 
   const handleMonthChange = React.useCallback((date: Date) => {
     setCalendarViewDate(date); // Only update calendar navigation, not API calls
@@ -413,6 +445,18 @@ export default function UNBCCalendar({
     // Use client-side pagination to maintain consistent data across views
     setListDisplayCount(prev => prev + listLoadMoreCount);
   }, [listLoadMoreCount]);
+
+  React.useEffect(() => {
+    if (!showWeekView && activeTab === "week") {
+      setActiveTab(showDayView ? "day" : "month");
+    } else if (!showDayView && activeTab === "day") {
+      setActiveTab(showWeekView ? "week" : "month");
+    }
+  }, [showWeekView, showDayView, activeTab, setActiveTab]);
+
+  const calendarContainerClasses = `rounded-lg unbc-calendar-view ${activeTab === "month" && isSidebarMode
+    ? "bg-transparent dark:bg-transparent border border-transparent shadow-none"
+    : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm"}`;
 
   // Reset display count when switching to list view or when filters change
   React.useEffect(() => {
@@ -457,7 +501,7 @@ export default function UNBCCalendar({
     <div id="unbc-calendar-react-component" data-calendar-isolated="true" className={`w-full space-y-6 ${isDarkMode ? 'dark' : ''}`}>
 
       {/* Calendar Views */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm unbc-calendar-view">
+      <div className={calendarContainerClasses}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Desktop: Responsive layout with stacked filters */}
           <div className="hidden md:block p-6 pb-0">
@@ -685,6 +729,8 @@ export default function UNBCCalendar({
                 onEventClick={handleEventClick}
                 onMonthChange={handleMonthChange}
                 currentDate={calendarViewDate}
+                displayMode={monthDisplayMode}
+                sidebarPosition={monthSidebarPosition}
               />
             </div>
             <div className="block md:hidden mobile-calendar">
@@ -699,24 +745,28 @@ export default function UNBCCalendar({
             </div>
           </TabsContent>
 
-          <TabsContent value="week" className="px-6 pb-6 md:p-6">
-            <WeekView 
-              events={events} 
-              eventMetadata={eventMetadata}
-              categoryMappings={categoryMappings}
-              onEventClick={handleEventClick} 
-            />
-          </TabsContent>
+          {showWeekView && (
+            <TabsContent value="week" className="px-6 pb-6 md:p-6">
+              <WeekView 
+                events={events} 
+                eventMetadata={eventMetadata}
+                categoryMappings={categoryMappings}
+                onEventClick={handleEventClick} 
+              />
+            </TabsContent>
+          )}
 
-          <TabsContent value="day" className="px-6 pb-6 md:p-6">
-            <DayView 
-              events={events} 
-              eventMetadata={eventMetadata}
-              categoryMappings={categoryMappings}
-              initialDate={selectedDate} 
-              onEventClick={handleEventClick} 
-            />
-          </TabsContent>
+          {showDayView && (
+            <TabsContent value="day" className="px-6 pb-6 md:p-6">
+              <DayView 
+                events={events} 
+                eventMetadata={eventMetadata}
+                categoryMappings={categoryMappings}
+                initialDate={selectedDate} 
+                onEventClick={handleEventClick} 
+              />
+            </TabsContent>
+          )}
 
           <TabsContent value="list" className="px-6 pb-6 md:p-6">
             <div className="hidden md:block">

@@ -8,7 +8,18 @@ import { registerBlockType } from '@wordpress/blocks';
 registerBlockType('unbc/calendar-view', {
     edit: function(props) {
     const { attributes, setAttributes } = props;
-    const { view, categoryFilter, organizationFilter, listInitialItems, listLoadMoreCount, showWeekView, showDayView, eventSortOrder } = attributes;
+    const { view, categoryFilter, organizationFilter, listInitialItems, listLoadMoreCount, showWeekView, showDayView, eventSortOrder, monthDisplayMode = 'popover', monthSidebarPosition = 'right' } = attributes;
+
+    const sidebarDescription = (() => {
+        if (monthDisplayMode === 'sidebar') {
+            const positionLabel = monthSidebarPosition === 'left' ? __('left', 'unbc-events') : __('right', 'unbc-events');
+            return __('Sidebar on ', 'unbc-events') + positionLabel;
+        }
+        if (monthDisplayMode === 'dropdown') {
+            return __('Dropdown', 'unbc-events');
+        }
+        return __('Hover card', 'unbc-events');
+    })();
 
     return [
         wp.element.createElement(InspectorControls, { key: 'controls' },
@@ -76,6 +87,37 @@ registerBlockType('unbc/calendar-view', {
                 })
             ),
             wp.element.createElement(PanelBody, {
+                title: __('Sidebar Layout', 'unbc-events'),
+                initialOpen: false
+            },
+                wp.element.createElement(SelectControl, {
+                    label: __('Sidebar', 'unbc-events'),
+                    help: __('Choose how events are displayed inside the month view tooltip/sidebar.', 'unbc-events'),
+                    value: monthDisplayMode,
+                    options: [
+                        { label: __('Hover card', 'unbc-events'), value: 'popover' },
+                        { label: __('Dropdown (click to expand)', 'unbc-events'), value: 'dropdown' },
+                        { label: __('Sidebar (persistent panel)', 'unbc-events'), value: 'sidebar' }
+                    ],
+                    onChange: function(newValue) {
+                        setAttributes({ monthDisplayMode: newValue });
+                    }
+                }),
+                wp.element.createElement(SelectControl, {
+                    label: __('Sidebar position', 'unbc-events'),
+                    help: __('Placement for the sidebar panel when enabled.', 'unbc-events'),
+                    value: monthSidebarPosition,
+                    options: [
+                        { label: __('Left', 'unbc-events'), value: 'left' },
+                        { label: __('Right', 'unbc-events'), value: 'right' }
+                    ],
+                    onChange: function(newValue) {
+                        setAttributes({ monthSidebarPosition: newValue });
+                    },
+                    disabled: monthDisplayMode !== 'sidebar'
+                })
+            ),
+            wp.element.createElement(PanelBody, {
                 title: __('List View Settings', 'unbc-events'),
                 initialOpen: false
             },
@@ -139,7 +181,10 @@ registerBlockType('unbc/calendar-view', {
             }, __('Event Calendar', 'unbc-events')),
             wp.element.createElement('p', {
                 style: { margin: '0', color: '#666' }
-            }, __('View: ' + view + ' | Category: ' + categoryFilter, 'unbc-events'))
+            }, __('View: ' + view + ' | Category: ' + categoryFilter, 'unbc-events')),
+            wp.element.createElement('p', {
+                style: { margin: '8px 0 0 0', color: '#666', fontSize: '13px' }
+            }, __('Sidebar:', 'unbc-events') + ' ' + sidebarDescription)
         )
     ];
     },

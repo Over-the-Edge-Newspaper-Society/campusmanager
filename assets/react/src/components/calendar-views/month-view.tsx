@@ -6,6 +6,8 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { Event, EventMetadata } from "@/types";
 import { getCategoryVariant, getVariantColorClass, type CategoryVariant } from "@/utils/categoryColors";
 
+export type MonthDisplayMode = "popover" | "dropdown" | "sidebar";
+
 interface MonthViewProps {
   events: Event[];
   eventMetadata: Record<string, EventMetadata>;
@@ -14,13 +16,30 @@ interface MonthViewProps {
   onEventClick?: (event: Event) => void;
   onMonthChange?: (date: Date) => void;
   currentDate?: Date; // Add controlled prop
+  displayMode?: MonthDisplayMode;
+  sidebarPosition?: "left" | "right";
 }
 
-export function MonthView({ events, eventMetadata, categoryMappings, onDateClick, onEventClick, onMonthChange, currentDate: controlledDate }: MonthViewProps) {
+export function MonthView({
+  events,
+  eventMetadata,
+  categoryMappings,
+  onDateClick,
+  onEventClick,
+  onMonthChange,
+  currentDate: controlledDate,
+  displayMode = "popover",
+  sidebarPosition = "right",
+}: MonthViewProps) {
   const [internalDate, setInternalDate] = useState(new Date());
   const currentDate = controlledDate || internalDate; // Use controlled or internal
   const [direction, setDirection] = useState<number>(0);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
+  const [activeDropdownDay, setActiveDropdownDay] = useState<number | null>(null);
+  const [sidebarSelectedDate, setSidebarSelectedDate] = useState<Date | null>(null);
+  const isPopoverMode = displayMode === "popover";
+  const isDropdownMode = displayMode === "dropdown";
+  const isSidebarMode = displayMode === "sidebar";
   
 
   const getDaysInMonth = (month: number, year: number) => {
@@ -48,6 +67,47 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
       hour12: true 
     });
   };
+
+  React.useEffect(() => {
+    if (!isSidebarMode) {
+      return;
+    }
+
+    const selectionMatchesCurrentMonth = sidebarSelectedDate &&
+      sidebarSelectedDate.getFullYear() === currentDate.getFullYear() &&
+      sidebarSelectedDate.getMonth() === currentDate.getMonth();
+
+    if (selectionMatchesCurrentMonth) {
+      return;
+    }
+
+    const today = new Date();
+    let dayToUse: number;
+
+    if (today.getFullYear() === currentDate.getFullYear() && today.getMonth() === currentDate.getMonth()) {
+      dayToUse = today.getDate();
+    } else {
+      const monthEvents = events
+        .map(event => new Date(event.startDate))
+        .filter(eventDate => {
+          return (
+            eventDate.getFullYear() === currentDate.getFullYear() &&
+            eventDate.getMonth() === currentDate.getMonth()
+          );
+        })
+        .sort((a, b) => a.getTime() - b.getTime());
+
+      dayToUse = monthEvents.length > 0 ? monthEvents[0].getDate() : 1;
+    }
+
+    setSidebarSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), dayToUse));
+  }, [isSidebarMode, currentDate, events, sidebarSelectedDate]);
+
+  React.useEffect(() => {
+    if (!isDropdownMode) {
+      setActiveDropdownDay(null);
+    }
+  }, [isDropdownMode, currentDate]);
 
   const handlePrevMonth = () => {
     setDirection(-1);
@@ -108,8 +168,62 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
     );
   };
 
-  return (
-    <div>
+  const renderEventCards = (eventList: Event[]) => {
+    return eventList.map((event) => {
+      const metadata = eventMetadata[event.id];
+      const variant = getCategoryVariant(metadata?.category, categoryMappings);
+      const colorClass = getVariantColorClass(variant);
+
+      return (
+        <div
+          key={event.id}
+          className="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-2 text-xs shadow-sm cursor-pointer transition-colors hover:bg-gray-200 dark:hover:bg-gray-600"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEventClick?.(event);
+          }}
+        >
+          <div className="flex items-start gap-1.5">
+            <span className={`mt-1 inline-flex h-1.5 w-1.5 flex-shrink-0 rounded-full ${colorClass}`}></span>
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-[13px] text-gray-900 dark:text-gray-100 leading-tight">
+                {event.title}
+              </div>
+              <div className="mt-0.5 text-[11px] text-gray-600 dark:text-gray-400">
+                {formatTime(new Date(event.startDate))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    });
+  };
+
+  const defaultSidebarDate = React.useMemo(() => new Date(currentDate.getFullYear(), currentDate.getMonth(), 1), [currentDate]);
+  const sidebarSelectionMatches = Boolean(
+    isSidebarMode &&
+    sidebarSelectedDate &&
+    sidebarSelectedDate.getFullYear() === currentDate.getFullYear() &&
+    sidebarSelectedDate.getMonth() === currentDate.getMonth()
+  );
+  const resolvedSidebarDate = isSidebarMode
+    ? sidebarSelectionMatches && sidebarSelectedDate
+      ? sidebarSelectedDate
+      : defaultSidebarDate
+    : defaultSidebarDate;
+  const sidebarDay = resolvedSidebarDate.getDate();
+
+  const sidebarDate = resolvedSidebarDate;
+  const sidebarEvents = isSidebarMode ? getEventsForDay(sidebarDay, currentDate) : [];
+  const sidebarDateLabel = sidebarDate.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const calendarContent = (
+    <>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
         <motion.h2
           key={currentDate.getMonth()}
@@ -172,6 +286,7 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
             
             const dayOfWeek = (startOffset + dayObj.day - 1) % 7;
             const isRightEdge = dayOfWeek >= 5;
+            const isSidebarSelected = isSidebarMode && sidebarSelectionMatches && sidebarDay === dayObj.day;
 
             return (
               <motion.div
@@ -181,20 +296,33 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
-                onMouseEnter={() => setHoveredDay(dayObj.day)}
-                onMouseLeave={() => setHoveredDay(null)}
+                onMouseEnter={() => {
+                  if (isPopoverMode) {
+                    setHoveredDay(dayObj.day);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (isPopoverMode) {
+                    setHoveredDay(null);
+                  }
+                }}
               >
                 <Card
                   className={`bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-md overflow-hidden relative flex p-4 border h-full transition-shadow day-card ${
                     dayEvents.length > 0
                       ? "cursor-pointer hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                       : "cursor-default"
-                  } ${isToday ? "!border-red-500 !border-2" : ""}`}
-                  onClick={dayEvents.length > 0 ? () => onDateClick?.(new Date(currentDate.getFullYear(), currentDate.getMonth(), dayObj.day)) : undefined}
+                  } ${isToday ? "!border-red-500 !border-2" : ""} ${isSidebarSelected && !isToday ? "ring-2 ring-blue-500 dark:ring-blue-400" : ""}`}
+                  onClick={dayEvents.length > 0 ? () => {
+                    if (isSidebarMode) {
+                      setSidebarSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), dayObj.day));
+                    }
+                    onDateClick?.(new Date(currentDate.getFullYear(), currentDate.getMonth(), dayObj.day));
+                  } : undefined}
                 >
                   <div className={`font-semibold relative text-3xl mb-1 ${
                     dayEvents.length > 0 ? "text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"
-                  } ${isToday ? "text-blue-600 dark:text-blue-400" : ""}`}>
+                  }`}>
                     {dayObj.day}
                   </div>
                   <div className="flex-grow flex flex-col gap-2 w-full">
@@ -211,48 +339,62 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
                         </motion.div>
                       )}
                     </AnimatePresence>
+                    {isDropdownMode && dayEvents.length > 0 && (
+                      <div className="mt-auto">
+                        <button
+                          type="button"
+                          className="w-full flex items-center justify-between gap-2 rounded-md bg-gray-200/70 dark:bg-gray-700/80 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 transition-colors hover:bg-gray-200 dark:hover:bg-gray-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveDropdownDay(prev => (prev === dayObj.day ? null : dayObj.day));
+                          }}
+                        >
+                          <span>{activeDropdownDay === dayObj.day ? "Hide events" : "Show events"}</span>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className={`h-3 w-3 transition-transform ${activeDropdownDay === dayObj.day ? "rotate-180" : ""}`}
+                            fill="none"
+                          >
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </button>
+                        {activeDropdownDay === dayObj.day && (
+                          <div className="mt-2 space-y-1.5">
+                            {renderEventCards(dayEvents)}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </Card>
                 
                 {/* Hover Tooltip */}
-                {hoveredDay === dayObj.day && dayEvents.length > 0 && (
+                {isPopoverMode && hoveredDay === dayObj.day && dayEvents.length > 0 && (
                   <div 
                     className={`absolute top-full z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 w-80 ${
                       isRightEdge ? 'right-0' : 'left-0'
                     }`}
-                    onMouseEnter={() => setHoveredDay(dayObj.day)}
-                    onMouseLeave={() => setHoveredDay(null)}
+                    onMouseEnter={() => {
+                      if (isPopoverMode) {
+                        setHoveredDay(dayObj.day);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      if (isPopoverMode) {
+                        setHoveredDay(null);
+                      }
+                    }}
                   >
                     <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
                       {dayEvents.length} event{dayEvents.length > 1 ? 's' : ''}
                     </div>
-                    <div className="space-y-2">
-                      {dayEvents.map((event) => {
-                        const metadata = eventMetadata[event.id];
-                        const variant = getCategoryVariant(metadata?.category, categoryMappings);
-                        const colorClass = getVariantColorClass(variant);
-                        
-                        return (
-                          <div 
-                            key={event.id} 
-                            className="flex items-start gap-2 p-1 -m-1 rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onEventClick?.(event);
-                            }}
-                          >
-                            <div className={`w-2 h-2 rounded-full ${colorClass} flex-shrink-0 mt-1.5`}></div>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-sm text-gray-900 dark:text-gray-100 leading-tight">
-                                {event.title}
-                              </div>
-                              <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                                {formatTime(event.startDate)}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className="space-y-1.5">
+                      {renderEventCards(dayEvents)}
                     </div>
                   </div>
                 )}
@@ -276,6 +418,46 @@ export function MonthView({ events, eventMetadata, categoryMappings, onDateClick
           })()}
         </motion.div>
       </AnimatePresence>
+    </>
+  );
+
+  const calendarSection = (
+    <div className={isSidebarMode ? "flex-1" : undefined}>
+      {isSidebarMode ? (
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-4 lg:p-6">
+          {calendarContent}
+        </div>
+      ) : (
+        calendarContent
+      )}
+    </div>
+  );
+
+  const sidebarPanel = isSidebarMode ? (
+    <aside className="md:w-72 w-full md:flex-shrink-0">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-md p-4">
+        <div className="space-y-1">
+          <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Selected Day</div>
+          <div className="text-base font-semibold text-gray-900 dark:text-gray-100">{sidebarDateLabel}</div>
+        </div>
+        <div className="mt-3 space-y-1.5">
+          {sidebarEvents.length > 0 ? (
+            renderEventCards(sidebarEvents)
+          ) : (
+            <div className="rounded-md border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/70 px-3 py-4 text-xs text-gray-600 dark:text-gray-400">
+              No events scheduled for this day.
+            </div>
+          )}
+        </div>
+      </div>
+    </aside>
+  ) : null;
+
+  return (
+    <div className={isSidebarMode ? "flex flex-col gap-6 md:flex-row md:items-start" : ""}>
+      {isSidebarMode && sidebarPosition === "left" && sidebarPanel}
+      {calendarSection}
+      {isSidebarMode && sidebarPosition === "right" && sidebarPanel}
     </div>
   );
 }
