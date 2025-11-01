@@ -48,7 +48,7 @@ export function EventListView({ events, eventMetadata, categoryMappings, onEvent
   return (
     <div className="space-y-6">
       {sortedEvents.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+      <div className="text-center py-12 text-muted-foreground">
           <CalendarDays className="mx-auto h-12 w-12 mb-4 opacity-50" />
           <h3 className="text-lg font-medium mb-2">No events found</h3>
           <p>Try adjusting your filters to see more events.</p>
@@ -78,9 +78,9 @@ export function EventListView({ events, eventMetadata, categoryMappings, onEvent
             <div key={dateKey} className="space-y-3">
               {/* Date Header */}
               <div className="flex items-center gap-3">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{dateLabel}</h3>
-                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-600"></div>
-                <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+                <h3 className="text-lg font-semibold text-foreground">{dateLabel}</h3>
+                <div className="flex-1 h-px bg-border"></div>
+                <span className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded-full">
                   {dateEvents.length} event{dateEvents.length > 1 ? 's' : ''}
                 </span>
               </div>
@@ -96,25 +96,25 @@ export function EventListView({ events, eventMetadata, categoryMappings, onEvent
                   return (
                     <div
                       key={event.id}
-                      className={`bg-muted dark:bg-gray-700 relative rounded-md p-3 pl-6 text-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ${categoryColor}`}
+                      className={`bg-muted dark:bg-accent relative rounded-md p-3 pl-6 text-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-muted/80 dark:hover:bg-accent/80 transition-colors ${categoryColor}`}
                       onClick={() => onEventClick?.(event)}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-grow min-w-0">
-                          <div className="font-medium text-gray-900 dark:text-gray-100 mb-2">{event.title}</div>
+                          <div className="font-medium text-foreground mb-2">{event.title}</div>
                           <div className="space-y-1">
-                            <div className="flex items-center gap-1 text-muted-foreground dark:text-gray-400 text-xs">
+                            <div className="flex items-center gap-1 text-muted-foreground text-xs">
                               <Clock className="h-3 w-3" />
                               <span>{formatTime(event.startDate)} - {formatTime(event.endDate)}</span>
                             </div>
                             {metadata?.location && (
-                              <div className="flex items-center gap-1 text-muted-foreground dark:text-gray-400 text-xs">
+                              <div className="flex items-center gap-1 text-muted-foreground text-xs">
                                 <MapPin className="h-3 w-3" />
                                 <span>{metadata.location}</span>
                               </div>
                             )}
                             {metadata?.organization && (
-                              <div className="flex items-center gap-1 text-muted-foreground dark:text-gray-400 text-xs">
+                              <div className="flex items-center gap-1 text-muted-foreground text-xs">
                                 <Building2 className="h-3 w-3" />
                                 <span>{metadata.organization}</span>
                               </div>
@@ -191,7 +191,7 @@ export function MobileListView({ events, eventMetadata, categoryMappings, onEven
   return (
     <div className="space-y-6">
       {sortedEvents.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+      <div className="text-center py-12 text-muted-foreground">
           <CalendarDays className="mx-auto h-12 w-12 mb-4 opacity-50" />
           <h3 className="text-lg font-medium mb-2">No events found</h3>
           <p>Try adjusting your filters to see more events.</p>
@@ -221,9 +221,9 @@ export function MobileListView({ events, eventMetadata, categoryMappings, onEven
             <div key={dateKey} className="space-y-3">
               {/* Date Header */}
               <div className="flex items-center gap-3">
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{dateLabel}</h3>
-                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-600"></div>
-                <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+                <h3 className="text-base font-semibold text-foreground">{dateLabel}</h3>
+                <div className="flex-1 h-px bg-border"></div>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
                   {dateEvents.length}
                 </span>
               </div>
@@ -239,25 +239,25 @@ export function MobileListView({ events, eventMetadata, categoryMappings, onEven
                   return (
                     <div
                       key={event.id}
-                      className={`bg-muted dark:bg-gray-700 relative rounded-md p-3 pl-6 text-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ${categoryColor}`}
+                      className={`bg-muted dark:bg-accent relative rounded-md p-3 pl-6 text-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-muted/80 dark:hover:bg-accent/80 transition-colors ${categoryColor}`}
                       onClick={() => onEventClick?.(event)}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-grow min-w-0">
-                          <div className="font-medium text-gray-900 dark:text-gray-100 mb-2">{event.title}</div>
+                          <div className="font-medium text-foreground mb-2">{event.title}</div>
                           <div className="space-y-1">
-                            <div className="flex items-center gap-1 text-muted-foreground dark:text-gray-400 text-xs">
+                            <div className="flex items-center gap-1 text-muted-foreground text-xs">
                               <Clock className="h-3 w-3" />
                               <span>{formatTime(event.startDate)} - {formatTime(event.endDate)}</span>
                             </div>
                             {metadata?.location && (
-                              <div className="flex items-center gap-1 text-muted-foreground dark:text-gray-400 text-xs">
+                              <div className="flex items-center gap-1 text-muted-foreground text-xs">
                                 <MapPin className="h-3 w-3" />
                                 <span>{metadata.location}</span>
                               </div>
                             )}
                             {metadata?.organization && (
-                              <div className="flex items-center gap-1 text-muted-foreground dark:text-gray-400 text-xs">
+                              <div className="flex items-center gap-1 text-muted-foreground text-xs">
                                 <Building2 className="h-3 w-3" />
                                 <span>{metadata.organization}</span>
                               </div>

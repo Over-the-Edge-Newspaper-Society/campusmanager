@@ -172,26 +172,33 @@ export function MonthView({
     return eventList.map((event) => {
       const metadata = eventMetadata[event.id];
       const variant = getCategoryVariant(metadata?.category, categoryMappings);
-      const colorClass = getVariantColorClass(variant);
+      const dotColorClass = getVariantColorClass(variant);
+      const start = new Date(event.startDate);
+      const end = new Date(event.endDate);
+      const timesValid = !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime());
+      const sameTime = timesValid && start.getTime() === end.getTime();
+      const timeLabel = timesValid ? `${formatTime(start)}${sameTime ? "" : ` - ${formatTime(end)}`}` : null;
 
       return (
         <div
           key={event.id}
-          className="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-2 text-xs shadow-sm cursor-pointer transition-colors hover:bg-gray-200 dark:hover:bg-gray-600"
+          className="rounded-md border border-gray-200 dark:border-border bg-muted dark:bg-card p-2 text-xs shadow-sm cursor-pointer transition-colors hover:bg-card dark:hover:bg-muted"
           onClick={(e) => {
             e.stopPropagation();
             onEventClick?.(event);
           }}
         >
           <div className="flex items-start gap-1.5">
-            <span className={`mt-1 inline-flex h-1.5 w-1.5 flex-shrink-0 rounded-full ${colorClass}`}></span>
+            <span className={`mt-1 inline-flex h-1.5 w-1.5 flex-shrink-0 rounded-full ${dotColorClass}`}></span>
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-[13px] text-gray-900 dark:text-gray-100 leading-tight">
+              <div className="font-medium text-[13px] text-gray-900 dark:text-foreground leading-tight">
                 {event.title}
               </div>
-              <div className="mt-0.5 text-[11px] text-gray-600 dark:text-gray-400">
-                {formatTime(new Date(event.startDate))}
-              </div>
+              {timeLabel && (
+                <div className="mt-0.5 text-[11px] text-gray-900 dark:text-foreground">
+                  {timeLabel}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -231,17 +238,17 @@ export function MonthView({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-3xl my-5 tracking-tighter font-bold text-gray-900 dark:text-gray-100"
+          className="text-3xl my-5 tracking-tighter font-bold text-gray-900 dark:text-neutral-100"
         >
           {currentDate.toLocaleString("default", { month: "long" })}{" "}
           {currentDate.getFullYear()}
         </motion.h2>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={handlePrevMonth} className="gap-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
+          <Button variant="outline" onClick={handlePrevMonth} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
             Prev
           </Button>
-          <Button variant="outline" onClick={handleNextMonth} className="gap-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
+          <Button variant="outline" onClick={handleNextMonth} className="gap-2">
             Next
             <ArrowRight className="h-4 w-4" />
           </Button>
@@ -253,7 +260,7 @@ export function MonthView({
         {daysOfWeek.map((day, idx) => (
           <div
             key={idx}
-            className="text-left py-2 text-lg tracking-tighter font-medium text-gray-900 dark:text-gray-100"
+            className="text-left py-2 text-lg tracking-tighter font-medium text-gray-900 dark:text-foreground"
           >
             {day}
           </div>
@@ -272,7 +279,7 @@ export function MonthView({
         >
           {Array.from({ length: startOffset }).map((_, idx) => (
             <div key={`offset-${idx}`} className="h-[150px] opacity-50 p-4">
-              <div className="font-semibold relative text-3xl mb-1 text-gray-400 dark:text-gray-500">
+              <div className="font-semibold relative text-3xl mb-1 text-gray-400 dark:text-neutral-500">
                 {lastDateOfPrevMonth - startOffset + idx + 1}
               </div>
             </div>
@@ -308,11 +315,11 @@ export function MonthView({
                 }}
               >
                 <Card
-                  className={`bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-md overflow-hidden relative flex p-4 border h-full transition-shadow day-card ${
+                  className={`bg-white dark:bg-card border border-gray-200 dark:border-border shadow-md overflow-hidden relative flex p-4 h-full transition-shadow day-card ${
                     dayEvents.length > 0
-                      ? "cursor-pointer hover:shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                      ? "cursor-pointer hover:shadow-lg hover:bg-muted dark:hover:bg-muted"
                       : "cursor-default"
-                  } ${isToday ? "!border-red-500 !border-2" : ""} ${isSidebarSelected && !isToday ? "ring-2 ring-blue-500 dark:ring-blue-400" : ""}`}
+                  } ${isToday ? "!border-red-500 !border-2" : ""} ${isSidebarSelected && !isToday ? "ring-2 ring-blue-500 dark:ring-primary" : ""}`}
                   onClick={dayEvents.length > 0 ? () => {
                     if (isSidebarMode) {
                       setSidebarSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), dayObj.day));
@@ -321,7 +328,7 @@ export function MonthView({
                   } : undefined}
                 >
                   <div className={`font-semibold relative text-3xl mb-1 ${
-                    dayEvents.length > 0 ? "text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"
+                    dayEvents.length > 0 ? "text-gray-900 dark:text-foreground" : "text-gray-500 dark:text-muted-foreground"
                   }`}>
                     {dayObj.day}
                   </div>
@@ -343,7 +350,7 @@ export function MonthView({
                       <div className="mt-auto">
                         <button
                           type="button"
-                          className="w-full flex items-center justify-between gap-2 rounded-md bg-gray-200/70 dark:bg-gray-700/80 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 transition-colors hover:bg-gray-200 dark:hover:bg-gray-600"
+                          className="w-full flex items-center justify-between gap-2 rounded-md bg-muted/70 dark:bg-muted px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
                           onClick={(e) => {
                             e.stopPropagation();
                             setActiveDropdownDay(prev => (prev === dayObj.day ? null : dayObj.day));
@@ -375,8 +382,8 @@ export function MonthView({
                 
                 {/* Hover Tooltip */}
                 {isPopoverMode && hoveredDay === dayObj.day && dayEvents.length > 0 && (
-                  <div 
-                    className={`absolute top-full z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 w-80 ${
+          <div 
+                    className={`absolute top-full z-50 bg-white dark:bg-card border border-gray-200 dark:border-border rounded-lg shadow-lg p-3 w-80 ${
                       isRightEdge ? 'right-0' : 'left-0'
                     }`}
                     onMouseEnter={() => {
@@ -390,7 +397,7 @@ export function MonthView({
                       }
                     }}
                   >
-                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    <div className="text-sm font-semibold text-gray-900 dark:text-foreground mb-2">
                       {dayEvents.length} event{dayEvents.length > 1 ? 's' : ''}
                     </div>
                     <div className="space-y-1.5">
@@ -410,7 +417,7 @@ export function MonthView({
             
             return Array.from({ length: nextMonthDaysNeeded }).map((_, idx) => (
               <div key={`next-${idx}`} className="h-[150px] opacity-50 p-4">
-                <div className="font-semibold relative text-3xl mb-1 text-gray-400 dark:text-gray-500">
+                <div className="font-semibold relative text-3xl mb-1 text-gray-400 dark:text-neutral-500">
                   {idx + 1}
                 </div>
               </div>
@@ -424,7 +431,7 @@ export function MonthView({
   const calendarSection = (
     <div className={isSidebarMode ? "flex-1" : undefined}>
       {isSidebarMode ? (
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-4 lg:p-6">
+        <div className="rounded-lg border border-gray-200 dark:border-border bg-white dark:bg-card shadow-sm p-4 lg:p-6">
           {calendarContent}
         </div>
       ) : (
@@ -435,16 +442,16 @@ export function MonthView({
 
   const sidebarPanel = isSidebarMode ? (
     <aside className="md:w-72 w-full md:flex-shrink-0">
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-md p-4">
+      <div className="rounded-lg border border-gray-200 dark:border-border bg-white dark:bg-card shadow-md p-4">
         <div className="space-y-1">
-          <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Selected Day</div>
-          <div className="text-base font-semibold text-gray-900 dark:text-gray-100">{sidebarDateLabel}</div>
+          <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-muted-foreground">Selected Day</div>
+          <div className="text-base font-semibold text-gray-900 dark:text-foreground">{sidebarDateLabel}</div>
         </div>
         <div className="mt-3 space-y-1.5">
           {sidebarEvents.length > 0 ? (
             renderEventCards(sidebarEvents)
           ) : (
-            <div className="rounded-md border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/70 px-3 py-4 text-xs text-gray-600 dark:text-gray-400">
+            <div className="rounded-md border border-dashed border-gray-200 dark:border-border bg-gray-50 dark:bg-card px-3 py-4 text-xs text-gray-600 dark:text-muted-foreground">
               No events scheduled for this day.
             </div>
           )}

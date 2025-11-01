@@ -456,7 +456,7 @@ export default function UNBCCalendar({
 
   const calendarContainerClasses = `rounded-lg unbc-calendar-view ${activeTab === "month" && isSidebarMode
     ? "bg-transparent dark:bg-transparent border border-transparent shadow-none"
-    : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm"}`;
+    : "bg-card border border-border shadow-sm"}`;
 
   // Reset display count when switching to list view or when filters change
   React.useEffect(() => {
@@ -472,7 +472,7 @@ export default function UNBCCalendar({
       <div className="w-full flex items-center justify-center py-12">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">{isDev ? 'Loading sample events...' : 'Loading calendar...'}</p>
+          <p className="text-muted-foreground">{isDev ? 'Loading sample events...' : 'Loading calendar...'}</p>
         </div>
       </div>
     );
@@ -510,16 +510,16 @@ export default function UNBCCalendar({
               {/* Left side - Category filter and organization filter */}
               <div className="flex items-center gap-3">
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-40 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                  <SelectTrigger className="w-40 border border-border bg-card text-foreground">
                     <div className="flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded-full flex-shrink-0 ${categoryFilter === 'all' ? 'bg-gray-400' : getVariantColorClass(eventCategories.find(cat => cat.slug === categoryFilter)?.variant || 'default')}`}></span>
+                      <span className={`w-3 h-3 rounded-full flex-shrink-0 ${categoryFilter === 'all' ? 'bg-muted-foreground' : getVariantColorClass(eventCategories.find(cat => cat.slug === categoryFilter)?.variant || 'default')}`}></span>
                       <span>{categoryFilter === 'all' ? 'All Categories' : eventCategories.find(cat => cat.slug === categoryFilter)?.name || 'All Categories'}</span>
                     </div>
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 z-[9999] shadow-lg">
-                    <SelectItem value="all" className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-none">
+                  <SelectContent className="bg-card border border-border z-[9999] shadow-lg">
+                    <SelectItem value="all" className="text-foreground hover:bg-muted focus:bg-muted focus:outline-none">
                       <div className="flex items-center gap-2 whitespace-nowrap">
-                        <span className="w-3 h-3 rounded-full flex-shrink-0 bg-gray-400"></span>
+                        <span className="w-3 h-3 rounded-full flex-shrink-0 bg-muted-foreground"></span>
                         <span>All</span>
                       </div>
                     </SelectItem>
@@ -527,7 +527,7 @@ export default function UNBCCalendar({
                       <SelectItem 
                         key={category.id} 
                         value={category.slug} 
-                        className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 focus:outline-none"
+                        className="text-foreground hover:bg-muted focus:bg-muted focus:outline-none"
                       >
                         <div className="flex items-center gap-2 whitespace-nowrap">
                           <span className={`w-3 h-3 rounded-full flex-shrink-0 ${getVariantColorClass(category.variant || 'default')}`}></span>
@@ -540,16 +540,16 @@ export default function UNBCCalendar({
 
                 {(categoriesWithOrganizations.includes(categoryFilter)) && (
                   <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
-                    <SelectTrigger className="w-44 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 [&>span]:truncate [&>span]:block">
+                    <SelectTrigger className="w-44 border border-border bg-card text-foreground [&>span]:truncate [&>span]:block">
                       <SelectValue placeholder="All Organizations" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 max-h-[200px] overflow-y-auto">
-                      <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All Organizations</SelectItem>
+                    <SelectContent className="bg-card border border-border max-h-[200px] overflow-y-auto">
+                      <SelectItem value="all" className="text-foreground focus:bg-muted">All Organizations</SelectItem>
                       {organizations.map((org) => (
                         <SelectItem 
                           key={org.id} 
                           value={org.id.toString()} 
-                          className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600"
+                          className="text-foreground focus:bg-muted"
                         >
                           {org.title.rendered}
                         </SelectItem>
@@ -561,24 +561,24 @@ export default function UNBCCalendar({
 
               {/* Center - Tabs */}
               <div className="flex-1 flex justify-center">
-                <TabsList className="h-9 bg-gray-100 dark:bg-gray-700 p-1">
+                <TabsList className="h-9 bg-muted dark:bg-background/50 border border-transparent dark:border-border/40 p-1">
                   {showDayView && (
-                    <TabsTrigger value="day" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
+                    <TabsTrigger value="day" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-card dark:data-[state=active]:bg-accent data-[state=active]:shadow-sm">
                       <Clock className="h-3 w-3" />
                       Day
                     </TabsTrigger>
                   )}
                   {showWeekView && (
-                    <TabsTrigger value="week" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
+                    <TabsTrigger value="week" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-card dark:data-[state=active]:bg-accent data-[state=active]:shadow-sm">
                       <Calendar className="h-3 w-3" />
                       Week
                     </TabsTrigger>
                   )}
-                  <TabsTrigger value="month" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
+                  <TabsTrigger value="month" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-card dark:data-[state=active]:bg-accent data-[state=active]:shadow-sm">
                     <CalendarDays className="h-3 w-3" />
                     Month
                   </TabsTrigger>
-                  <TabsTrigger value="list" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300">
+                  <TabsTrigger value="list" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-card dark:data-[state=active]:bg-accent data-[state=active]:shadow-sm">
                     <List className="h-3 w-3" />
                     List
                   </TabsTrigger>
@@ -588,13 +588,13 @@ export default function UNBCCalendar({
               {/* Right side - Search input and loading indicator */}
               <div className="flex-shrink-0 flex items-center gap-2">
                 {loading && allEvents && allEvents.length > 0 && (
-                  <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 )}
                 <Input
                   placeholder="Search events..."
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  className="w-40 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                  className="w-40 border border-border bg-card text-foreground placeholder:text-muted-foreground"
                 />
               </div>
             </div>
@@ -606,26 +606,26 @@ export default function UNBCCalendar({
               {/* Left side - Category Filter Button */}
               <div className="flex-shrink-0">
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-auto min-w-[60px] h-9 px-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                  <SelectTrigger className="w-auto min-w-[60px] h-9 px-2 border border-border bg-card text-foreground">
                     <div className="flex items-center gap-1">
-                      <span className={`w-3 h-3 rounded-full flex-shrink-0 ${categoryFilter === 'all' ? 'bg-gray-400' : getVariantColorClass(eventCategories.find(cat => cat.slug === categoryFilter)?.variant || 'default')}`}></span>
+                      <span className={`w-3 h-3 rounded-full flex-shrink-0 ${categoryFilter === 'all' ? 'bg-muted-foreground' : getVariantColorClass(eventCategories.find(cat => cat.slug === categoryFilter)?.variant || 'default')}`}></span>
                       <span className="text-xs truncate max-w-[60px]">
                         {categoryFilter === 'all' ? 'All' : eventCategories.find(cat => cat.slug === categoryFilter)?.name || 'All'}
                       </span>
                     </div>
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 z-[9999]">
-                    <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">
+                  <SelectContent className="bg-card border border-border z-[9999]">
+                    <SelectItem value="all" className="text-foreground focus:bg-muted">
                       <div className="flex items-center gap-2 whitespace-nowrap">
-                        <span className="w-3 h-3 rounded-full flex-shrink-0 bg-gray-400"></span>
+                        <span className="w-3 h-3 rounded-full flex-shrink-0 bg-muted-foreground"></span>
                         <span>All</span>
                       </div>
                     </SelectItem>
                     {eventCategories.map((category) => (
                       <SelectItem 
                         key={category.id} 
-                        value={category.slug} 
-                        className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600"
+                        value={category.slug}
+                        className="text-foreground focus:bg-muted"
                       >
                         <div className="flex items-center gap-2 whitespace-nowrap">
                           <span className={`w-3 h-3 rounded-full flex-shrink-0 ${getVariantColorClass(category.variant || 'default')}`}></span>
@@ -639,18 +639,18 @@ export default function UNBCCalendar({
 
               {/* Center - Tabs (growing to fill available space) */}
               <div className="flex-1 flex justify-center">
-                <TabsList className="h-9 bg-gray-100 dark:bg-gray-700 p-1">
+                <TabsList className="h-9 bg-muted dark:bg-background/50 border border-transparent dark:border-border/40 p-1">
                   {showDayView && (
-                    <TabsTrigger value="day" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300 flex-1">
+                    <TabsTrigger value="day" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-card dark:data-[state=active]:bg-accent data-[state=active]:shadow-sm flex-1">
                       <Clock className="h-3 w-3" />
                       <span className="hidden xs:inline">Day</span>
                     </TabsTrigger>
                   )}
-                  <TabsTrigger value="month" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300 flex-1">
+                  <TabsTrigger value="month" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-card dark:data-[state=active]:bg-accent data-[state=active]:shadow-sm flex-1">
                     <CalendarDays className="h-3 w-3" />
                     <span className="hidden xs:inline">Month</span>
                   </TabsTrigger>
-                  <TabsTrigger value="list" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-600 data-[state=active]:shadow-sm dark:text-gray-300 flex-1">
+                  <TabsTrigger value="list" className="text-xs px-3 py-1 flex items-center gap-1 data-[state=active]:bg-card dark:data-[state=active]:bg-accent data-[state=active]:shadow-sm flex-1">
                     <List className="h-3 w-3" />
                     <span className="hidden xs:inline">List</span>
                   </TabsTrigger>
@@ -660,12 +660,12 @@ export default function UNBCCalendar({
               {/* Right side - Loading indicator and Search Button */}
               <div className="flex-shrink-0 flex items-center gap-2">
                 {loading && allEvents && allEvents.length > 0 && (
-                  <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 )}
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 px-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                  className="h-9 px-2 border border-border bg-card hover:bg-muted"
                 onClick={() => {
                   const searchInput = document.querySelector('.mobile-search-input') as HTMLInputElement;
                   if (searchInput) {
@@ -676,7 +676,7 @@ export default function UNBCCalendar({
                   }
                 }}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 dark:text-gray-300">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
                   <circle cx="11" cy="11" r="8"/>
                   <path d="m21 21-4.35-4.35"/>
                 </svg>
@@ -690,7 +690,7 @@ export default function UNBCCalendar({
                 placeholder="Search events..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="mobile-search-input w-full h-9 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                className="mobile-search-input w-full h-9 border border-border bg-card text-foreground placeholder:text-muted-foreground"
                 style={{ display: 'none' }}
               />
             </div>
@@ -699,16 +699,16 @@ export default function UNBCCalendar({
             {(categoriesWithOrganizations.includes(categoryFilter)) && (
               <div className="px-4 pb-4">
                 <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
-                  <SelectTrigger className="w-full h-9 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                  <SelectTrigger className="w-full h-9 border border-border bg-card text-foreground">
                     <SelectValue placeholder="All Organizations" className="truncate" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 max-h-[200px] overflow-y-auto">
-                    <SelectItem value="all" className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600">All Organizations</SelectItem>
+                  <SelectContent className="bg-card border border-border max-h-[200px] overflow-y-auto">
+                    <SelectItem value="all" className="text-foreground focus:bg-muted">All Organizations</SelectItem>
                     {organizations.map((org) => (
                       <SelectItem 
                         key={org.id} 
                         value={org.id.toString()} 
-                        className="text-gray-900 dark:text-gray-100 focus:bg-gray-100 dark:focus:bg-gray-600"
+                        className="text-foreground focus:bg-muted"
                       >
                         {org.title.rendered}
                       </SelectItem>

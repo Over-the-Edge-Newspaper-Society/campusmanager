@@ -88,26 +88,26 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
   };
 
   const categoryStyles = {
-    clubs: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-    unbc: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    organizations: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-    sports: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-  };
+    clubs: 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary',
+    unbc: 'bg-secondary/10 text-secondary dark:bg-secondary/20 dark:text-secondary',
+    organizations: 'bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive',
+    sports: 'bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent'
+  } as const;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto overflow-x-hidden bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 sm:w-full p-4 sm:p-6">
+      <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto overflow-x-hidden bg-card border border-border sm:w-full p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-xl text-gray-900 dark:text-gray-100">{event.title}</DialogTitle>
+          <DialogTitle className="text-xl text-foreground">{event.title}</DialogTitle>
           {event.description && (
             <div className="mt-2">
-              <DialogDescription className={`text-gray-600 dark:text-gray-400 leading-relaxed break-words ${isDescriptionExpanded ? 'max-h-[40vh] overflow-y-auto pr-2' : ''}`}>
+              <DialogDescription className={`text-muted-foreground leading-relaxed break-words ${isDescriptionExpanded ? 'max-h-[40vh] overflow-y-auto pr-2' : ''}`}>
                 {isDescriptionExpanded ? event.description : createExcerpt(event.description)}
               </DialogDescription>
               {event.description.length > 180 && (
                 <button
                   onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                  className="inline-flex items-center gap-1 mt-3 px-3 py-2 text-sm text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:bg-blue-100 dark:active:bg-blue-900/30 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className="inline-flex items-center gap-1 mt-3 px-3 py-2 text-sm text-primary hover:text-primary/80 hover:bg-primary/10 active:bg-primary/20 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                 >
                   {isDescriptionExpanded ? (
                     <>
@@ -129,9 +129,9 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
         <div className="space-y-4 my-4">
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-sm">
-              <Clock className="h-5 w-5 sm:h-4 sm:w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+              <Clock className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
               <div>
-                <div className="font-medium text-gray-900 dark:text-gray-100">
+                <div className="font-medium text-foreground">
                   {event.startDate.toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
@@ -139,7 +139,7 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
                     day: 'numeric'
                   })}
                 </div>
-                <div className="text-gray-600 dark:text-gray-400">
+                <div className="text-muted-foreground">
                   {event.startDate.toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -158,33 +158,33 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
               <>
                 {metadata.location && (
                   <div className="flex items-center gap-3 text-sm">
-                    <MapPin className="h-5 w-5 sm:h-4 sm:w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-900 dark:text-gray-100">{metadata.location}</span>
+                    <MapPin className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-foreground">{metadata.location}</span>
                   </div>
                 )}
                 
                 {metadata.organization && (
                   <div className="flex items-center gap-3 text-sm">
-                    <Building2 className="h-5 w-5 sm:h-4 sm:w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-900 dark:text-gray-100">{metadata.organization}</span>
+                    <Building2 className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-foreground">{metadata.organization}</span>
                   </div>
                 )}
                 
                 {metadata.cost && (
                   <div className="flex items-center gap-3 text-sm">
-                    <DollarSign className="h-5 w-5 sm:h-4 sm:w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-900 dark:text-gray-100">{metadata.cost}</span>
+                    <DollarSign className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-foreground">{metadata.cost}</span>
                   </div>
                 )}
                 
                 {metadata.website && (
                   <div className="flex items-center gap-3 text-sm">
-                    <ExternalLink className="h-5 w-5 sm:h-4 sm:w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                    <ExternalLink className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                     <a 
                       href={metadata.website} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="inline-block text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100 hover:underline transition-colors break-all cursor-pointer"
+                      className="inline-block text-primary hover:text-primary/80 hover:underline transition-colors break-all cursor-pointer"
                       style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}
                     >
                       Event Website
@@ -194,12 +194,12 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
                 
                 <div className="flex items-center gap-3">
                   {metadata.category && (
-                    <Badge className={categoryStyles[metadata.category as keyof typeof categoryStyles] || 'bg-gray-100 text-gray-800'}>
+                    <Badge className={categoryStyles[metadata.category as keyof typeof categoryStyles] || 'bg-muted text-foreground'}>
                       {metadata.category.charAt(0).toUpperCase() + metadata.category.slice(1)}
                     </Badge>
                   )}
                   {metadata.registrationRequired && (
-                    <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">Registration Required</Badge>
+                    <Badge variant="outline" className="border-border text-foreground">Registration Required</Badge>
                   )}
                 </div>
               </>
@@ -208,11 +208,11 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
         </div>
         
         <DialogFooter className="flex-col sm:flex-col gap-2">
-          <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">Add to your calendar:</div>
+          <div className="text-sm text-muted-foreground mb-2">Add to your calendar:</div>
           <div className="flex gap-2 w-full">
             <Button
               variant="outline"
-              className="flex-1 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 text-xs sm:text-sm"
+              className="flex-1 border-border bg-card text-foreground hover:bg-muted text-xs sm:text-sm"
               onClick={() => window.open(generateCalendarLink('google'), '_blank')}
             >
               <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
@@ -220,7 +220,7 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
             </Button>
             <Button
               variant="outline"
-              className="flex-1 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 text-xs sm:text-sm"
+              className="flex-1 border-border bg-card text-foreground hover:bg-muted text-xs sm:text-sm"
               onClick={() => {
                 const link = generateCalendarLink('outlook');
                 const a = document.createElement('a');
@@ -234,7 +234,7 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
             </Button>
             <Button
               variant="outline"
-              className="flex-1 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 text-xs sm:text-sm"
+              className="flex-1 border-border bg-card text-foreground hover:bg-muted text-xs sm:text-sm"
               onClick={() => {
                 const link = generateCalendarLink('apple');
                 const a = document.createElement('a');
