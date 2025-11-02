@@ -172,7 +172,8 @@ export function MonthView({
     return eventList.map((event) => {
       const metadata = eventMetadata[event.id];
       const variant = getCategoryVariant(metadata?.category, categoryMappings);
-      const dotColorClass = getVariantColorClass(variant);
+      const colorClass = getVariantColorClass(variant);
+      const categoryColor = colorClass.replace('bg-', 'after:bg-');
       const start = new Date(event.startDate);
       const end = new Date(event.endDate);
       const timesValid = !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime());
@@ -182,25 +183,20 @@ export function MonthView({
       return (
         <div
           key={event.id}
-          className="rounded-md border border-gray-200 dark:border-border bg-muted dark:bg-card p-2 text-xs shadow-sm cursor-pointer transition-colors hover:bg-card dark:hover:bg-muted"
+          className={`bg-muted dark:bg-card relative rounded-md p-2 pl-6 text-xs text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-card dark:hover:bg-muted transition-colors border border-gray-200 dark:border-border shadow-sm ${categoryColor}`}
           onClick={(e) => {
             e.stopPropagation();
             onEventClick?.(event);
           }}
         >
-          <div className="flex items-start gap-1.5">
-            <span className={`mt-1 inline-flex h-1.5 w-1.5 flex-shrink-0 rounded-full ${dotColorClass}`}></span>
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-[13px] text-gray-900 dark:text-foreground leading-tight">
-                {event.title}
-              </div>
-              {timeLabel && (
-                <div className="mt-0.5 text-[11px] text-gray-900 dark:text-foreground">
-                  {timeLabel}
-                </div>
-              )}
-            </div>
+          <div className="font-medium text-[13px] text-gray-900 dark:text-foreground leading-tight">
+            {event.title}
           </div>
+          {timeLabel && (
+            <div className="mt-0.5 text-[11px] text-gray-900 dark:text-foreground">
+              {timeLabel}
+            </div>
+          )}
         </div>
       );
     });

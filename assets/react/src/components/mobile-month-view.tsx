@@ -87,29 +87,29 @@ export function MobileMonthView({ events, eventMetadata, categoryMappings, onEve
   }
 
   return (
-    <Card className="w-full py-4 mobile-calendar bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+    <Card className="w-full py-4 mobile-calendar bg-white dark:bg-card border-gray-200 dark:border-border">
       <CardContent className="px-4">
         {/* Simple calendar header with navigation */}
         <div className="flex items-center justify-between mb-4 gap-2">
-          <Button 
+          <Button
             variant="outline"
             size="sm"
             onClick={handlePrevMonth}
-            className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 flex-shrink-0"
+            className="flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden xs:inline">Prev</span>
           </Button>
-          
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 text-center flex-1 min-w-0 truncate">
+
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-foreground text-center flex-1 min-w-0 truncate">
             {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </h3>
-          
-          <Button 
+
+          <Button
             variant="outline"
             size="sm"
             onClick={handleNextMonth}
-            className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 flex-shrink-0"
+            className="flex-shrink-0"
           >
             <span className="hidden xs:inline">Next</span>
             <ArrowRight className="h-4 w-4" />
@@ -119,7 +119,7 @@ export function MobileMonthView({ events, eventMetadata, categoryMappings, onEve
         {/* Calendar grid */}
         <div className="grid grid-cols-7 gap-1 mb-4">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="text-center text-sm font-medium py-2 text-gray-600 dark:text-gray-400">
+            <div key={day} className="text-center text-sm font-medium py-2 text-gray-900 dark:text-foreground">
               {day}
             </div>
           ))}
@@ -139,9 +139,9 @@ export function MobileMonthView({ events, eventMetadata, categoryMappings, onEve
                 onClick={() => setSelectedDate(day)}
                 className={`
                   p-2 text-sm rounded transition-colors relative focus:outline-none
-                  ${isCurrentMonth ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}
-                  ${isSelected ? 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700' : 'hover:bg-gray-100 dark:hover:bg-gray-600'}
-                  ${isToday && !isSelected ? 'bg-gray-200 dark:bg-gray-600 font-semibold' : ''}
+                  ${isCurrentMonth ? 'text-gray-900 dark:text-foreground' : 'text-gray-500 dark:text-muted-foreground'}
+                  ${isSelected ? 'bg-blue-500 dark:bg-primary text-white dark:text-primary-foreground hover:bg-blue-600 dark:hover:bg-primary/90' : 'hover:bg-gray-100 dark:hover:bg-muted'}
+                  ${isToday && !isSelected ? 'bg-gray-200 dark:bg-muted font-semibold' : ''}
                 `}
               >
                 {day.getDate()}
@@ -156,9 +156,9 @@ export function MobileMonthView({ events, eventMetadata, categoryMappings, onEve
           })}
         </div>
       </CardContent>
-      <CardFooter className="flex flex-col items-start gap-3 border-t border-gray-200 dark:border-gray-600 px-4 !pt-4">
+      <CardFooter className="flex flex-col items-start gap-3 border-t border-gray-200 dark:border-border px-4 !pt-4">
         <div className="flex w-full items-center justify-between px-1">
-          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          <div className="text-sm font-medium text-gray-900 dark:text-foreground">
             {selectedDate?.toLocaleDateString("en-US", {
               day: "numeric",
               month: "long",
@@ -168,7 +168,7 @@ export function MobileMonthView({ events, eventMetadata, categoryMappings, onEve
         </div>
         <div className="flex w-full flex-col gap-2">
           {selectedDateEvents.length === 0 ? (
-            <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+            <div className="text-sm text-gray-500 dark:text-muted-foreground text-center py-4">
               No events on this day
             </div>
           ) : (
@@ -181,11 +181,11 @@ export function MobileMonthView({ events, eventMetadata, categoryMappings, onEve
               return (
                 <button
                   key={event.id}
-                  className={`bg-gray-50 dark:bg-gray-700 relative rounded-md p-2 pl-6 text-sm text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none ${categoryColor}`}
+                  className={`bg-muted dark:bg-card relative rounded-md p-2 pl-6 text-sm text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-card dark:hover:bg-muted transition-colors focus:outline-none border border-gray-200 dark:border-border ${categoryColor}`}
                   onClick={() => onEventClick?.(event)}
                 >
-                  <div className="font-medium text-gray-900 dark:text-gray-100">{event.title}</div>
-                  <div className="text-muted-foreground dark:text-gray-400 text-xs">
+                  <div className="font-medium text-gray-900 dark:text-foreground">{event.title}</div>
+                  <div className="text-muted-foreground dark:text-muted-foreground text-xs">
                     {formatTime(event.startDate)} - {formatTime(event.endDate)}
                     {metadata && ` • ${metadata.location}`}
                   </div>
