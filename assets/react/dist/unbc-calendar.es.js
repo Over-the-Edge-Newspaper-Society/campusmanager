@@ -18289,7 +18289,7 @@ function z2({
     return /* @__PURE__ */ p.jsxs(
       "div",
       {
-        className: `bg-muted dark:bg-card relative rounded-md p-2 pl-6 text-xs text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-card dark:hover:bg-muted transition-colors border border-gray-200 dark:border-border shadow-sm ${pe}`,
+        className: `bg-card dark:bg-card relative rounded-md p-2 pl-6 text-xs text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-muted dark:hover:bg-muted transition-colors border border-gray-200 dark:border-border shadow-sm ${pe}`,
         onClick: (Ws) => {
           Ws.stopPropagation(), o == null || o(_);
         },
@@ -18763,7 +18763,7 @@ function U2({ events: e, eventMetadata: t, categoryMappings: n, onEventClick: r,
         return /* @__PURE__ */ p.jsxs(
           "button",
           {
-            className: `bg-muted dark:bg-card relative rounded-md p-2 pl-6 text-sm text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-card dark:hover:bg-muted transition-colors focus:outline-none border border-gray-200 dark:border-border ${I}`,
+            className: `bg-card dark:bg-card relative rounded-md p-2 pl-6 text-sm text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-muted dark:hover:bg-muted transition-colors focus:outline-none border border-gray-200 dark:border-border ${I}`,
             onClick: () => r == null ? void 0 : r(D),
             children: [
               /* @__PURE__ */ p.jsx("div", { className: "font-medium text-gray-900 dark:text-foreground", children: D.title }),
