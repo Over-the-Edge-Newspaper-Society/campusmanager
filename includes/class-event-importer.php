@@ -25,13 +25,18 @@ class UNBC_Event_Importer {
 
     public function enqueue_admin_scripts($hook) {
         if ($hook === 'event_page_event-importer') {
+            $script_file = plugin_dir_path(__FILE__) . '../assets/js/event-importer.js';
+            $style_file = plugin_dir_path(__FILE__) . '../assets/css/event-importer.css';
+            $script_version = file_exists($script_file) ? filemtime($script_file) : null;
+            $style_version = file_exists($style_file) ? filemtime($style_file) : null;
+
             wp_enqueue_script('jquery-ui-sortable');
-            wp_enqueue_script('unbc-event-importer', plugin_dir_url(__FILE__) . '../assets/js/event-importer.js', array('jquery', 'jquery-ui-sortable'), '1.0.0', true);
+            wp_enqueue_script('unbc-event-importer', plugin_dir_url(__FILE__) . '../assets/js/event-importer.js', array('jquery', 'jquery-ui-sortable'), $script_version, true);
             wp_localize_script('unbc-event-importer', 'unbcImporter', array(
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('unbc_import_nonce')
             ));
-            wp_enqueue_style('unbc-event-importer', plugin_dir_url(__FILE__) . '../assets/css/event-importer.css', array(), '1.0.0');
+            wp_enqueue_style('unbc-event-importer', plugin_dir_url(__FILE__) . '../assets/css/event-importer.css', array(), $style_version);
         }
     }
 

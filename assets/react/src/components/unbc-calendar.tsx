@@ -38,6 +38,7 @@ interface UNBCCalendarProps {
   initialOrganizationFilter?: string;
   showWeekView?: boolean;
   showDayView?: boolean;
+  showCost?: boolean;
   eventSortOrder?: 'asc' | 'desc';
   initialMonthDisplayMode?: MonthDisplayMode;
   initialMonthSidebarPosition?: "left" | "right";
@@ -49,6 +50,7 @@ export default function UNBCCalendar({
   initialOrganizationFilter = "all",
   showWeekView = true,
   showDayView = true,
+  showCost = true,
   eventSortOrder = 'asc',
   initialMonthDisplayMode = "popover",
   initialMonthSidebarPosition = "right"
@@ -770,25 +772,27 @@ export default function UNBCCalendar({
 
           <TabsContent value="list" className="px-6 pb-6 md:p-6">
             <div className="hidden md:block">
-              <EventListView 
-                events={events.slice(0, listDisplayCount)} 
-                eventMetadata={eventMetadata} 
-                categoryMappings={categoryMappings} 
+              <EventListView
+                events={events.slice(0, listDisplayCount)}
+                eventMetadata={eventMetadata}
+                categoryMappings={categoryMappings}
                 onEventClick={handleEventClick}
                 onLoadMore={handleLoadMore}
                 hasMore={events.length > listDisplayCount}
                 loading={loading}
+                showCost={showCost}
               />
             </div>
             <div className="block md:hidden">
-              <MobileListView 
-                events={events.slice(0, listDisplayCount)} 
-                eventMetadata={eventMetadata} 
-                categoryMappings={categoryMappings} 
+              <MobileListView
+                events={events.slice(0, listDisplayCount)}
+                eventMetadata={eventMetadata}
+                categoryMappings={categoryMappings}
                 onEventClick={handleEventClick}
                 onLoadMore={handleLoadMore}
                 hasMore={events.length > listDisplayCount}
                 loading={loading}
+                showCost={showCost}
               />
             </div>
           </TabsContent>
@@ -797,11 +801,12 @@ export default function UNBCCalendar({
 
 
       {/* Event Details Dialog */}
-      <EventDialog 
+      <EventDialog
         event={selectedEvent}
         eventMetadata={eventMetadata}
         open={showEventDialog}
         onOpenChange={setShowEventDialog}
+        showCost={showCost}
       />
     </div>
   );

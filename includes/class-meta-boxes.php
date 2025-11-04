@@ -22,7 +22,10 @@ class UNBC_Events_Meta_Boxes {
         
         global $post;
         if ($post && $post->post_type === 'organization') {
-            wp_enqueue_script('unbc-org-restrictions', plugin_dir_url(dirname(__FILE__)) . 'js/organization-restrictions.js', array('jquery'), '1.0.0', true);
+            $script_file = plugin_dir_path(dirname(__FILE__)) . 'js/organization-restrictions.js';
+            $script_version = file_exists($script_file) ? filemtime($script_file) : null;
+
+            wp_enqueue_script('unbc-org-restrictions', plugin_dir_url(dirname(__FILE__)) . 'js/organization-restrictions.js', array('jquery'), $script_version, true);
         }
     }
 

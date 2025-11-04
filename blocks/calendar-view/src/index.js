@@ -8,7 +8,7 @@ import { registerBlockType } from '@wordpress/blocks';
 registerBlockType('unbc/calendar-view', {
     edit: function(props) {
     const { attributes, setAttributes } = props;
-    const { view, categoryFilter, organizationFilter, listInitialItems, listLoadMoreCount, showWeekView, showDayView, eventSortOrder, monthDisplayMode = 'popover', monthSidebarPosition = 'right' } = attributes;
+    const { view, categoryFilter, organizationFilter, listInitialItems, listLoadMoreCount, showWeekView, showDayView, showCost = true, eventSortOrder, monthDisplayMode = 'popover', monthSidebarPosition = 'right' } = attributes;
 
     const sidebarDescription = (() => {
         if (monthDisplayMode === 'sidebar') {
@@ -83,6 +83,14 @@ registerBlockType('unbc/calendar-view', {
                     checked: showDayView,
                     onChange: function(newValue) {
                         setAttributes({ showDayView: newValue });
+                    }
+                }),
+                wp.element.createElement(ToggleControl, {
+                    label: __('Show Cost Field', 'unbc-events'),
+                    help: __('Display event cost in list view and event dialog', 'unbc-events'),
+                    checked: showCost,
+                    onChange: function(newValue) {
+                        setAttributes({ showCost: newValue });
                     }
                 })
             ),

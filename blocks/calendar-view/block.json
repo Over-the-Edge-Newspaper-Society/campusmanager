@@ -38,6 +38,10 @@
             "type": "boolean",
             "default": true
         },
+        "showCost": {
+            "type": "boolean",
+            "default": true
+        },
         "eventSortOrder": {
             "type": "string",
             "default": "asc",

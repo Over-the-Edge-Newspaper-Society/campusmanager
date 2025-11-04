@@ -5,8 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:widget": "vite --config vite.config.widget.js",
     "build": "vite build",
     "build:wordpress": "vite build --config vite.config.js",
+    "build:widget": "vite build --config vite.config.widget.js",
+    "build:blocks": "cd ../../blocks/calendar-view && npm run build",
+    "build:all": "npm run build:wordpress && npm run build:widget && npm run build:blocks",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },

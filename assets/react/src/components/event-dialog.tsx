@@ -10,9 +10,10 @@ interface EventDialogProps {
   eventMetadata: Record<string, EventMetadata>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  showCost?: boolean;
 }
 
-export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventDialogProps) {
+export function EventDialog({ event, eventMetadata, open, onOpenChange, showCost = true }: EventDialogProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = React.useState(false);
   
   // Debug website URL
@@ -169,14 +170,14 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange }: EventD
                     <span className="text-foreground">{metadata.organization}</span>
                   </div>
                 )}
-                
-                {metadata.cost && (
+
+                {showCost && metadata.cost && (
                   <div className="flex items-center gap-3 text-sm">
                     <DollarSign className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                     <span className="text-foreground">{metadata.cost}</span>
                   </div>
                 )}
-                
+
                 {metadata.website && (
                   <div className="flex items-center gap-3 text-sm">
                     <ExternalLink className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />

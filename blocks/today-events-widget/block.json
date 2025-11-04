@@ -1,0 +1,28 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 2,
+	"name": "unbc/today-events-widget",
+	"title": "Today's Events Widget",
+	"category": "campus-manager",
+	"icon": "calendar",
+	"description": "Compact list of today's events rendered with the React widget.",
+	"keywords": ["events", "today", "widget"],
+	"textdomain": "unbc-events",
+	"attributes": {
+		"title": {
+			"type": "string",
+			"default": "Today's Events"
+		},
+		"maxEvents": {
+			"type": "number",
+			"default": 10
+		}
+	},
+	"supports": {
+		"html": false,
+		"align": ["wide", "full"]
+	},
+	"editorScript": "file:./build/index.js",
+	"editorStyle": "file:./editor.css",
+	"style": "file:./style.css"
+}

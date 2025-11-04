@@ -21,6 +21,7 @@ window.renderUNBCCalendar = function(containerId) {
   const organizationFilter = container.dataset.organizationFilter || 'all';
   const showWeekView = container.dataset.showWeekView !== 'false';
   const showDayView = container.dataset.showDayView !== 'false';
+  const showCost = container.dataset.showCost !== 'false';
   const eventSortOrder = container.dataset.eventSortOrder || 'asc';
   const monthDisplayMode = container.dataset.monthDisplayMode || 'popover';
   const monthSidebarPosition = container.dataset.monthSidebarPosition || 'right';
@@ -33,6 +34,7 @@ window.renderUNBCCalendar = function(containerId) {
         initialOrganizationFilter={organizationFilter}
         showWeekView={showWeekView}
         showDayView={showDayView}
+        showCost={showCost}
         eventSortOrder={eventSortOrder}
         initialMonthDisplayMode={monthDisplayMode}
         initialMonthSidebarPosition={monthSidebarPosition}

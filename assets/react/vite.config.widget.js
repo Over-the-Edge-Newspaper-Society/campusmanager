@@ -16,16 +16,16 @@ export default defineConfig({
     emptyOutDir: false,
     sourcemap: false,
     lib: {
-      entry: resolve(fileURLToPath(new URL('./src/wordpress-integration.jsx', import.meta.url))),
-      name: 'UNBCCalendar',
-      fileName: (format) => `unbc-calendar.${format}.js`
+      entry: resolve(fileURLToPath(new URL('./src/widget-main.jsx', import.meta.url))),
+      name: 'UNBCTodayEventsWidget',
+      fileName: (format) => `unbc-today-events-widget.${format}.js`
     },
     rollupOptions: {
       external: [],
       output: {
         globals: {},
         assetFileNames: (assetInfo) => {
-          if (assetInfo.name === 'style.css') return 'style.css';
+          if (assetInfo.name === 'style.css') return 'widget-style.css';
           return assetInfo.name;
         }
       }

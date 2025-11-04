@@ -1,0 +1,19 @@
+.unbc-today-events-widget-preview {
+    border: 2px dashed #ccc;
+    border-radius: 6px;
+    padding: 32px;
+    text-align: center;
+    background-color: #f9f9f9;
+}
+
+.unbc-today-events-widget-preview h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.unbc-today-events-widget-preview p {
+    margin: 0;
+    color: #666;
+    font-size: 13px;
+}

@@ -12,9 +12,10 @@ interface ListViewProps {
   onLoadMore?: () => void;
   hasMore?: boolean;
   loading?: boolean;
+  showCost?: boolean;
 }
 
-export function EventListView({ events, eventMetadata, categoryMappings, onEventClick, onLoadMore, hasMore, loading }: ListViewProps) {
+export function EventListView({ events, eventMetadata, categoryMappings, onEventClick, onLoadMore, hasMore, loading, showCost = true }: ListViewProps) {
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
@@ -121,7 +122,7 @@ export function EventListView({ events, eventMetadata, categoryMappings, onEvent
                             )}
                           </div>
                         </div>
-                        {metadata && (
+                        {showCost && metadata && metadata.cost && (
                           <div className="text-sm font-semibold text-green-600 dark:text-green-400 flex-shrink-0 ml-2">
                             {metadata.cost}
                           </div>
@@ -157,7 +158,7 @@ export function EventListView({ events, eventMetadata, categoryMappings, onEvent
   );
 }
 
-export function MobileListView({ events, eventMetadata, categoryMappings, onEventClick, onLoadMore, hasMore, loading }: ListViewProps) {
+export function MobileListView({ events, eventMetadata, categoryMappings, onEventClick, onLoadMore, hasMore, loading, showCost = true }: ListViewProps) {
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
@@ -264,7 +265,7 @@ export function MobileListView({ events, eventMetadata, categoryMappings, onEven
                             )}
                           </div>
                         </div>
-                        {metadata && (
+                        {showCost && metadata && metadata.cost && (
                           <div className="text-sm font-semibold text-green-600 dark:text-green-400 flex-shrink-0 ml-2">
                             {metadata.cost}
                           </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import UNBCCalendar from './components/unbc-calendar';
+import { TodayEventsWidget } from './components/today-events-widget';
 import { Moon, Sun } from 'lucide-react';
 
 function AppDev() {
@@ -11,6 +12,7 @@ function AppDev() {
   
   const [showWeekView, setShowWeekView] = useState(true);
   const [showDayView, setShowDayView] = useState(true);
+  const [showCost, setShowCost] = useState(true);
   const [monthDisplayMode, setMonthDisplayMode] = useState('popover');
   const [sidebarPosition, setSidebarPosition] = useState('right');
   
@@ -63,6 +65,15 @@ function AppDev() {
                   className="rounded"
                 />
                 Show Day View
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={showCost}
+                  onChange={(e) => setShowCost(e.target.checked)}
+                  className="rounded"
+                />
+                Show Cost
               </label>
             </div>
 
@@ -137,13 +148,27 @@ function AppDev() {
           </div>
         </div>
         
-        {/* Main Calendar Component */}
-        <UNBCCalendar 
-          showWeekView={showWeekView}
-          showDayView={showDayView}
-          initialMonthDisplayMode={monthDisplayMode}
-          initialMonthSidebarPosition={sidebarPosition}
-        />
+        {/* Main Calendar Component with Widget Sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+          <div>
+            <UNBCCalendar
+              showWeekView={showWeekView}
+              showDayView={showDayView}
+              showCost={showCost}
+              initialMonthDisplayMode={monthDisplayMode}
+              initialMonthSidebarPosition={sidebarPosition}
+            />
+          </div>
+
+          {/* Widget Demo */}
+          <div className="space-y-4">
+            <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 px-4 py-3 rounded-lg">
+              <div className="font-semibold mb-1">Widget Demo</div>
+              <p className="text-xs">This is how the widget will appear in a WordPress sidebar</p>
+            </div>
+            <TodayEventsWidget />
+          </div>
+        </div>
       </div>
     </div>
   );
