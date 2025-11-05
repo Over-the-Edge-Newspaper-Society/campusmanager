@@ -79,9 +79,9 @@ export function EventListView({ events, eventMetadata, categoryMappings, onEvent
             <div key={dateKey} className="space-y-3">
               {/* Date Header */}
               <div className="flex items-center gap-3">
-                <h3 className="text-lg font-semibold text-foreground">{dateLabel}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-foreground">{dateLabel}</h3>
                 <div className="flex-1 h-px bg-border"></div>
-                <span className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                <span className="text-xs font-semibold text-gray-900 dark:text-muted-foreground bg-gray-50 dark:bg-muted px-2 py-0.5 rounded-full border border-gray-200 dark:border-border">
                   {dateEvents.length} event{dateEvents.length > 1 ? 's' : ''}
                 </span>
               </div>
@@ -97,25 +97,25 @@ export function EventListView({ events, eventMetadata, categoryMappings, onEvent
                   return (
                     <div
                       key={event.id}
-                      className={`bg-muted dark:bg-accent relative rounded-md p-3 pl-6 text-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-muted/80 dark:hover:bg-accent/80 transition-colors ${categoryColor}`}
+                      className={`bg-card dark:bg-card relative rounded-md p-3 pl-6 text-sm border border-gray-200 dark:border-border shadow-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-muted dark:hover:bg-muted transition-colors ${categoryColor}`}
                       onClick={() => onEventClick?.(event)}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-grow min-w-0">
-                          <div className="font-medium text-foreground mb-2">{event.title}</div>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                          <div className="font-medium text-gray-900 dark:text-foreground mb-2">{event.title}</div>
+                          <div className="space-y-1 text-xs text-gray-900 dark:text-foreground">
+                            <div className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               <span>{formatTime(event.startDate)} - {formatTime(event.endDate)}</span>
                             </div>
                             {metadata?.location && (
-                              <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                              <div className="flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
                                 <span>{metadata.location}</span>
                               </div>
                             )}
                             {metadata?.organization && (
-                              <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                              <div className="flex items-center gap-1">
                                 <Building2 className="h-3 w-3" />
                                 <span>{metadata.organization}</span>
                               </div>
@@ -222,9 +222,9 @@ export function MobileListView({ events, eventMetadata, categoryMappings, onEven
             <div key={dateKey} className="space-y-3">
               {/* Date Header */}
               <div className="flex items-center gap-3">
-                <h3 className="text-base font-semibold text-foreground">{dateLabel}</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-foreground">{dateLabel}</h3>
                 <div className="flex-1 h-px bg-border"></div>
-                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                <span className="text-xs font-semibold text-gray-900 dark:text-muted-foreground bg-gray-50 dark:bg-muted px-2 py-0.5 rounded-full border border-gray-200 dark:border-border">
                   {dateEvents.length}
                 </span>
               </div>
@@ -240,25 +240,25 @@ export function MobileListView({ events, eventMetadata, categoryMappings, onEven
                   return (
                     <div
                       key={event.id}
-                      className={`bg-muted dark:bg-accent relative rounded-md p-3 pl-6 text-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-muted/80 dark:hover:bg-accent/80 transition-colors ${categoryColor}`}
+                      className={`bg-card dark:bg-card relative rounded-md p-3 pl-6 text-sm border border-gray-200 dark:border-border shadow-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-muted dark:hover:bg-muted transition-colors ${categoryColor}`}
                       onClick={() => onEventClick?.(event)}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-grow min-w-0">
-                          <div className="font-medium text-foreground mb-2">{event.title}</div>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                          <div className="font-medium text-gray-900 dark:text-foreground mb-2">{event.title}</div>
+                          <div className="space-y-1 text-xs text-gray-900 dark:text-foreground">
+                            <div className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               <span>{formatTime(event.startDate)} - {formatTime(event.endDate)}</span>
                             </div>
                             {metadata?.location && (
-                              <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                              <div className="flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
                                 <span>{metadata.location}</span>
                               </div>
                             )}
                             {metadata?.organization && (
-                              <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                              <div className="flex items-center gap-1">
                                 <Building2 className="h-3 w-3" />
                                 <span>{metadata.organization}</span>
                               </div>

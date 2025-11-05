@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import UNBCCalendar from './components/unbc-calendar';
 import { TodayEventsWidget } from './components/today-events-widget';
+import { OrganizationEventsList } from './components/organization-events-list';
+import { EventDialog } from './components/event-dialog';
+import { useEventsDev } from './hooks/useEventsDev';
 import { Moon, Sun } from 'lucide-react';
 
 function AppDev() {
@@ -9,12 +12,19 @@ function AppDev() {
     const saved = localStorage.getItem('darkMode');
     return saved ? JSON.parse(saved) : false;
   });
-  
+
   const [showWeekView, setShowWeekView] = useState(true);
   const [showDayView, setShowDayView] = useState(true);
   const [showCost, setShowCost] = useState(true);
   const [monthDisplayMode, setMonthDisplayMode] = useState('popover');
   const [sidebarPosition, setSidebarPosition] = useState('right');
+
+  // State for events list demo
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showEventDialog, setShowEventDialog] = useState(false);
+
+  // Use dev events hook for sample data
+  const { events, eventMetadata, categoryMappings, loading } = useEventsDev();
   
   useEffect(() => {
     // Apply dark mode class to html element
@@ -29,6 +39,11 @@ function AppDev() {
   
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
+  };
+
+  const handleEventClick = (event) => {
+    setSelectedEvent(event);
+    setShowEventDialog(true);
   };
   
   return (
@@ -168,6 +183,36 @@ function AppDev() {
             </div>
             <TodayEventsWidget />
           </div>
+        </div>
+
+        {/* Events List Block Demo */}
+        <div className="mt-8">
+          <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 px-4 py-3 rounded-lg mb-4">
+            <div className="font-semibold mb-1">Events List Block Demo</div>
+            <p className="text-xs">This shows how the events list block (unbc/events-list) will appear on organization pages</p>
+          </div>
+          {loading ? (
+            <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+              Loading events...
+            </div>
+          ) : (
+            <>
+              <OrganizationEventsList
+                events={events}
+                eventMetadata={eventMetadata}
+                categoryMappings={categoryMappings}
+                limit={10}
+                showPastEvents={false}
+                onEventClick={handleEventClick}
+              />
+              <EventDialog
+                event={selectedEvent}
+                eventMetadata={eventMetadata}
+                open={showEventDialog}
+                onOpenChange={setShowEventDialog}
+              />
+            </>
+          )}
         </div>
       </div>
     </div>

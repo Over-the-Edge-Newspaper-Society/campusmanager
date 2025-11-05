@@ -10086,21 +10086,17 @@ function uu({
     "div",
     {
       className: zt(
-        "inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-slate-300 focus:ring-offset-2",
+        "inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950",
         {
-          default: "border-transparent bg-gray-500 text-white hover:bg-gray-500/80",
-          // Gray for uncategorized
-          secondary: "border-transparent bg-slate-100 text-slate-900 hover:bg-slate-100/80",
-          destructive: "border-transparent bg-red-500 text-slate-50 hover:bg-red-500/80",
-          outline: "text-slate-950 dark:text-slate-50 border-slate-200 dark:border-slate-600",
-          success: "border-transparent bg-green-500 text-white hover:bg-green-500/80",
-          // Green for UNBC
-          primary: "border-transparent bg-purple-500 text-white hover:bg-purple-500/80",
-          // Purple for Clubs  
-          warning: "border-transparent bg-blue-500 text-white hover:bg-blue-500/80",
-          // Blue for Sports
-          danger: "border-transparent bg-red-500 text-white hover:bg-red-500/80"
-          // Red for Organizations
+          default: "border-transparent bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900 hover:bg-gray-900/90 dark:hover:bg-gray-200",
+          // Neutral pill
+          secondary: "border border-gray-200 dark:border-border bg-gray-50 text-gray-900 dark:bg-muted dark:text-foreground hover:bg-gray-100 dark:hover:bg-muted/80",
+          destructive: "border-transparent bg-red-600 text-white hover:bg-red-600/90",
+          outline: "border border-gray-200 dark:border-border text-gray-900 dark:text-foreground bg-transparent",
+          success: "border-transparent bg-green-600 text-white hover:bg-green-600/90",
+          primary: "border-transparent bg-purple-600 text-white hover:bg-purple-600/90",
+          warning: "border-transparent bg-blue-600 text-white hover:bg-blue-600/90",
+          danger: "border-transparent bg-red-600 text-white hover:bg-red-600/90"
         }[t],
         {
           default: "px-2.5 py-0.5 text-xs",
@@ -10181,14 +10177,14 @@ function Rv({ event: e, eventMetadata: t, open: n, onOpenChange: r, showCost: o 
     /* @__PURE__ */ S.jsx("div", { className: "space-y-4 my-4", children: /* @__PURE__ */ S.jsxs("div", { className: "space-y-3", children: [
       /* @__PURE__ */ S.jsxs("div", { className: "flex items-center gap-3 text-sm", children: [
         /* @__PURE__ */ S.jsx(qm, { className: "h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" }),
-        /* @__PURE__ */ S.jsxs("div", { children: [
-          /* @__PURE__ */ S.jsx("div", { className: "font-medium text-foreground", children: e.startDate.toLocaleDateString("en-US", {
+        /* @__PURE__ */ S.jsxs("div", { className: "space-y-1 text-gray-900 dark:text-foreground", children: [
+          /* @__PURE__ */ S.jsx("div", { className: "font-medium", children: e.startDate.toLocaleDateString("en-US", {
             weekday: "long",
             year: "numeric",
             month: "long",
             day: "numeric"
           }) }),
-          /* @__PURE__ */ S.jsxs("div", { className: "text-muted-foreground", children: [
+          /* @__PURE__ */ S.jsxs("div", { className: "text-gray-600 dark:text-muted-foreground text-sm", children: [
             e.startDate.toLocaleTimeString("en-US", {
               hour: "numeric",
               minute: "2-digit",
@@ -10202,20 +10198,20 @@ function Rv({ event: e, eventMetadata: t, open: n, onOpenChange: r, showCost: o 
           ] })
         ] })
       ] }),
-      s && /* @__PURE__ */ S.jsxs(S.Fragment, { children: [
-        s.location && /* @__PURE__ */ S.jsxs("div", { className: "flex items-center gap-3 text-sm", children: [
+      s && /* @__PURE__ */ S.jsxs("div", { className: "space-y-2 text-sm text-gray-900 dark:text-foreground", children: [
+        s.location && /* @__PURE__ */ S.jsxs("div", { className: "flex items-center gap-3", children: [
           /* @__PURE__ */ S.jsx(rh, { className: "h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" }),
-          /* @__PURE__ */ S.jsx("span", { className: "text-foreground", children: s.location })
+          /* @__PURE__ */ S.jsx("span", { children: s.location })
         ] }),
-        s.organization && /* @__PURE__ */ S.jsxs("div", { className: "flex items-center gap-3 text-sm", children: [
+        s.organization && /* @__PURE__ */ S.jsxs("div", { className: "flex items-center gap-3", children: [
           /* @__PURE__ */ S.jsx(Xm, { className: "h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" }),
-          /* @__PURE__ */ S.jsx("span", { className: "text-foreground", children: s.organization })
+          /* @__PURE__ */ S.jsx("span", { children: s.organization })
         ] }),
-        o && s.cost && /* @__PURE__ */ S.jsxs("div", { className: "flex items-center gap-3 text-sm", children: [
+        o && s.cost && /* @__PURE__ */ S.jsxs("div", { className: "flex items-center gap-3", children: [
           /* @__PURE__ */ S.jsx(eh, { className: "h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" }),
-          /* @__PURE__ */ S.jsx("span", { className: "text-foreground", children: s.cost })
+          /* @__PURE__ */ S.jsx("span", { children: s.cost })
         ] }),
-        s.website && /* @__PURE__ */ S.jsxs("div", { className: "flex items-center gap-3 text-sm", children: [
+        s.website && /* @__PURE__ */ S.jsxs("div", { className: "flex items-center gap-3", children: [
           /* @__PURE__ */ S.jsx(th, { className: "h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" }),
           /* @__PURE__ */ S.jsx(
             "a",
@@ -10229,14 +10225,14 @@ function Rv({ event: e, eventMetadata: t, open: n, onOpenChange: r, showCost: o 
             }
           )
         ] }),
-        /* @__PURE__ */ S.jsxs("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ S.jsxs("div", { className: "flex items-center gap-3 pt-1", children: [
           s.category && /* @__PURE__ */ S.jsx(uu, { className: h[s.category] || "bg-muted text-foreground", children: s.category.charAt(0).toUpperCase() + s.category.slice(1) }),
-          s.registrationRequired && /* @__PURE__ */ S.jsx(uu, { variant: "outline", className: "border-border text-foreground", children: "Registration Required" })
+          s.registrationRequired && /* @__PURE__ */ S.jsx(uu, { variant: "outline", className: "border border-gray-200 dark:border-border text-gray-900 dark:text-foreground", children: "Registration Required" })
         ] })
       ] })
     ] }) }),
     /* @__PURE__ */ S.jsxs(vf, { className: "flex-col sm:flex-col gap-2", children: [
-      /* @__PURE__ */ S.jsx("div", { className: "text-sm text-muted-foreground mb-2", children: "Add to your calendar:" }),
+      /* @__PURE__ */ S.jsx("div", { className: "text-sm text-gray-700 dark:text-muted-foreground mb-2", children: "Add to your calendar:" }),
       /* @__PURE__ */ S.jsxs("div", { className: "flex gap-2 w-full", children: [
         /* @__PURE__ */ S.jsxs(
           mo,

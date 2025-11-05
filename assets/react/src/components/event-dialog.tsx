@@ -131,8 +131,8 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange, showCost
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-sm">
               <Clock className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
-              <div>
-                <div className="font-medium text-foreground">
+              <div className="space-y-1 text-gray-900 dark:text-foreground">
+                <div className="font-medium">
                   {event.startDate.toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
@@ -140,7 +140,7 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange, showCost
                     day: 'numeric'
                   })}
                 </div>
-                <div className="text-muted-foreground">
+                <div className="text-gray-600 dark:text-muted-foreground text-sm">
                   {event.startDate.toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -156,30 +156,30 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange, showCost
             </div>
             
             {metadata && (
-              <>
+              <div className="space-y-2 text-sm text-gray-900 dark:text-foreground">
                 {metadata.location && (
-                  <div className="flex items-center gap-3 text-sm">
+                  <div className="flex items-center gap-3">
                     <MapPin className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-foreground">{metadata.location}</span>
+                    <span>{metadata.location}</span>
                   </div>
                 )}
                 
                 {metadata.organization && (
-                  <div className="flex items-center gap-3 text-sm">
+                  <div className="flex items-center gap-3">
                     <Building2 className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-foreground">{metadata.organization}</span>
+                    <span>{metadata.organization}</span>
                   </div>
                 )}
 
                 {showCost && metadata.cost && (
-                  <div className="flex items-center gap-3 text-sm">
+                  <div className="flex items-center gap-3">
                     <DollarSign className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-foreground">{metadata.cost}</span>
+                    <span>{metadata.cost}</span>
                   </div>
                 )}
 
                 {metadata.website && (
-                  <div className="flex items-center gap-3 text-sm">
+                  <div className="flex items-center gap-3">
                     <ExternalLink className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                     <a 
                       href={metadata.website} 
@@ -193,23 +193,23 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange, showCost
                   </div>
                 )}
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 pt-1">
                   {metadata.category && (
                     <Badge className={categoryStyles[metadata.category as keyof typeof categoryStyles] || 'bg-muted text-foreground'}>
                       {metadata.category.charAt(0).toUpperCase() + metadata.category.slice(1)}
                     </Badge>
                   )}
                   {metadata.registrationRequired && (
-                    <Badge variant="outline" className="border-border text-foreground">Registration Required</Badge>
+                    <Badge variant="outline" className="border border-gray-200 dark:border-border text-gray-900 dark:text-foreground">Registration Required</Badge>
                   )}
                 </div>
-              </>
+              </div>
             )}
           </div>
         </div>
         
         <DialogFooter className="flex-col sm:flex-col gap-2">
-          <div className="text-sm text-muted-foreground mb-2">Add to your calendar:</div>
+          <div className="text-sm text-gray-700 dark:text-muted-foreground mb-2">Add to your calendar:</div>
           <div className="flex gap-2 w-full">
             <Button
               variant="outline"

@@ -15,16 +15,16 @@ function Badge({
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-slate-300 focus:ring-offset-2",
+        "inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-slate-950",
         {
-          'default': "border-transparent bg-gray-500 text-white hover:bg-gray-500/80", // Gray for uncategorized
-          'secondary': "border-transparent bg-slate-100 text-slate-900 hover:bg-slate-100/80",
-          'destructive': "border-transparent bg-red-500 text-slate-50 hover:bg-red-500/80",
-          'outline': "text-slate-950 dark:text-slate-50 border-slate-200 dark:border-slate-600",
-          'success': "border-transparent bg-green-500 text-white hover:bg-green-500/80", // Green for UNBC
-          'primary': "border-transparent bg-purple-500 text-white hover:bg-purple-500/80", // Purple for Clubs  
-          'warning': "border-transparent bg-blue-500 text-white hover:bg-blue-500/80", // Blue for Sports
-          'danger': "border-transparent bg-red-500 text-white hover:bg-red-500/80", // Red for Organizations
+          default: "border-transparent bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900 hover:bg-gray-900/90 dark:hover:bg-gray-200", // Neutral pill
+          secondary: "border border-gray-200 dark:border-border bg-gray-50 text-gray-900 dark:bg-muted dark:text-foreground hover:bg-gray-100 dark:hover:bg-muted/80",
+          destructive: "border-transparent bg-red-600 text-white hover:bg-red-600/90",
+          outline: "border border-gray-200 dark:border-border text-gray-900 dark:text-foreground bg-transparent",
+          success: "border-transparent bg-green-600 text-white hover:bg-green-600/90",
+          primary: "border-transparent bg-purple-600 text-white hover:bg-purple-600/90",
+          warning: "border-transparent bg-blue-600 text-white hover:bg-blue-600/90",
+          danger: "border-transparent bg-red-600 text-white hover:bg-red-600/90",
         }[variant],
         {
           'default': "px-2.5 py-0.5 text-xs",

@@ -247,6 +247,38 @@ class UNBC_Events_Post_Types {
                 'meta_box_cb' => false // We'll create custom meta boxes
             ));
         }
+
+        // Organization Type taxonomy (SLO vs Non-SLO)
+        if (!taxonomy_exists('org_type')) {
+            register_taxonomy('org_type', 'organization', array(
+                'labels' => array(
+                    'name' => 'Organization Type',
+                    'singular_name' => 'Type',
+                    'search_items' => 'Search Types',
+                    'all_items' => 'All Types',
+                    'edit_item' => 'Edit Type',
+                    'update_item' => 'Update Type',
+                    'add_new_item' => 'Add New Type',
+                    'new_item_name' => 'New Type Name',
+                    'menu_name' => 'Type',
+                ),
+                'hierarchical' => false,
+                'public' => true,
+                'show_in_rest' => true,
+                'show_admin_column' => true,
+                'show_in_quick_edit' => true,
+                'rewrite' => array('slug' => 'org-type'),
+                'meta_box_cb' => false // We'll create custom meta boxes
+            ));
+
+            // Create default terms
+            if (!term_exists('slo', 'org_type')) {
+                wp_insert_term('SLO', 'org_type', array('slug' => 'slo'));
+            }
+            if (!term_exists('non-slo', 'org_type')) {
+                wp_insert_term('Non-SLO', 'org_type', array('slug' => 'non-slo'));
+            }
+        }
     }
 
     public function register_meta_fields() {
@@ -461,17 +493,17 @@ class UNBC_Events_Post_Types {
         if (!$query->is_main_query() || is_admin()) {
             return;
         }
-        
+
         $club_post_slug = get_query_var('club_post_slug');
         $organization_slug = get_query_var('organization_slug');
-        
+
         if ($club_post_slug && $organization_slug) {
             // Find the organization by slug
             $organization = get_page_by_path($organization_slug, OBJECT, 'organization');
             if (!$organization) {
                 return;
             }
-            
+
             // Find the club post by slug and organization
             $club_posts = get_posts(array(
                 'post_type' => 'club_post',
@@ -485,7 +517,7 @@ class UNBC_Events_Post_Types {
                 ),
                 'numberposts' => 1
             ));
-            
+
             if (!empty($club_posts)) {
                 $query->set('post_type', 'club_post');
                 $query->set('p', $club_posts[0]->ID);

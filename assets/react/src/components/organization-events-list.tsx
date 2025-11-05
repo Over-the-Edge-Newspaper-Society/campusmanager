@@ -2,7 +2,7 @@ import React from "react";
 import { Badge } from "./ui/badge";
 import { CalendarDays, Clock, MapPin, Building2 } from "lucide-react";
 import type { Event, EventMetadata } from "../types";
-import { getCategoryVariant, getVariantAfterColorClass, type CategoryVariant } from "../utils/categoryColors";
+import { getCategoryVariant, getVariantColorClass, type CategoryVariant } from "../utils/categoryColors";
 
 interface OrganizationEventsListProps {
   events: Event[];
@@ -18,7 +18,7 @@ interface OrganizationEventsListProps {
 export function OrganizationEventsList({ 
   events, 
   eventMetadata, 
-  categoryMappings,
+  categoryMappings = {},
   organizationId,
   organizationName,
   limit,
@@ -30,14 +30,6 @@ export function OrganizationEventsList({
       hour: 'numeric', 
       minute: '2-digit', 
       hour12: true 
-    });
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric'
     });
   };
 
@@ -118,23 +110,27 @@ export function OrganizationEventsList({
         const isToday = date.toDateString() === new Date().toDateString();
         const isTomorrow = date.toDateString() === new Date(Date.now() + 86400000).toDateString();
         
-        let dateLabel = date.toLocaleDateString('en-US', { 
-          weekday: 'long', 
-          month: 'long', 
-          day: 'numeric',
-          year: 'numeric'
-        });
-        
-        if (isToday) dateLabel = `Today, ${dateLabel}`;
-        else if (isTomorrow) dateLabel = `Tomorrow, ${dateLabel}`;
+        let dateLabel: string;
+        if (isToday) {
+          dateLabel = "Today";
+        } else if (isTomorrow) {
+          dateLabel = "Tomorrow";
+        } else {
+          dateLabel = date.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            month: 'long', 
+            day: 'numeric',
+            year: 'numeric'
+          });
+        }
 
         return (
           <div key={dateKey} className="space-y-3">
             {/* Date Header */}
             <div className="flex items-center gap-3">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{dateLabel}</h3>
-              <div className="flex-1 h-px bg-gray-200 dark:bg-gray-600"></div>
-              <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-foreground">{dateLabel}</h3>
+              <div className="flex-1 h-px bg-border"></div>
+              <span className="text-xs font-semibold text-gray-900 dark:text-muted-foreground bg-gray-50 dark:bg-muted px-2 py-0.5 rounded-full border border-gray-200 dark:border-border">
                 {dateEvents.length} event{dateEvents.length > 1 ? 's' : ''}
               </span>
             </div>
@@ -144,43 +140,38 @@ export function OrganizationEventsList({
               {dateEvents.map((event) => {
                 const metadata = eventMetadata[event.id];
                 const variant = getCategoryVariant(metadata?.category, categoryMappings);
-                const categoryColor = getVariantAfterColorClass(variant);
+                const colorClass = getVariantColorClass(variant);
+                const categoryColor = colorClass.replace('bg-', 'after:bg-');
 
                 return (
                   <div
                     key={event.id}
-                    className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 relative rounded-lg p-4 pl-6 hover:shadow-md transition-all cursor-pointer after:absolute after:inset-y-3 after:left-3 after:w-1 after:rounded-full ${categoryColor}`}
+                    className={`bg-card dark:bg-card relative rounded-md p-3 pl-6 text-sm border border-gray-200 dark:border-border shadow-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-muted dark:hover:bg-muted transition-colors ${categoryColor}`}
                     onClick={() => onEventClick?.(event)}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-grow min-w-0">
-                        <div className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                        <div className="font-medium text-gray-900 dark:text-foreground mb-2">
                           {event.title}
                         </div>
-                        
-                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <div className="space-y-1 text-xs text-gray-900 dark:text-foreground">
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             <span>{formatTime(event.startDate)} - {formatTime(event.endDate)}</span>
                           </div>
+                          {metadata?.location && (
+                            <div className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              <span>{metadata.location}</span>
+                            </div>
+                          )}
+                          {!organizationName && metadata?.organization && (
+                            <div className="flex items-center gap-1">
+                              <Building2 className="h-3 w-3" />
+                              <span>{metadata.organization}</span>
+                            </div>
+                          )}
                         </div>
-                        
-                        {metadata && (
-                          <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                            {metadata.location && (
-                              <div className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                <span>{metadata.location}</span>
-                              </div>
-                            )}
-                            {!organizationName && metadata.organization && (
-                              <div className="flex items-center gap-1">
-                                <Building2 className="h-3 w-3" />
-                                <span>{metadata.organization}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
                       </div>
                       
                       <div className="flex flex-col items-end gap-2 flex-shrink-0 ml-4">
@@ -190,16 +181,16 @@ export function OrganizationEventsList({
                           </div>
                         )}
                         {metadata?.category && (
-                          <Badge variant="secondary" size="sm" className="text-xs">
-                            {metadata.category.charAt(0).toUpperCase() + metadata.category.slice(1)}
+                          <Badge variant="secondary" size="sm" className="text-xs capitalize">
+                            {metadata.category}
                           </Badge>
                         )}
                       </div>
                     </div>
                     
                     {metadata?.registrationRequired && (
-                      <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">
-                        <Badge variant="outline" size="sm">📝 Registration Required</Badge>
+                      <div className="mt-2">
+                        <Badge variant="outline" size="sm">Registration Required</Badge>
                       </div>
                     )}
                   </div>

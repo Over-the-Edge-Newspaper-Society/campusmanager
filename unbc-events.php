@@ -110,7 +110,7 @@ function unbc_events_plugin_activate() {
     $post_types = new UNBC_Events_Post_Types();
     $post_types->register_post_types();
     $post_types->register_taxonomies();
-    
+
     // Flush rewrite rules
     flush_rewrite_rules();
 }

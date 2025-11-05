@@ -441,11 +441,12 @@ class UNBC_Events_Meta_Boxes {
         $founded_date = get_post_meta($post->ID, 'org_founded_date', true);
         $approval_date = get_post_meta($post->ID, 'org_approval_date', true);
         $registration_date = get_post_meta($post->ID, 'org_registration_date', true);
+        $dissolution_date = get_post_meta($post->ID, 'org_dissolution_date', true);
         $is_department = get_post_meta($post->ID, 'org_is_department', true);
-        
+
         $current_user = wp_get_current_user();
         $is_org_manager = in_array('organization_manager', $current_user->roles);
-        
+
         ?>
         <table class="form-table">
             <tr>
@@ -473,21 +474,37 @@ class UNBC_Events_Meta_Boxes {
             </tr>
             <?php if (!$is_org_manager): ?>
             <tr>
-                <th><label for="org_is_department">UNBC Department</label></th>
+                <th><label for="org_type">Organization Type</label></th>
                 <td>
-                    <label>
-                        <input type="checkbox" id="org_is_department" name="org_is_department" value="1" <?php checked($is_department, '1'); ?> />
-                        This is a UNBC department (will not show in clubs listing but can be linked to events)
-                    </label>
-                    <p class="description">Check this for academic departments, administrative offices, etc. that aren't student clubs.</p>
+                    <?php
+                    // Use taxonomy instead of meta field
+                    $type_terms = wp_get_post_terms($post->ID, 'org_type', array('fields' => 'all'));
+                    $current_type = !empty($type_terms) ? $type_terms[0]->slug : 'slo'; // Default to 'slo'
+
+                    $all_type_terms = get_terms(array(
+                        'taxonomy' => 'org_type',
+                        'hide_empty' => false
+                    ));
+                    ?>
+                    <select id="org_type_taxonomy" name="org_type_taxonomy">
+                        <?php foreach ($all_type_terms as $term): ?>
+                            <option value="<?php echo esc_attr($term->slug); ?>" <?php selected($current_type, $term->slug); ?>>
+                                <?php echo esc_html($term->name); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="description">Defaults to "SLO" (Student Led Organization). Select "Non-SLO" for academic departments, administrative offices, etc. that aren't student clubs/organizations. Non-SLO organizations will not show in clubs listing but can be linked to events.</p>
                 </td>
             </tr>
             <?php else: ?>
             <tr>
-                <th>UNBC Department Status</th>
+                <th>Organization Type</th>
                 <td>
-                    <p><?php echo $is_department ? 'Yes - This is a UNBC department' : 'No - This is a student club/organization'; ?></p>
-                    <input type="hidden" name="org_is_department" value="<?php echo esc_attr($is_department); ?>" />
+                    <?php
+                    $type_terms = wp_get_post_terms($post->ID, 'org_type', array('fields' => 'all'));
+                    $type_name = !empty($type_terms) ? $type_terms[0]->name : 'Not set';
+                    ?>
+                    <p><?php echo esc_html($type_name); ?></p>
                     <p class="description"><em>This field can only be changed by administrators.</em></p>
                 </td>
             </tr>
@@ -504,6 +521,13 @@ class UNBC_Events_Meta_Boxes {
             <tr>
                 <th><label for="org_registration_date">Registration Date</label></th>
                 <td><input type="date" id="org_registration_date" name="org_registration_date" value="<?php echo esc_attr($registration_date); ?>" /></td>
+            </tr>
+            <tr>
+                <th><label for="org_dissolution_date">Dissolution Date</label></th>
+                <td>
+                    <input type="date" id="org_dissolution_date" name="org_dissolution_date" value="<?php echo esc_attr($dissolution_date); ?>" />
+                    <p class="description">Date when the organization was dissolved (if applicable).</p>
+                </td>
             </tr>
             <?php else: ?>
             <?php if ($founded_date): ?>
@@ -532,6 +556,16 @@ class UNBC_Events_Meta_Boxes {
                 <td>
                     <p><?php echo esc_html(date('F j, Y', strtotime($registration_date))); ?></p>
                     <input type="hidden" name="org_registration_date" value="<?php echo esc_attr($registration_date); ?>" />
+                    <p class="description"><em>This field can only be changed by administrators.</em></p>
+                </td>
+            </tr>
+            <?php endif; ?>
+            <?php if ($dissolution_date): ?>
+            <tr>
+                <th>Dissolution Date</th>
+                <td>
+                    <p><?php echo esc_html(date('F j, Y', strtotime($dissolution_date))); ?></p>
+                    <input type="hidden" name="org_dissolution_date" value="<?php echo esc_attr($dissolution_date); ?>" />
                     <p class="description"><em>This field can only be changed by administrators.</em></p>
                 </td>
             </tr>
@@ -650,13 +684,13 @@ class UNBC_Events_Meta_Boxes {
                 'org_membership_requirements', 'org_meeting_schedule', 'org_president_name',
                 'org_president_email', 'org_contact_name', 'org_contact_email',
                 'org_office_location', 'org_website', 'org_facebook', 'org_instagram',
-                'org_twitter', 'org_linkedin', 'org_discord', 'org_linktree', 'org_youtube', 
+                'org_twitter', 'org_linkedin', 'org_discord', 'org_linktree', 'org_youtube',
                 'org_registration_link', 'org_founded_date', 'org_approval_date', 'org_registration_date',
-                'org_original_image_path'
+                'org_dissolution_date', 'org_original_image_path'
             );
 
             // Fields that organization managers cannot edit
-            $restricted_fields = array('org_founded_date', 'org_approval_date', 'org_registration_date');
+            $restricted_fields = array('org_founded_date', 'org_approval_date', 'org_registration_date', 'org_dissolution_date');
 
             foreach ($org_fields as $field) {
                 if (isset($_POST[$field])) {
@@ -684,30 +718,37 @@ class UNBC_Events_Meta_Boxes {
                 }
             }
             
-            // Handle organization checkbox - only for non-org managers
+            // Handle taxonomy fields - only for non-org managers
             if (!$is_org_manager) {
-                update_post_meta($post_id, 'org_is_department', isset($_POST['org_is_department']) ? '1' : '0');
-            } else {
-                // For org managers, preserve the existing value
-                if (isset($_POST['org_is_department'])) {
-                    update_post_meta($post_id, 'org_is_department', sanitize_text_field($_POST['org_is_department']));
+                if (isset($_POST['org_status_taxonomy'])) {
+                    if (!empty($_POST['org_status_taxonomy'])) {
+                        wp_set_post_terms($post_id, array($_POST['org_status_taxonomy']), 'org_status');
+                    } else {
+                        wp_set_post_terms($post_id, array(), 'org_status');
+                    }
                 }
-            }
-            
-            // Handle taxonomy fields
-            if (isset($_POST['org_status_taxonomy'])) {
-                if (!empty($_POST['org_status_taxonomy'])) {
-                    wp_set_post_terms($post_id, array($_POST['org_status_taxonomy']), 'org_status');
-                } else {
-                    wp_set_post_terms($post_id, array(), 'org_status');
+
+                if (isset($_POST['org_size_taxonomy'])) {
+                    if (!empty($_POST['org_size_taxonomy'])) {
+                        wp_set_post_terms($post_id, array($_POST['org_size_taxonomy']), 'org_size');
+                    } else {
+                        wp_set_post_terms($post_id, array(), 'org_size');
+                    }
                 }
-            }
-            
-            if (isset($_POST['org_size_taxonomy'])) {
-                if (!empty($_POST['org_size_taxonomy'])) {
-                    wp_set_post_terms($post_id, array($_POST['org_size_taxonomy']), 'org_size');
+
+                if (isset($_POST['org_type_taxonomy'])) {
+                    if (!empty($_POST['org_type_taxonomy'])) {
+                        wp_set_post_terms($post_id, array($_POST['org_type_taxonomy']), 'org_type');
+                    } else {
+                        // Default to 'slo' if not set
+                        wp_set_post_terms($post_id, array('slo'), 'org_type');
+                    }
                 } else {
-                    wp_set_post_terms($post_id, array(), 'org_size');
+                    // If field wasn't submitted at all (new post), default to 'slo'
+                    $existing_terms = wp_get_post_terms($post_id, 'org_type');
+                    if (empty($existing_terms)) {
+                        wp_set_post_terms($post_id, array('slo'), 'org_type');
+                    }
                 }
             }
             
