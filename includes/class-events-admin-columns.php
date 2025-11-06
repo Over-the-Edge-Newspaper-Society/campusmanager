@@ -91,9 +91,20 @@ class UNBC_Events_Admin_Columns {
      * Display organization information
      */
     private function display_organization_column($post_id) {
-        // Get organization from meta fields (correct field name)
+        // Try to get organization_id first (new method)
+        $organization_id = get_post_meta($post_id, 'organization_id', true);
+
+        if (!empty($organization_id)) {
+            // Get the organization post
+            $org_post = get_post($organization_id);
+            if ($org_post && $org_post->post_type === 'organization') {
+                echo '<a href="' . get_edit_post_link($organization_id) . '">' . esc_html($org_post->post_title) . '</a>';
+                return;
+            }
+        }
+
+        // Fallback: try old 'organization' field (string)
         $organization = get_post_meta($post_id, 'organization', true);
-        
         if (!empty($organization)) {
             echo esc_html($organization);
         } else {

@@ -13255,14 +13255,14 @@ function nx({ event: e, eventMetadata: t, open: n, onOpenChange: r, showCost: o 
     /* @__PURE__ */ p.jsx("div", { className: "space-y-4 my-4", children: /* @__PURE__ */ p.jsxs("div", { className: "space-y-3", children: [
       /* @__PURE__ */ p.jsxs("div", { className: "flex items-center gap-3 text-sm", children: [
         /* @__PURE__ */ p.jsx(co, { className: "h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" }),
-        /* @__PURE__ */ p.jsxs("div", { className: "space-y-1 text-gray-900 dark:text-foreground", children: [
+        /* @__PURE__ */ p.jsxs("div", { className: "space-y-1 text-foreground", children: [
           /* @__PURE__ */ p.jsx("div", { className: "font-medium", children: e.startDate.toLocaleDateString("en-US", {
             weekday: "long",
             year: "numeric",
             month: "long",
             day: "numeric"
           }) }),
-          /* @__PURE__ */ p.jsxs("div", { className: "text-gray-600 dark:text-muted-foreground text-sm", children: [
+          /* @__PURE__ */ p.jsxs("div", { className: "text-muted-foreground text-sm", children: [
             e.startDate.toLocaleTimeString("en-US", {
               hour: "numeric",
               minute: "2-digit",
@@ -13276,7 +13276,7 @@ function nx({ event: e, eventMetadata: t, open: n, onOpenChange: r, showCost: o 
           ] })
         ] })
       ] }),
-      a && /* @__PURE__ */ p.jsxs("div", { className: "space-y-2 text-sm text-gray-900 dark:text-foreground", children: [
+      a && /* @__PURE__ */ p.jsxs("div", { className: "space-y-2 text-sm text-foreground", children: [
         a.location && /* @__PURE__ */ p.jsxs("div", { className: "flex items-center gap-3", children: [
           /* @__PURE__ */ p.jsx(Fs, { className: "h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" }),
           /* @__PURE__ */ p.jsx("span", { children: a.location })
@@ -13305,12 +13305,12 @@ function nx({ event: e, eventMetadata: t, open: n, onOpenChange: r, showCost: o 
         ] }),
         /* @__PURE__ */ p.jsxs("div", { className: "flex items-center gap-3 pt-1", children: [
           a.category && /* @__PURE__ */ p.jsx(uo, { className: d[a.category] || "bg-muted text-foreground", children: a.category.charAt(0).toUpperCase() + a.category.slice(1) }),
-          a.registrationRequired && /* @__PURE__ */ p.jsx(uo, { variant: "outline", className: "border border-gray-200 dark:border-border text-gray-900 dark:text-foreground", children: "Registration Required" })
+          a.registrationRequired && /* @__PURE__ */ p.jsx(uo, { variant: "outline", className: "border-border text-foreground", children: "Registration Required" })
         ] })
       ] })
     ] }) }),
     /* @__PURE__ */ p.jsxs(J0, { className: "flex-col sm:flex-col gap-2", children: [
-      /* @__PURE__ */ p.jsx("div", { className: "text-sm text-gray-700 dark:text-muted-foreground mb-2", children: "Add to your calendar:" }),
+      /* @__PURE__ */ p.jsx("div", { className: "text-sm text-muted-foreground mb-2", children: "Add to your calendar:" }),
       /* @__PURE__ */ p.jsxs("div", { className: "flex gap-2 w-full", children: [
         /* @__PURE__ */ p.jsxs(
           tn,

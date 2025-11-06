@@ -982,6 +982,11 @@ class UNBC_Events_REST_API {
             update_post_meta($post_id, 'virtual_link', esc_url_raw($meta['virtual_link'] ?? ''));
             update_post_meta($post_id, 'is_virtual', !empty($meta['virtual_link']) ? 1 : 0);
 
+            // Save organization_id if provided
+            if (!empty($meta['organization_id'])) {
+                update_post_meta($post_id, 'organization_id', absint($meta['organization_id']));
+            }
+
             // Handle series and occurrence data
             $series_data = $event_data['series_data'] ?? null;
             $occurrences = $event_data['occurrences'] ?? array();

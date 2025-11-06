@@ -131,7 +131,7 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange, showCost
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-sm">
               <Clock className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
-              <div className="space-y-1 text-gray-900 dark:text-foreground">
+              <div className="space-y-1 text-foreground">
                 <div className="font-medium">
                   {event.startDate.toLocaleDateString('en-US', {
                     weekday: 'long',
@@ -140,7 +140,7 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange, showCost
                     day: 'numeric'
                   })}
                 </div>
-                <div className="text-gray-600 dark:text-muted-foreground text-sm">
+                <div className="text-muted-foreground text-sm">
                   {event.startDate.toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -156,7 +156,7 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange, showCost
             </div>
             
             {metadata && (
-              <div className="space-y-2 text-sm text-gray-900 dark:text-foreground">
+              <div className="space-y-2 text-sm text-foreground">
                 {metadata.location && (
                   <div className="flex items-center gap-3">
                     <MapPin className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
@@ -200,7 +200,7 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange, showCost
                     </Badge>
                   )}
                   {metadata.registrationRequired && (
-                    <Badge variant="outline" className="border border-gray-200 dark:border-border text-gray-900 dark:text-foreground">Registration Required</Badge>
+                    <Badge variant="outline" className="border-border text-foreground">Registration Required</Badge>
                   )}
                 </div>
               </div>
@@ -209,7 +209,7 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange, showCost
         </div>
         
         <DialogFooter className="flex-col sm:flex-col gap-2">
-          <div className="text-sm text-gray-700 dark:text-muted-foreground mb-2">Add to your calendar:</div>
+          <div className="text-sm text-muted-foreground mb-2">Add to your calendar:</div>
           <div className="flex gap-2 w-full">
             <Button
               variant="outline"
