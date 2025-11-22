@@ -59,6 +59,46 @@ const normalizeCategoryMappings = (raw?: Record<string, string> | null): Record<
   return normalized;
 };
 
+const decodeHtmlEntities = (text?: string | null): string | undefined => {
+  if (typeof text !== 'string' || text.length === 0) {
+    return text ?? undefined;
+  }
+
+  try {
+    if (typeof DOMParser !== 'undefined') {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, 'text/html');
+      return doc.documentElement.textContent || doc.body?.textContent || text;
+    }
+  } catch (error) {
+    console.warn('Failed to decode HTML entities:', error);
+  }
+
+  const entities: Record<string, string> = {
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+  };
+
+  return text.replace(/&(?:amp|lt|gt|quot|#39);/g, entity => entities[entity] || entity);
+};
+
+const sanitizeEventMetadata = (metadata?: Record<string, EventMetadata> | null): Record<string, EventMetadata> => {
+  if (!metadata) return {};
+
+  return Object.entries(metadata).reduce<Record<string, EventMetadata>>((acc, [id, meta]) => {
+    acc[id] = {
+      ...meta,
+      organization: decodeHtmlEntities(meta.organization) ?? meta.organization,
+      location: decodeHtmlEntities(meta.location) ?? meta.location,
+      cost: decodeHtmlEntities(meta.cost) ?? meta.cost,
+    };
+    return acc;
+  }, {});
+};
+
 export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
   const [events, setEvents] = useState<Event[]>([]);
   const [eventMetadata, setEventMetadata] = useState<Record<string, EventMetadata>>({});
@@ -111,7 +151,7 @@ export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
         }));
         
         setEvents(events);
-        setEventMetadata(response.eventMetadata || {});
+        setEventMetadata(sanitizeEventMetadata(response.eventMetadata));
         setCategoryMappings(normalizeCategoryMappings(response.categoryMappings));
         setTotal(response.total);
         setPages(response.pages);
@@ -130,7 +170,7 @@ export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
         });
         
         setEvents(transformedEvents);
-        setEventMetadata(transformedMetadata);
+        setEventMetadata(sanitizeEventMetadata(transformedMetadata));
         setTotal(response.total);
         setPages(response.pages);
         setPagination(response.pagination);
@@ -181,7 +221,7 @@ export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
         
         // Merge with existing events
         setEvents(prev => [...prev, ...newEvents]);
-        setEventMetadata(prev => ({ ...prev, ...response.eventMetadata || {} }));
+        setEventMetadata(prev => ({ ...prev, ...sanitizeEventMetadata(response.eventMetadata) }));
         setCategoryMappings(prev => ({
           ...prev,
           ...normalizeCategoryMappings(response.categoryMappings),
@@ -201,7 +241,7 @@ export function useEvents(initialFilters: EventFilters = {}): UseEventsResult {
         });
         
         setEvents(prev => [...prev, ...newTransformedEvents]);
-        setEventMetadata(prev => ({ ...prev, ...newTransformedMetadata }));
+        setEventMetadata(prev => ({ ...prev, ...sanitizeEventMetadata(newTransformedMetadata) }));
         setPagination(response.pagination);
       }
     } catch (err) {

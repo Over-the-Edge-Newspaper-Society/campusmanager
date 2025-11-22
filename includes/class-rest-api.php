@@ -872,10 +872,18 @@ class UNBC_Events_REST_API {
                 if (!isset($params['per_page']) || $params['per_page'] > 50) {
                     $params['per_page'] = 50; // First load: 50 upcoming events
                 }
-                
+
                 // Set start date to today if not specified
                 if (!isset($params['start_date'])) {
                     $params['start_date'] = date('Y-m-d');
+                }
+
+                // Set end date to 1 year from start date if not specified
+                if (!isset($params['end_date'])) {
+                    $start_date = new DateTime($params['start_date']);
+                    $end_date = clone $start_date;
+                    $end_date->modify('+1 year');
+                    $params['end_date'] = $end_date->format('Y-m-d');
                 }
                 break;
                 

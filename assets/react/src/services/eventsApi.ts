@@ -160,7 +160,7 @@ class EventsAPI {
   transformWordPressEventToMetadata(wpEvent: WordPressEvent): EventMetadata {
     return {
       category: this.mapWordPressCategory(wpEvent.categories),
-      organization: wpEvent.organization,
+      organization: this.decodeHtmlEntities(wpEvent.organization) || wpEvent.organization,
       organization_id: wpEvent.organization_id,  // Include organization_id
       location: wpEvent.full_location,
       cost: wpEvent.cost,
@@ -184,6 +184,22 @@ class EventsAPI {
   private stripHtml(html: string): string {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     return doc.body.textContent || '';
+  }
+
+  private decodeHtmlEntities(text?: string | null): string {
+    if (!text) return '';
+    if (typeof DOMParser !== 'undefined') {
+      const doc = new DOMParser().parseFromString(text, 'text/html');
+      return doc.documentElement.textContent || doc.body?.textContent || text;
+    }
+    const entities: Record<string, string> = {
+      '&amp;': '&',
+      '&lt;': '<',
+      '&gt;': '>',
+      '&quot;': '"',
+      '&#39;': "'",
+    };
+    return text.replace(/&(?:amp|lt|gt|quot|#39);/g, (entity) => entities[entity] || entity);
   }
 
   private getCategoryVariant(categories?: Array<{name: string; slug: string}>): 'default' | 'primary' | 'success' | 'warning' | 'danger' {

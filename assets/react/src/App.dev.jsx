@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import UNBCCalendar from './components/unbc-calendar';
 import { TodayEventsWidget } from './components/today-events-widget';
 import { OrganizationEventsList } from './components/organization-events-list';
+import { EventListView, MobileListView } from './components/list-views';
 import { EventDialog } from './components/event-dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs';
 import { useEventsDev } from './hooks/useEventsDev';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, Calendar, List, Smartphone } from 'lucide-react';
 
 function AppDev() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -22,6 +24,10 @@ function AppDev() {
   // State for events list demo
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showEventDialog, setShowEventDialog] = useState(false);
+
+  // State for Load More demo
+  const [displayedCount, setDisplayedCount] = useState(10);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Use dev events hook for sample data
   const { events, eventMetadata, categoryMappings, loading } = useEventsDev();
@@ -44,6 +50,19 @@ function AppDev() {
   const handleEventClick = (event) => {
     setSelectedEvent(event);
     setShowEventDialog(true);
+  };
+
+  const handleLoadMore = () => {
+    setIsLoadingMore(true);
+    // Simulate loading delay
+    setTimeout(() => {
+      setDisplayedCount(prev => prev + 10);
+      setIsLoadingMore(false);
+    }, 1000);
+  };
+
+  const resetLoadMore = () => {
+    setDisplayedCount(10);
   };
   
   return (
@@ -146,74 +165,170 @@ function AppDev() {
         </div>
         
         {/* Info Banner */}
-        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-3 rounded-lg mb-6">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 text-blue-900 dark:text-blue-200 px-4 py-3 rounded-lg mb-6">
           <div className="flex items-start">
             <svg className="flex-shrink-0 h-5 w-5 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
             <div>
               <strong className="font-semibold">Development Mode:</strong>
-              <ul className="mt-1 text-sm list-disc list-inside">
+              <ul className="mt-1 text-sm list-disc list-inside space-y-0.5">
                 <li>Sample events are distributed throughout the current month</li>
-                <li>Red tick indicators show days with events in mobile month view</li>
                 <li>Click on any day or event to see details</li>
-                <li>All calendar views (Day, Week, Month, List) are available</li>
+                <li>All calendar views and components are available in the tabs below</li>
               </ul>
             </div>
           </div>
         </div>
-        
-        {/* Main Calendar Component with Widget Sidebar */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-          <div>
-            <UNBCCalendar
-              showWeekView={showWeekView}
-              showDayView={showDayView}
-              showCost={showCost}
-              initialMonthDisplayMode={monthDisplayMode}
-              initialMonthSidebarPosition={sidebarPosition}
-            />
-          </div>
 
-          {/* Widget Demo */}
-          <div className="space-y-4">
-            <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 px-4 py-3 rounded-lg">
-              <div className="font-semibold mb-1">Widget Demo</div>
-              <p className="text-xs">This is how the widget will appear in a WordPress sidebar</p>
-            </div>
-            <TodayEventsWidget />
-          </div>
-        </div>
+        {/* Tabs for different components */}
+        <Tabs defaultValue="calendar" className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="calendar">
+              <Calendar className="w-4 h-4 mr-2" />
+              Full Calendar
+            </TabsTrigger>
+            <TabsTrigger value="list-views">
+              <List className="w-4 h-4 mr-2" />
+              List Views
+            </TabsTrigger>
+            <TabsTrigger value="mobile">
+              <Smartphone className="w-4 h-4 mr-2" />
+              Mobile View
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Events List Block Demo */}
-        <div className="mt-8">
-          <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 px-4 py-3 rounded-lg mb-4">
-            <div className="font-semibold mb-1">Events List Block Demo</div>
-            <p className="text-xs">This shows how the events list block (unbc/events-list) will appear on organization pages</p>
-          </div>
-          {loading ? (
-            <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-              Loading events...
+          {/* Calendar Tab */}
+          <TabsContent value="calendar">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+              <div>
+                <UNBCCalendar
+                  showWeekView={showWeekView}
+                  showDayView={showDayView}
+                  showCost={showCost}
+                  initialMonthDisplayMode={monthDisplayMode}
+                  initialMonthSidebarPosition={sidebarPosition}
+                />
+              </div>
+
+              {/* Widget Demo */}
+              <div className="space-y-4">
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-900 dark:text-amber-200 px-4 py-3 rounded-lg">
+                  <div className="font-semibold mb-1">Today's Events Widget</div>
+                  <p className="text-xs">Widget for WordPress sidebar</p>
+                </div>
+                <TodayEventsWidget />
+              </div>
             </div>
-          ) : (
-            <>
-              <OrganizationEventsList
-                events={events}
-                eventMetadata={eventMetadata}
-                categoryMappings={categoryMappings}
-                limit={10}
-                showPastEvents={false}
-                onEventClick={handleEventClick}
-              />
-              <EventDialog
-                event={selectedEvent}
-                eventMetadata={eventMetadata}
-                open={showEventDialog}
-                onOpenChange={setShowEventDialog}
-              />
-            </>
-          )}
-        </div>
+          </TabsContent>
+
+          {/* List Views Tab */}
+          <TabsContent value="list-views">
+            <div className="space-y-8">
+              {/* Organization Events List */}
+              <div>
+                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 text-purple-900 dark:text-purple-200 px-4 py-3 rounded-lg mb-4">
+                  <div className="font-semibold mb-1">Organization Events List</div>
+                  <p className="text-xs">Block for organization pages (limit: 10 events)</p>
+                </div>
+                {loading ? (
+                  <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+                    Loading events...
+                  </div>
+                ) : (
+                  <OrganizationEventsList
+                    events={events}
+                    eventMetadata={eventMetadata}
+                    categoryMappings={categoryMappings}
+                    limit={10}
+                    showPastEvents={false}
+                    onEventClick={handleEventClick}
+                  />
+                )}
+              </div>
+
+              {/* Desktop List View with Load More */}
+              <div>
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 text-green-900 dark:text-green-200 px-4 py-3 rounded-lg mb-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-semibold mb-1">Desktop List View (Load More)</div>
+                      <p className="text-xs">Showing {displayedCount} of {events.length} events</p>
+                    </div>
+                    <button
+                      onClick={resetLoadMore}
+                      className="text-xs px-3 py-1 bg-green-200 dark:bg-green-800 rounded hover:bg-green-300 dark:hover:bg-green-700 transition-colors"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+                {loading ? (
+                  <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+                    Loading events...
+                  </div>
+                ) : (
+                  <EventListView
+                    events={events.slice(0, displayedCount)}
+                    eventMetadata={eventMetadata}
+                    categoryMappings={categoryMappings}
+                    onEventClick={handleEventClick}
+                    onLoadMore={handleLoadMore}
+                    hasMore={displayedCount < events.length}
+                    loading={isLoadingMore}
+                    showCost={showCost}
+                  />
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Mobile View Tab */}
+          <TabsContent value="mobile">
+            <div>
+              <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-700 text-teal-900 dark:text-teal-200 px-4 py-3 rounded-lg mb-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-semibold mb-1">Mobile List View (Load More)</div>
+                    <p className="text-xs">Optimized for mobile devices - Showing {displayedCount} events</p>
+                  </div>
+                  <button
+                    onClick={resetLoadMore}
+                    className="text-xs px-3 py-1 bg-teal-200 dark:bg-teal-800 rounded hover:bg-teal-300 dark:hover:bg-teal-700 transition-colors"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+              {loading ? (
+                <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+                  Loading events...
+                </div>
+              ) : (
+                <div className="max-w-md mx-auto">
+                  <MobileListView
+                    events={events.slice(0, displayedCount)}
+                    eventMetadata={eventMetadata}
+                    categoryMappings={categoryMappings}
+                    onEventClick={handleEventClick}
+                    onLoadMore={handleLoadMore}
+                    hasMore={displayedCount < events.length}
+                    loading={isLoadingMore}
+                    showCost={showCost}
+                  />
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Event Dialog */}
+        <EventDialog
+          event={selectedEvent}
+          eventMetadata={eventMetadata}
+          open={showEventDialog}
+          onOpenChange={setShowEventDialog}
+        />
       </div>
     </div>
   );

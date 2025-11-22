@@ -148,7 +148,7 @@ export function EventListView({ events, eventMetadata, categoryMappings, onEvent
           <button
             onClick={onLoadMore}
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
             {loading ? 'Loading...' : 'Load More Events'}
           </button>
@@ -284,14 +284,14 @@ export function MobileListView({ events, eventMetadata, categoryMappings, onEven
           );
         })
       )}
-      
+
       {/* Load More Button */}
       {onLoadMore && hasMore && (
         <div className="text-center pt-6">
           <button
             onClick={onLoadMore}
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
             {loading ? 'Loading...' : 'Load More Events'}
           </button>
