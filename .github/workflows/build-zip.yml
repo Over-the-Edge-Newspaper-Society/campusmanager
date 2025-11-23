@@ -1,0 +1,55 @@
+name: Build Plugin Zip
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: build-zip
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Package plugin
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write   # needed to delete old artifacts
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Stage plugin files
+        run: |
+          mkdir -p build/campusmanager
+          rsync -av \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude=".gitignore" \
+            --exclude=".DS_Store" \
+            --exclude=".claude" \
+            --exclude="/build/" \
+            --exclude="node_modules" \
+            ./ build/campusmanager/
+
+      - name: Create zip archive
+        run: |
+          cd build
+          zip -r campusmanager.zip campusmanager
+
+      - name: Delete previous artifact
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: campusmanager
+        continue-on-error: true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: campusmanager
+          path: build/campusmanager.zip
+          if-no-files-found: error
+          retention-days: 7
