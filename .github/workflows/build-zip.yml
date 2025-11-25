@@ -24,7 +24,7 @@ jobs:
 
       - name: Stage plugin files
         run: |
-          mkdir -p build/ote-article-manager
+          mkdir -p build/campus-manager
           rsync -av \
             --exclude=".git" \
             --exclude=".github" \
@@ -33,24 +33,24 @@ jobs:
             --exclude=".claude" \
             --exclude="/build/" \
             --exclude="node_modules" \
-            ./ build/ote-article-manager/
+            ./ build/campus-manager/
 
       - name: Create zip archive
         run: |
           cd build
-          zip -r ote-article-manager.zip ote-article-manager
+          zip -r campus-manager.zip campus-manager
 
       - name: Delete previous artifact
         uses: geekyeggo/delete-artifact@v5
         with:
-          name: ote-article-manager
+          name: campus-manager
         continue-on-error: true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ote-article-manager
-          path: build/ote-article-manager.zip
+          name: campus-manager
+          path: build/campus-manager.zip
           if-no-files-found: error
           retention-days: 7
 
@@ -60,7 +60,7 @@ jobs:
         with:
           tag: latest
           name: Latest
-          artifacts: build/ote-article-manager.zip
+          artifacts: build/campus-manager.zip
           artifactContentType: application/zip
           draft: false
           prerelease: false
@@ -74,7 +74,7 @@ jobs:
         with:
           tag: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          artifacts: build/ote-article-manager.zip
+          artifacts: build/campus-manager.zip
           artifactContentType: application/zip
           draft: false
           prerelease: false
