@@ -943,6 +943,46 @@ class UNBC_Events_REST_API {
                 }
             }
 
+            // If not found by external_id, check for duplicates by title + date + time
+            // This catches events scraped multiple times with different UUIDs
+            if (!$existing_post && !empty($title)) {
+                $meta = $event_data['meta'] ?? array();
+                $event_date = sanitize_text_field($meta['date'] ?? '');
+                $start_time = sanitize_text_field($meta['start_time'] ?? '');
+
+                if (!empty($event_date)) {
+                    $duplicate_args = array(
+                        'post_type' => 'event',
+                        'post_status' => 'any',
+                        'posts_per_page' => 1,
+                        'title' => $title,
+                        'meta_query' => array(
+                            'relation' => 'AND',
+                            array(
+                                'key' => 'event_date',
+                                'value' => $event_date,
+                                'compare' => '='
+                            )
+                        )
+                    );
+
+                    // Also match start_time if provided
+                    if (!empty($start_time)) {
+                        $duplicate_args['meta_query'][] = array(
+                            'key' => 'start_time',
+                            'value' => $start_time,
+                            'compare' => '='
+                        );
+                    }
+
+                    $duplicate_check = get_posts($duplicate_args);
+                    if (!empty($duplicate_check)) {
+                        $existing_post = $duplicate_check[0];
+                        error_log("[EventScrape Import] Found duplicate by title+date+time: '{$title}' on {$event_date} - existing post ID: {$existing_post->ID}");
+                    }
+                }
+            }
+
             // If event exists and we should skip updates, return skipped
             if ($existing_post && !$update_if_exists) {
                 return rest_ensure_response(array(

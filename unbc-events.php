@@ -86,6 +86,7 @@ class UNBC_Events_Plugin {
             'includes/class-settings.php',
             'includes/class-category-colors.php',
             'includes/class-event-importer.php',
+            'includes/class-event-deduplicator.php',
             'includes/class-events-admin-columns.php'
         );
 
