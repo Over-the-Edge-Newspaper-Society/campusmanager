@@ -8,3 +8,4 @@ blocks/.DS_Store
 assets/.DS_Store
 blocks/calendar-view/node_modules
 blocks/events-list/node_modules
+build/

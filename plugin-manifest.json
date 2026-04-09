@@ -1,0 +1,18 @@
+{
+    "name": "Campus Manager",
+    "slug": "campus-manager",
+    "author": "Over the Edge Newspaper Society",
+    "author_profile": "https://github.com/Over-the-Edge-Newspaper-Society",
+    "version": "2.0.0",
+    "download_url": "https://github.com/Over-the-Edge-Newspaper-Society/campusmanager/releases/download/v2.0.0/campus-manager.zip",
+    "requires": "5.8",
+    "tested": "6.9",
+    "requires_php": "7.4",
+    "last_updated": "2026-04-09 00:00:00",
+    "homepage": "https://github.com/Over-the-Edge-Newspaper-Society/campusmanager",
+    "sections": {
+        "description": "Comprehensive management system for campus events and organizations at the University of Northern British Columbia.",
+        "installation": "Upload the plugin zip through Plugins > Add New or copy the campus-manager directory into wp-content/plugins, then activate Campus Manager.",
+        "changelog": "<h4>2.0.0</h4><ul><li>Current Campus Manager release with self-hosted update support.</li></ul>"
+    }
+}

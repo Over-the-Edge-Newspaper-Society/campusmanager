@@ -38,18 +38,18 @@ A comprehensive WordPress plugin for managing campus events and organizations at
 ## Installation
 
 ### Requirements
-- WordPress 5.0 or higher
+- WordPress 5.8 or higher
 - PHP 7.4 or higher
 
 ### Installation Steps
 
 1. **Download the Plugin**
    ```bash
-   git clone https://github.com/your-username/campusmanager.git
+   git clone https://github.com/Over-the-Edge-Newspaper-Society/campusmanager.git
    ```
 
 2. **Upload to WordPress**
-   - Copy the `unbc-events` folder to your WordPress `wp-content/plugins/` directory
+   - Copy the `campus-manager` folder to your WordPress `wp-content/plugins/` directory
    - Or upload the zip file through WordPress Admin > Plugins > Add New
 
 3. **Activate the Plugin**

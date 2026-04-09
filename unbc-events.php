@@ -1,8 +1,17 @@
 <?php
 /**
  * Plugin Name: Campus Manager
- * Description: Comprehensive management system for campus events and organizations
- * Version: 2.0.0
+ * Plugin URI:  https://github.com/Over-the-Edge-Newspaper-Society/campusmanager
+ * Description: Comprehensive management system for campus events and organizations.
+ * Version:     2.0.0
+ * Requires at least: 5.8
+ * Requires PHP: 7.4
+ * Author:      Over the Edge Newspaper Society
+ * Author URI:  https://github.com/Over-the-Edge-Newspaper-Society
+ * License:     GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: unbc-events
+ * Update URI:  https://github.com/Over-the-Edge-Newspaper-Society/campusmanager
  */
 
 if (!defined('ABSPATH')) {
@@ -13,9 +22,23 @@ if (!defined('UNBC_EVENTS_PLUGIN_VERSION')) {
     define('UNBC_EVENTS_PLUGIN_VERSION', '2.0.0');
 }
 
+if (!defined('UNBC_EVENTS_GITHUB_REPOSITORY')) {
+    define('UNBC_EVENTS_GITHUB_REPOSITORY', 'Over-the-Edge-Newspaper-Society/campusmanager');
+}
+
+if (!defined('UNBC_EVENTS_UPDATE_URI')) {
+    define('UNBC_EVENTS_UPDATE_URI', 'https://github.com/Over-the-Edge-Newspaper-Society/campusmanager');
+}
+
+if (!defined('UNBC_EVENTS_UPDATE_MANIFEST_URL')) {
+    define('UNBC_EVENTS_UPDATE_MANIFEST_URL', 'https://raw.githubusercontent.com/Over-the-Edge-Newspaper-Society/campusmanager/main/plugin-manifest.json');
+}
+
 class UNBC_Events_Plugin {
     public function __construct() {
         $this->include_files();
+
+        new UNBC_Events_Updater(__FILE__, UNBC_EVENTS_PLUGIN_VERSION);
 
         add_action('init', array($this, 'maybe_upgrade'), 5);
         add_action('init', array($this, 'init'));
@@ -95,6 +118,7 @@ class UNBC_Events_Plugin {
             'includes/class-organization-template-manager.php',
             'includes/class-organization-manager-admin-refactored.php',
             'includes/class-organization-manager-dashboard.php',
+            'includes/class-updater.php',
             'includes/class-blocks.php',
             'includes/class-calendar-blocks.php',
             'includes/class-settings.php',

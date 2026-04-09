@@ -5,6 +5,12 @@ on:
     branches: ["**"]
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      publish_latest:
+        description: "Publish the current build to the optional latest channel"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: build-zip
@@ -14,6 +20,12 @@ jobs:
   build:
     name: Package plugin
     runs-on: ubuntu-latest
+    env:
+      PLUGIN_FILE: unbc-events.php
+      PLUGIN_SLUG: campus-manager
+      PLUGIN_HOMEPAGE: https://github.com/Over-the-Edge-Newspaper-Society/campusmanager
+      PLUGIN_MANIFEST: plugin-manifest.json
+      TESTED_WP_VERSION: "6.9"
     permissions:
       actions: write   # needed to delete old artifacts
       contents: write  # needed to publish a release
@@ -21,47 +33,83 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release metadata
+        id: release_meta
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            release_tag="${GITHUB_REF_NAME}"
+            release_version="${release_tag#v}"
+          else
+            release_tag="latest"
+            release_version=""
+          fi
+
+          download_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${release_tag}/${PLUGIN_SLUG}.zip"
+          release_timestamp="$(date -u '+%Y-%m-%d %H:%M:%S')"
+
+          echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+          echo "release_version=${release_version}" >> "${GITHUB_OUTPUT}"
+          echo "download_url=${download_url}" >> "${GITHUB_OUTPUT}"
+          echo "release_timestamp=${release_timestamp}" >> "${GITHUB_OUTPUT}"
+
+      - name: Generate release manifest
+        shell: bash
+        run: |
+          version_args=()
+          if [[ -n "${{ steps.release_meta.outputs.release_version }}" ]]; then
+            version_args+=(--expected-version="${{ steps.release_meta.outputs.release_version }}")
+          fi
+
+          php scripts/generate-plugin-manifest.php \
+            --plugin-file="${PLUGIN_FILE}" \
+            --output="build/${PLUGIN_MANIFEST}" \
+            --template="${PLUGIN_MANIFEST}" \
+            --slug="${PLUGIN_SLUG}" \
+            --homepage="${PLUGIN_HOMEPAGE}" \
+            --download-url="${{ steps.release_meta.outputs.download_url }}" \
+            --last-updated="${{ steps.release_meta.outputs.release_timestamp }}" \
+            --tested="${TESTED_WP_VERSION}" \
+            "${version_args[@]}"
 
       - name: Stage plugin files
         run: |
-          mkdir -p build/campus-manager
+          mkdir -p "build/${PLUGIN_SLUG}"
           rsync -av \
-            --exclude=".git" \
-            --exclude=".github" \
-            --exclude=".gitignore" \
-            --exclude=".DS_Store" \
-            --exclude=".claude" \
-            --exclude="/build/" \
-            --exclude="node_modules" \
-            ./ build/campus-manager/
+            --exclude-from=".distignore" \
+            ./ "build/${PLUGIN_SLUG}/"
 
       - name: Create zip archive
         run: |
           cd build
-          zip -r campus-manager.zip campus-manager
+          zip -r "${PLUGIN_SLUG}.zip" "${PLUGIN_SLUG}"
 
       - name: Delete previous artifact
         uses: geekyeggo/delete-artifact@v5
         with:
-          name: campus-manager
+          name: ${{ env.PLUGIN_SLUG }}
         continue-on-error: true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: campus-manager
-          path: build/campus-manager.zip
+          name: ${{ env.PLUGIN_SLUG }}
+          path: |
+            build/${{ env.PLUGIN_SLUG }}.zip
+            build/${{ env.PLUGIN_MANIFEST }}
           if-no-files-found: error
           retention-days: 7
 
-      - name: Create/update latest release with asset
-        if: github.ref == 'refs/heads/main'
+      - name: Publish optional latest release
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_latest
         uses: ncipollo/release-action@v1
         with:
           tag: latest
           name: Latest
-          artifacts: build/campus-manager.zip
-          artifactContentType: application/zip
+          artifacts: build/${{ env.PLUGIN_SLUG }}.zip,build/${{ env.PLUGIN_MANIFEST }}
           draft: false
           prerelease: false
           allowUpdates: true
@@ -74,10 +122,33 @@ jobs:
         with:
           tag: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          artifacts: build/campus-manager.zip
-          artifactContentType: application/zip
+          artifacts: build/${{ env.PLUGIN_SLUG }}.zip,build/${{ env.PLUGIN_MANIFEST }}
           draft: false
           prerelease: false
           allowUpdates: true
           replacesArtifacts: true
           makeLatest: false
+
+      - name: Refresh tracked manifest on main
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          cp "build/${PLUGIN_MANIFEST}" /tmp/${PLUGIN_MANIFEST}
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git show-ref --verify --quiet refs/heads/main; then
+            git switch main
+          else
+            git switch -c main --track origin/main
+          fi
+          git pull --ff-only origin main
+          cp "/tmp/${PLUGIN_MANIFEST}" "${PLUGIN_MANIFEST}"
+          git add "${PLUGIN_MANIFEST}"
+
+          if git diff --cached --quiet; then
+            echo "No manifest changes to commit."
+            exit 0
+          fi
+
+          git commit -m "chore(release): refresh plugin manifest for ${GITHUB_REF_NAME}"
+          git push origin main
