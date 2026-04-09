@@ -7,9 +7,6 @@
 class UNBC_Event_Series {
 
     public function __construct() {
-        // Register custom tables on activation
-        register_activation_hook(dirname(dirname(__FILE__)) . '/unbc-events.php', array($this, 'create_tables'));
-
         // Add series meta boxes to event edit screen
         add_action('add_meta_boxes', array($this, 'add_series_meta_boxes'));
         add_action('save_post_event', array($this, 'save_series_meta'), 10, 2);
@@ -21,7 +18,7 @@ class UNBC_Event_Series {
     /**
      * Create custom tables for event series and occurrences
      */
-    public function create_tables() {
+    public static function create_tables() {
         global $wpdb;
         $charset_collate = $wpdb->get_charset_collate();
 

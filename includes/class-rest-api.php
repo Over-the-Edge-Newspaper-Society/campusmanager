@@ -110,8 +110,6 @@ class UNBC_Events_REST_API {
      * Permission check for event import
      */
     public function check_import_permission($request) {
-        // For now, allow authenticated users with edit_posts capability
-        // You can make this more restrictive by checking for application password or API key
         return current_user_can('edit_posts') || $this->validate_api_key($request);
     }
 
@@ -119,15 +117,54 @@ class UNBC_Events_REST_API {
      * Validate API key (for EventScrape integration)
      */
     private function validate_api_key($request) {
-        $api_key = $request->get_header('X-API-Key');
-        $stored_key = get_option('unbc_eventscrape_api_key');
+        $api_key = trim((string) $request->get_header('X-API-Key'));
+        $stored_key = trim((string) get_option('unbc_eventscrape_api_key'));
 
-        // If no API key is set, fall back to basic auth
-        if (empty($stored_key)) {
-            return true; // Will rely on WordPress basic auth
+        if ($stored_key === '') {
+            return false;
         }
 
-        return !empty($api_key) && hash_equals($stored_key, $api_key);
+        return $api_key !== '' && hash_equals($stored_key, $api_key);
+    }
+
+    /**
+     * Determine whether remote media sideloading is allowed for this import request.
+     */
+    private function can_import_remote_media($request, $image_url) {
+        if (empty($image_url)) {
+            return false;
+        }
+
+        // Trusted wp-admin/editor requests can keep the current behavior.
+        if (current_user_can('edit_posts')) {
+            return true;
+        }
+
+        // API-key imports must explicitly allowlist remote hosts.
+        if (!$this->validate_api_key($request)) {
+            return false;
+        }
+
+        $host = wp_parse_url($image_url, PHP_URL_HOST);
+        if (empty($host)) {
+            return false;
+        }
+
+        $allowed_hosts = apply_filters('unbc_events_allowed_remote_media_hosts', array(), $request);
+        $allowed_hosts = array_filter(array_map('strtolower', array_map('trim', (array) $allowed_hosts)));
+        $host = strtolower($host);
+
+        foreach ($allowed_hosts as $allowed_host) {
+            $allowed_suffix = '.' . $allowed_host;
+            if (
+                $host === $allowed_host ||
+                substr($host, -strlen($allowed_suffix)) === $allowed_suffix
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function get_events($request) {
@@ -627,8 +664,8 @@ class UNBC_Events_REST_API {
                     'id' => get_the_ID(),
                     'name' => get_the_title(),
                     'description' => get_the_content(),
-                    'website' => get_post_meta(get_the_ID(), 'organization_website', true),
-                    'contact_email' => get_post_meta(get_the_ID(), 'organization_email', true)
+                    'website' => UNBC_Organization_Fields::get_value(get_the_ID(), 'org_website'),
+                    'contact_email' => UNBC_Organization_Fields::get_value(get_the_ID(), 'org_email')
                 );
             }
             wp_reset_postdata();
@@ -917,6 +954,7 @@ class UNBC_Events_REST_API {
     public function import_event_with_occurrences($request) {
         $event_data = $request->get_param('event');
         $update_if_exists = $request->get_param('update_if_exists') ?? false;
+        $warnings = array();
 
         if (empty($event_data)) {
             return new WP_Error('missing_data', 'Event data is required', array('status' => 400));
@@ -1105,7 +1143,11 @@ class UNBC_Events_REST_API {
 
             // Handle featured media
             if (!empty($event_data['featured_media_url'])) {
-                $this->set_featured_image_from_url($post_id, $event_data['featured_media_url']);
+                if ($this->can_import_remote_media($request, $event_data['featured_media_url'])) {
+                    $this->set_featured_image_from_url($post_id, $event_data['featured_media_url']);
+                } else {
+                    $warnings[] = 'featured_media_url was skipped because remote media imports are not allowed for this request.';
+                }
             }
 
             // Handle categories
@@ -1120,6 +1162,7 @@ class UNBC_Events_REST_API {
                 'post_url' => get_permalink($post_id),
                 'series_created' => !empty($series_id),
                 'occurrences_created' => count($occurrences ?? []),
+                'warnings' => $warnings,
             ));
 
         } catch (Exception $e) {

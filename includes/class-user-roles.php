@@ -220,68 +220,29 @@ class UNBC_Events_User_Roles {
         if (!$user || !in_array('organization_manager', $user->roles)) {
             return true; // Non-organization managers have full access
         }
-        
-        // Restricted fields for organization managers
-        $restricted_fields = array(
-            'org_is_department',
-            'org_founded_date', 
-            'org_approval_date',
-            'org_registration_date',
-            'post_name', // Slug/link
-            'post_status', // Visibility status
-            'post_title' // Organization name/title
-        );
-        
-        return !in_array($field_name, $restricted_fields);
+
+        return !in_array($field_name, $this->get_organization_manager_restricted_fields(), true);
     }
     
     public function get_organization_manager_allowed_fields() {
-        return array(
-            // Basic Info - Allowed
-            'org_email',
-            'org_size', 
-            'org_short_description',
-            'org_membership_requirements',
-            'org_meeting_schedule',
-            'org_original_image_path',
-            
-            // Contact Info - Allowed
-            'org_president_name',
-            'org_president_email', 
-            'org_contact_name',
-            'org_contact_email',
-            'org_office_location',
-            
-            // Social Media - Allowed
-            'org_website',
-            'org_facebook',
-            'org_instagram', 
-            'org_twitter',
-            'org_discord',
-            'org_linktree',
-            'org_youtube',
-            'org_registration_link',
-            
-            // Additional Info - Partially allowed
-            'org_status', // Can edit status
-            'org_founded_year', // Can edit founded year (but not founded date)
-            
-            // Post content
+        return array_merge(
+            UNBC_Organization_Fields::get_org_manager_editable_meta_keys(),
+            array(
             'post_content', // Can edit description
             'post_excerpt', // Can edit excerpt
             '_thumbnail_id' // Can edit featured image
+            )
         );
     }
     
     public function get_organization_manager_restricted_fields() {
-        return array(
-            'org_is_department',
-            'org_founded_date',
-            'org_approval_date', 
-            'org_registration_date',
+        return array_merge(
+            UNBC_Organization_Fields::get_org_manager_restricted_meta_keys(),
+            array(
             'post_name',
             'post_status', 
             'post_title'
+            )
         );
     }
 }

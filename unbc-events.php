@@ -70,6 +70,7 @@ class UNBC_Events_Plugin {
 
     private function include_files() {
         $files_to_include = array(
+            'includes/class-organization-fields.php',
             'includes/class-post-types.php',
             'includes/class-rest-api.php',
             'includes/class-meta-boxes.php',
@@ -108,9 +109,11 @@ register_activation_hook(__FILE__, 'unbc_events_plugin_activate');
 function unbc_events_plugin_activate() {
     // Ensure our post types are registered
     require_once plugin_dir_path(__FILE__) . 'includes/class-post-types.php';
+    require_once plugin_dir_path(__FILE__) . 'includes/class-event-series.php';
     $post_types = new UNBC_Events_Post_Types();
     $post_types->register_post_types();
     $post_types->register_taxonomies();
+    UNBC_Event_Series::create_tables();
 
     // Flush rewrite rules
     flush_rewrite_rules();

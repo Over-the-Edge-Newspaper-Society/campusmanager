@@ -277,6 +277,7 @@ class UNBC_Calendar_Blocks {
             'list_load_more_count' => 15,
             'show_week_view' => 'true',
             'show_day_view' => 'true',
+            'show_cost' => 'true',
             'event_sort_order' => 'asc',
             'month_display_mode' => 'popover',
             'month_sidebar_position' => 'right'
@@ -284,6 +285,7 @@ class UNBC_Calendar_Blocks {
 
         $show_week_view = ($atts['show_week_view'] !== 'false');
         $show_day_view = ($atts['show_day_view'] !== 'false');
+        $show_cost = ($atts['show_cost'] !== 'false');
 
         return $this->render_calendar_component(
             $atts['view'],
@@ -293,6 +295,7 @@ class UNBC_Calendar_Blocks {
             $atts['list_load_more_count'],
             $show_week_view,
             $show_day_view,
+            $show_cost,
             $atts['event_sort_order'],
             $atts['month_display_mode'],
             $atts['month_sidebar_position']

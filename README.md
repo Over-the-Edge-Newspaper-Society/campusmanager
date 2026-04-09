@@ -214,6 +214,37 @@ GET /wp-json/unbc-events/v1/events
 - `featured`: Show only featured events (true/false)
 - `search`: Search events by title/content
 
+#### Protected Event Import Endpoint
+```
+POST /wp-json/unbc-events/v1/import-event
+```
+
+This endpoint is intentionally not public. Requests must use one of these paths:
+
+1. A logged-in WordPress user with `edit_posts`.
+2. An `X-API-Key` header that matches the stored `unbc_eventscrape_api_key` option.
+
+Example API key setup with WP-CLI:
+```bash
+wp option update unbc_eventscrape_api_key 'replace-with-a-long-random-secret'
+```
+
+Example request:
+```bash
+curl -X POST https://example.com/wp-json/unbc-events/v1/import-event \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: replace-with-a-long-random-secret" \
+  -d @event-payload.json
+```
+
+Remote `featured_media_url` sideloading is disabled by default for API-key-authenticated imports. If you explicitly trust a media source, allowlist it in code:
+```php
+add_filter('unbc_events_allowed_remote_media_hosts', function ($hosts) {
+    $hosts[] = 'media.eventscrape.example';
+    return $hosts;
+});
+```
+
 #### Organizations Endpoint
 ```
 GET /wp-json/wp/v2/organizations

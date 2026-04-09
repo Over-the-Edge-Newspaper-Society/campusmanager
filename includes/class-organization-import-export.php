@@ -687,10 +687,10 @@ class UNBC_Organization_Import_Export {
                                 // Create term if it doesn't exist
                                 $term = get_term_by('slug', $term_data['slug'], $taxonomy);
                                 if (!$term) {
-                                    $result = wp_insert_term($term_data['name'], $taxonomy, array(
+                                    $insert_result = wp_insert_term($term_data['name'], $taxonomy, array(
                                         'slug' => $term_data['slug']
                                     ));
-                                    if (!is_wp_error($result)) {
+                                    if (!is_wp_error($insert_result)) {
                                         $term_slugs[] = $term_data['slug'];
                                     }
                                 } else {

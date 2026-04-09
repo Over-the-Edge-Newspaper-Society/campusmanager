@@ -679,42 +679,17 @@ class UNBC_Events_Meta_Boxes {
             $current_user = wp_get_current_user();
             $is_org_manager = in_array('organization_manager', $current_user->roles);
             
-            $org_fields = array(
-                'org_email', 'org_founded_year', 'org_short_description',
-                'org_membership_requirements', 'org_meeting_schedule', 'org_president_name',
-                'org_president_email', 'org_contact_name', 'org_contact_email',
-                'org_office_location', 'org_website', 'org_facebook', 'org_instagram',
-                'org_twitter', 'org_linkedin', 'org_discord', 'org_linktree', 'org_youtube',
-                'org_registration_link', 'org_founded_date', 'org_approval_date', 'org_registration_date',
-                'org_dissolution_date', 'org_original_image_path'
-            );
-
-            // Fields that organization managers cannot edit
-            $restricted_fields = array('org_founded_date', 'org_approval_date', 'org_registration_date', 'org_dissolution_date');
+            $org_fields = UNBC_Organization_Fields::get_meta_keys();
+            $restricted_fields = UNBC_Organization_Fields::get_org_manager_restricted_meta_keys();
 
             foreach ($org_fields as $field) {
                 if (isset($_POST[$field])) {
                     // Skip restricted fields for organization managers
-                    if ($is_org_manager && in_array($field, $restricted_fields)) {
+                    if ($is_org_manager && in_array($field, $restricted_fields, true)) {
                         continue;
                     }
-                    
-                    // Handle URL fields
-                    if (in_array($field, array('org_website', 'org_facebook', 'org_instagram', 'org_linkedin', 'org_discord', 'org_linktree', 'org_youtube', 'org_registration_link'))) {
-                        update_post_meta($post_id, $field, esc_url_raw($_POST[$field]));
-                    }
-                    // Handle email fields
-                    elseif (strpos($field, 'email') !== false) {
-                        update_post_meta($post_id, $field, sanitize_email($_POST[$field]));
-                    }
-                    // Handle textarea fields
-                    elseif (in_array($field, array('org_short_description', 'org_membership_requirements'))) {
-                        update_post_meta($post_id, $field, sanitize_textarea_field($_POST[$field]));
-                    }
-                    // Handle regular text fields
-                    else {
-                        update_post_meta($post_id, $field, sanitize_text_field($_POST[$field]));
-                    }
+
+                    update_post_meta($post_id, $field, UNBC_Organization_Fields::sanitize_value($field, $_POST[$field]));
                 }
             }
             

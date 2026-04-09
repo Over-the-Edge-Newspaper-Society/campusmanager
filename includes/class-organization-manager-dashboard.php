@@ -581,47 +581,7 @@ class UNBC_Organization_Manager_Dashboard {
      * Get organization meta fields
      */
     private function get_organization_meta_fields($org_id) {
-        $fields = array(
-            // Basic org info
-            'org_email' => '',
-            'org_size' => '',
-            'org_founded_year' => '',
-            'org_short_description' => '',
-            'org_membership_requirements' => '',
-            'org_meeting_schedule' => '',
-            'org_original_image_path' => '',
-            
-            // Contact information
-            'org_president_name' => '',
-            'org_president_email' => '',
-            'org_contact_name' => '',
-            'org_contact_email' => '',
-            'org_office_location' => '',
-            
-            // Social media
-            'org_website' => '',
-            'org_facebook' => '',
-            'org_instagram' => '',
-            'org_twitter' => '',
-            'org_linkedin' => '',
-            'org_discord' => '',
-            'org_linktree' => '',
-            'org_youtube' => '',
-            'org_registration_link' => '',
-            
-            // Additional info
-            'org_status' => '',
-            'org_is_department' => '',
-            'org_founded_date' => '',
-            'org_approval_date' => '',
-            'org_registration_date' => ''
-        );
-        
-        foreach ($fields as $key => $default) {
-            $fields[$key] = get_post_meta($org_id, $key, true) ?: $default;
-        }
-        
-        return $fields;
+        return UNBC_Organization_Fields::get_values($org_id);
     }
     
     /**
@@ -668,26 +628,11 @@ class UNBC_Organization_Manager_Dashboard {
         remove_filter('use_block_editor_for_post_type', '__return_false');
         
         // Update meta fields (only those managers can edit)
-        $meta_fields = array(
-            // Basic org info (removed org_size and org_founded_year)
-            'org_email', 'org_short_description', 'org_membership_requirements', 
-            'org_meeting_schedule', 'org_original_image_path',
-            
-            // Contact information
-            'org_president_name', 'org_president_email', 'org_contact_name', 
-            'org_contact_email', 'org_office_location',
-            
-            // Social media
-            'org_website', 'org_facebook', 'org_instagram', 'org_twitter', 
-            'org_linkedin', 'org_discord', 'org_linktree', 'org_youtube', 'org_registration_link'
-            
-            // Note: Removed org_status, org_is_department, org_founded_date, 
-            // org_approval_date, org_registration_date - these are admin-only
-        );
-        
+        $meta_fields = UNBC_Organization_Fields::get_org_manager_editable_meta_keys();
+
         foreach ($meta_fields as $field) {
             if (isset($_POST[$field])) {
-                update_post_meta($org_id, $field, sanitize_text_field($_POST[$field]));
+                update_post_meta($org_id, $field, UNBC_Organization_Fields::sanitize_value($field, $_POST[$field]));
             }
         }
         
