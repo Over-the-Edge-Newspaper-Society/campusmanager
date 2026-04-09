@@ -1,6 +1,12 @@
 <?php
 class UNBC_Events_REST_API {
+    private $organizations_controller;
+    private $event_import_service;
+
     public function __construct() {
+        $this->organizations_controller = new UNBC_Events_REST_Organizations_Controller();
+        $this->event_import_service = new UNBC_Event_Import_Service();
+
         add_action('rest_api_init', array($this, 'register_routes'));
         add_action('rest_api_init', array($this, 'register_meta_fields'));
         
@@ -54,13 +60,13 @@ class UNBC_Events_REST_API {
 
         register_rest_route('unbc-events/v1', '/organizations', array(
             'methods' => WP_REST_Server::READABLE,
-            'callback' => array($this, 'get_organizations'),
+            'callback' => array($this->organizations_controller, 'get_organizations'),
             'permission_callback' => '__return_true'
         ));
 
         register_rest_route('unbc-events/v1', '/categories', array(
             'methods' => WP_REST_Server::READABLE,
-            'callback' => array($this, 'get_categories'),
+            'callback' => array($this->organizations_controller, 'get_categories'),
             'permission_callback' => '__return_true'
         ));
 
@@ -80,22 +86,22 @@ class UNBC_Events_REST_API {
         // Category configuration endpoint
         register_rest_route('unbc-events/v1', '/category-config', array(
             'methods' => WP_REST_Server::READABLE,
-            'callback' => array($this, 'get_category_config'),
+            'callback' => array($this->organizations_controller, 'get_category_config'),
             'permission_callback' => '__return_true'
         ));
 
         // Category colors endpoint
         register_rest_route('unbc-events/v1', '/category-colors', array(
             'methods' => WP_REST_Server::READABLE,
-            'callback' => array($this, 'get_category_colors'),
+            'callback' => array($this->organizations_controller, 'get_category_colors'),
             'permission_callback' => '__return_true'
         ));
 
         // EventScrape import endpoint - accepts events with series/occurrence data
         register_rest_route('unbc-events/v1', '/import-event', array(
             'methods' => WP_REST_Server::CREATABLE,
-            'callback' => array($this, 'import_event_with_occurrences'),
-            'permission_callback' => array($this, 'check_import_permission'),
+            'callback' => array($this->event_import_service, 'import_event_with_occurrences'),
+            'permission_callback' => array($this->event_import_service, 'check_import_permission'),
             'args' => array(
                 'event' => array(
                     'required' => true,
@@ -104,67 +110,6 @@ class UNBC_Events_REST_API {
                 )
             )
         ));
-    }
-
-    /**
-     * Permission check for event import
-     */
-    public function check_import_permission($request) {
-        return current_user_can('edit_posts') || $this->validate_api_key($request);
-    }
-
-    /**
-     * Validate API key (for EventScrape integration)
-     */
-    private function validate_api_key($request) {
-        $api_key = trim((string) $request->get_header('X-API-Key'));
-        $stored_key = trim((string) get_option('unbc_eventscrape_api_key'));
-
-        if ($stored_key === '') {
-            return false;
-        }
-
-        return $api_key !== '' && hash_equals($stored_key, $api_key);
-    }
-
-    /**
-     * Determine whether remote media sideloading is allowed for this import request.
-     */
-    private function can_import_remote_media($request, $image_url) {
-        if (empty($image_url)) {
-            return false;
-        }
-
-        // Trusted wp-admin/editor requests can keep the current behavior.
-        if (current_user_can('edit_posts')) {
-            return true;
-        }
-
-        // API-key imports must explicitly allowlist remote hosts.
-        if (!$this->validate_api_key($request)) {
-            return false;
-        }
-
-        $host = wp_parse_url($image_url, PHP_URL_HOST);
-        if (empty($host)) {
-            return false;
-        }
-
-        $allowed_hosts = apply_filters('unbc_events_allowed_remote_media_hosts', array(), $request);
-        $allowed_hosts = array_filter(array_map('strtolower', array_map('trim', (array) $allowed_hosts)));
-        $host = strtolower($host);
-
-        foreach ($allowed_hosts as $allowed_host) {
-            $allowed_suffix = '.' . $allowed_host;
-            if (
-                $host === $allowed_host ||
-                substr($host, -strlen($allowed_suffix)) === $allowed_suffix
-            ) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     public function get_events($request) {
@@ -645,105 +590,6 @@ class UNBC_Events_REST_API {
         return '#6b7280';
     }
 
-    public function get_organizations($request) {
-        $args = array(
-            'post_type' => 'organization',
-            'post_status' => 'publish',
-            'posts_per_page' => -1,
-            'orderby' => 'title',
-            'order' => 'ASC'
-        );
-
-        $query = new WP_Query($args);
-        $organizations = array();
-
-        if ($query->have_posts()) {
-            while ($query->have_posts()) {
-                $query->the_post();
-                $organizations[] = array(
-                    'id' => get_the_ID(),
-                    'name' => get_the_title(),
-                    'description' => get_the_content(),
-                    'website' => UNBC_Organization_Fields::get_value(get_the_ID(), 'org_website'),
-                    'contact_email' => UNBC_Organization_Fields::get_value(get_the_ID(), 'org_email')
-                );
-            }
-            wp_reset_postdata();
-        }
-
-        return rest_ensure_response(array(
-            'organizations' => $organizations,
-            'total' => count($organizations)
-        ));
-    }
-
-    public function get_categories($request) {
-        $categories = get_terms(array(
-            'taxonomy' => 'event_category',
-            'hide_empty' => false
-        ));
-
-        $category_data = array();
-        foreach ($categories as $category) {
-            $category_data[] = array(
-                'id' => $category->term_id,
-                'name' => $category->name,
-                'slug' => $category->slug,
-                'count' => $category->count
-            );
-        }
-
-        return rest_ensure_response(array(
-            'categories' => $category_data,
-            'total' => count($category_data)
-        ));
-    }
-
-    public function get_category_config($request) {
-        // Get categories with their assigned colors/variants
-        $categories = get_terms(array(
-            'taxonomy' => 'event_category',
-            'hide_empty' => false
-        ));
-
-        $config = array();
-        foreach ($categories as $category) {
-            // Get the category's assigned variant (could be stored in term meta)
-            $variant = get_term_meta($category->term_id, 'category_variant', true);
-
-            if (!$variant && class_exists('UNBC_Category_Colors')) {
-                $variant = UNBC_Category_Colors::get_category_color_variant($category->term_id);
-            }
-
-            if (!$variant) {
-                // Final fallback ensures the key exists but remains neutral when no color configured
-                $variant = 'default';
-            }
-            
-            $config[$category->slug] = array(
-                'name' => $category->name,
-                'variant' => $variant
-            );
-        }
-
-        return rest_ensure_response($config);
-    }
-
-    public function get_category_colors($request) {
-        // Return the color configuration from UNBC_Category_Colors class
-        if (!class_exists('UNBC_Category_Colors')) {
-            return new WP_Error('missing_class', 'Category colors class not found', array('status' => 500));
-        }
-
-        // Get color options from the Category Colors class
-        $reflection = new ReflectionClass('UNBC_Category_Colors');
-        $color_options_property = $reflection->getProperty('color_options');
-        $color_options_property->setAccessible(true);
-        $color_options = $color_options_property->getValue();
-
-        return rest_ensure_response($color_options);
-    }
-
     public function register_meta_fields() {
         // Register REST API fields for event post type
         register_rest_field('event', 'event_meta', array(
@@ -949,228 +795,6 @@ class UNBC_Events_REST_API {
     }
 
     /**
-     * Import event with series and occurrence data from EventScrape
-     */
-    public function import_event_with_occurrences($request) {
-        $event_data = $request->get_param('event');
-        $update_if_exists = $request->get_param('update_if_exists') ?? false;
-        $warnings = array();
-
-        if (empty($event_data)) {
-            return new WP_Error('missing_data', 'Event data is required', array('status' => 400));
-        }
-
-        try {
-            // Extract event data
-            $title = sanitize_text_field($event_data['title'] ?? '');
-            $content = wp_kses_post($event_data['description'] ?? '');
-            $external_id = sanitize_text_field($event_data['external_id'] ?? '');
-
-            // Check if event already exists by external_id
-            $existing_post = null;
-            if (!empty($external_id)) {
-                $existing = get_posts(array(
-                    'post_type' => 'event',
-                    'meta_key' => 'external_id',
-                    'meta_value' => $external_id,
-                    'posts_per_page' => 1,
-                    'post_status' => 'any'
-                ));
-                if (!empty($existing)) {
-                    $existing_post = $existing[0];
-                }
-            }
-
-            // If not found by external_id, check for duplicates by title + date + time
-            // This catches events scraped multiple times with different UUIDs
-            if (!$existing_post && !empty($title)) {
-                $meta = $event_data['meta'] ?? array();
-                $event_date = sanitize_text_field($meta['date'] ?? '');
-                $start_time = sanitize_text_field($meta['start_time'] ?? '');
-
-                if (!empty($event_date)) {
-                    $duplicate_args = array(
-                        'post_type' => 'event',
-                        'post_status' => 'any',
-                        'posts_per_page' => 1,
-                        'title' => $title,
-                        'meta_query' => array(
-                            'relation' => 'AND',
-                            array(
-                                'key' => 'event_date',
-                                'value' => $event_date,
-                                'compare' => '='
-                            )
-                        )
-                    );
-
-                    // Also match start_time if provided
-                    if (!empty($start_time)) {
-                        $duplicate_args['meta_query'][] = array(
-                            'key' => 'start_time',
-                            'value' => $start_time,
-                            'compare' => '='
-                        );
-                    }
-
-                    $duplicate_check = get_posts($duplicate_args);
-                    if (!empty($duplicate_check)) {
-                        $existing_post = $duplicate_check[0];
-                        error_log("[EventScrape Import] Found duplicate by title+date+time: '{$title}' on {$event_date} - existing post ID: {$existing_post->ID}");
-                    }
-                }
-            }
-
-            // If event exists and we should skip updates, return skipped
-            if ($existing_post && !$update_if_exists) {
-                return rest_ensure_response(array(
-                    'success' => true,
-                    'action' => 'skipped',
-                    'post_id' => $existing_post->ID,
-                    'post_url' => get_permalink($existing_post->ID),
-                    'series_created' => false,
-                    'occurrences_created' => 0,
-                ));
-            }
-
-            // Prepare post data
-            $post_data = array(
-                'post_title' => $title,
-                'post_content' => $content,
-                'post_type' => 'event',
-                'post_status' => $event_data['status'] ?? 'publish',
-            );
-
-            if ($existing_post) {
-                // Update existing event
-                $post_data['ID'] = $existing_post->ID;
-                $post_id = wp_update_post($post_data);
-                $action = 'updated';
-            } else {
-                // Create new event
-                $post_id = wp_insert_post($post_data);
-                $action = 'created';
-            }
-
-            if (is_wp_error($post_id)) {
-                return new WP_Error('post_creation_failed', $post_id->get_error_message(), array('status' => 500));
-            }
-
-            // Save standard event meta
-            $meta = $event_data['meta'] ?? array();
-            update_post_meta($post_id, 'external_id', $external_id);
-            update_post_meta($post_id, 'event_date', sanitize_text_field($meta['date'] ?? ''));
-            update_post_meta($post_id, 'start_time', sanitize_text_field($meta['start_time'] ?? ''));
-            update_post_meta($post_id, 'end_time', sanitize_text_field($meta['end_time'] ?? ''));
-            update_post_meta($post_id, 'location', sanitize_text_field($meta['location'] ?? ''));
-            update_post_meta($post_id, 'cost', sanitize_text_field($meta['cost'] ?? ''));
-            update_post_meta($post_id, 'website', esc_url_raw($meta['website'] ?? ''));
-            update_post_meta($post_id, 'virtual_link', esc_url_raw($meta['virtual_link'] ?? ''));
-            update_post_meta($post_id, 'is_virtual', !empty($meta['virtual_link']) ? 1 : 0);
-
-            // Save organization_id if provided
-            if (!empty($meta['organization_id'])) {
-                update_post_meta($post_id, 'organization_id', absint($meta['organization_id']));
-            }
-
-            // Handle series and occurrence data
-            $series_data = $event_data['series_data'] ?? null;
-            $occurrences = $event_data['occurrences'] ?? array();
-
-            if ($series_data || !empty($occurrences)) {
-                // Get or create Event Series manager instance
-                if (class_exists('UNBC_Event_Series')) {
-                    $series_manager = new UNBC_Event_Series();
-
-                    // Save series metadata to custom tables
-                    global $wpdb;
-                    $series_table = $wpdb->prefix . 'event_series';
-
-                    $series_db_data = array(
-                        'post_id' => $post_id,
-                        'occurrence_type' => sanitize_text_field($series_data['occurrence_type'] ?? 'single'),
-                        'recurrence_type' => sanitize_text_field($series_data['recurrence_type'] ?? 'none'),
-                        'recurrence_pattern' => sanitize_text_field($series_data['recurrence_pattern'] ?? ''),
-                        'is_all_day' => !empty($series_data['is_all_day']) ? 1 : 0,
-                        'is_virtual' => !empty($series_data['is_virtual']) ? 1 : 0,
-                        'event_status' => sanitize_text_field($series_data['event_status'] ?? 'scheduled'),
-                        'status_reason' => sanitize_textarea_field($series_data['status_reason'] ?? ''),
-                    );
-
-                    // Check if series exists
-                    $existing_series = $wpdb->get_row($wpdb->prepare(
-                        "SELECT id FROM $series_table WHERE post_id = %d",
-                        $post_id
-                    ));
-
-                    if ($existing_series) {
-                        $wpdb->update($series_table, $series_db_data, array('post_id' => $post_id));
-                        $series_id = $existing_series->id;
-                    } else {
-                        $wpdb->insert($series_table, $series_db_data);
-                        $series_id = $wpdb->insert_id;
-                    }
-
-                    // Create occurrences
-                    if (!empty($occurrences) && $series_id) {
-                        $occurrences_table = $wpdb->prefix . 'event_occurrences';
-
-                        // Clear existing occurrences
-                        $wpdb->delete($occurrences_table, array('series_id' => $series_id));
-
-                        // Insert new occurrences
-                        foreach ($occurrences as $index => $occ) {
-                            $start_dt = new DateTime($occ['start_datetime']);
-                            $end_dt = !empty($occ['end_datetime']) ? new DateTime($occ['end_datetime']) : null;
-                            $duration = $end_dt ? ($end_dt->getTimestamp() - $start_dt->getTimestamp()) : null;
-                            $hash = md5($series_id . $start_dt->format('Y-m-d H:i:s') . ($end_dt ? $end_dt->format('Y-m-d H:i:s') : ''));
-
-                            $wpdb->insert($occurrences_table, array(
-                                'series_id' => $series_id,
-                                'post_id' => $post_id,
-                                'sequence' => $occ['sequence'] ?? ($index + 1),
-                                'occurrence_hash' => $hash,
-                                'start_datetime' => $start_dt->format('Y-m-d H:i:s'),
-                                'end_datetime' => $end_dt ? $end_dt->format('Y-m-d H:i:s') : null,
-                                'duration_seconds' => $duration,
-                                'has_recurrence' => count($occurrences) > 1 ? 1 : 0,
-                                'is_provisional' => !empty($occ['is_provisional']) ? 1 : 0,
-                            ));
-                        }
-                    }
-                }
-            }
-
-            // Handle featured media
-            if (!empty($event_data['featured_media_url'])) {
-                if ($this->can_import_remote_media($request, $event_data['featured_media_url'])) {
-                    $this->set_featured_image_from_url($post_id, $event_data['featured_media_url']);
-                } else {
-                    $warnings[] = 'featured_media_url was skipped because remote media imports are not allowed for this request.';
-                }
-            }
-
-            // Handle categories
-            if (!empty($event_data['categories'])) {
-                wp_set_object_terms($post_id, $event_data['categories'], 'event_category');
-            }
-
-            return rest_ensure_response(array(
-                'success' => true,
-                'action' => $action,
-                'post_id' => $post_id,
-                'post_url' => get_permalink($post_id),
-                'series_created' => !empty($series_id),
-                'occurrences_created' => count($occurrences ?? []),
-                'warnings' => $warnings,
-            ));
-
-        } catch (Exception $e) {
-            return new WP_Error('import_failed', $e->getMessage(), array('status' => 500));
-        }
-    }
-
-    /**
      * Get event occurrences from custom table
      */
     private function get_event_occurrences($post_id) {
@@ -1197,72 +821,4 @@ class UNBC_Events_REST_API {
         return $occurrences ?: array();
     }
 
-    /**
-     * Set featured image from URL (with deduplication)
-     */
-    private function set_featured_image_from_url($post_id, $image_url) {
-        require_once(ABSPATH . 'wp-admin/includes/media.php');
-        require_once(ABSPATH . 'wp-admin/includes/file.php');
-        require_once(ABSPATH . 'wp-admin/includes/image.php');
-
-        // Generate hash-based filename for deduplication
-        $hash = substr(md5($image_url), 0, 12);
-        $extension = $this->get_image_extension($image_url);
-        $filename = "event-{$hash}.{$extension}";
-
-        // Check if image with this filename already exists in media library
-        global $wpdb;
-        $existing_attachment = $wpdb->get_var($wpdb->prepare(
-            "SELECT ID FROM {$wpdb->posts}
-            WHERE post_type = 'attachment'
-            AND guid LIKE %s
-            ORDER BY ID DESC LIMIT 1",
-            '%' . $wpdb->esc_like($filename)
-        ));
-
-        if ($existing_attachment) {
-            // Reuse existing image
-            set_post_thumbnail($post_id, $existing_attachment);
-            error_log("Reusing existing media ID: $existing_attachment for file: $filename");
-            return $existing_attachment;
-        }
-
-        // Image doesn't exist, download and upload it
-        $tmp = download_url($image_url);
-        if (is_wp_error($tmp)) {
-            return false;
-        }
-
-        $file_array = array(
-            'name' => $filename,
-            'tmp_name' => $tmp
-        );
-
-        // Upload to media library
-        $media_id = media_handle_sideload($file_array, $post_id);
-
-        if (is_wp_error($media_id)) {
-            @unlink($file_array['tmp_name']);
-            return false;
-        }
-
-        // Set as featured image
-        set_post_thumbnail($post_id, $media_id);
-        error_log("Uploaded new media ID: $media_id for file: $filename");
-        return $media_id;
-    }
-
-    /**
-     * Get image extension from URL
-     */
-    private function get_image_extension($url) {
-        $url_path = parse_url($url, PHP_URL_PATH);
-        $extension = pathinfo($url_path, PATHINFO_EXTENSION);
-
-        // Handle common image extensions
-        $valid_extensions = array('jpg', 'jpeg', 'png', 'gif', 'webp', 'svg');
-        $extension = strtolower($extension);
-
-        return in_array($extension, $valid_extensions) ? $extension : 'jpg';
-    }
 }

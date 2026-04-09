@@ -1,27 +1,183 @@
 <?php
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 class UNBC_Events_User_Roles {
-    
-    public function __construct() {
-        add_action('init', array($this, 'create_organization_manager_role'));
-        add_action('wp_loaded', array($this, 'assign_organization_to_user'));
-        
-        // Re-enabled - the issue was conflicting redirects, not this filter
-        add_filter('map_meta_cap', array($this, 'map_organization_edit_capability'), 10, 4);
-        
-        // Ensure role exists when needed
-        add_action('wp_loaded', array($this, 'ensure_role_exists'));
+    const ORGANIZATION_MANAGER_ROLE = 'organization_manager';
+
+    public function __construct($register_hooks = true) {
+        if ($register_hooks) {
+            add_filter('map_meta_cap', array($this, 'map_organization_edit_capability'), 10, 4);
+        }
     }
 
-    public function create_organization_manager_role() {
-        // Remove role if it exists to recreate with fresh capabilities
-        remove_role('organization_manager');
-        
-        // Create the Organization Manager role
-        add_role('organization_manager', 'Organization Manager', array(
+    public static function sync_roles() {
+        self::sync_organization_manager_role();
+        self::sync_administrator_capabilities();
+    }
+
+    public function set_user_organization($user_id, $organization_id) {
+        update_user_meta($user_id, 'assigned_organization', $organization_id);
+    }
+
+    public function get_user_organization($user_id) {
+        return get_user_meta($user_id, 'assigned_organization', true);
+    }
+
+    public function map_organization_edit_capability($caps, $cap, $user_id, $args) {
+        static $checking = false;
+        if ($checking) {
+            return $caps;
+        }
+
+        if ($cap === 'edit_post' && isset($args[0])) {
+            $post_id = $args[0];
+
+            $checking = true;
+            $post = get_post($post_id);
+            $checking = false;
+
+            if ($post && ($post->post_type === 'organization' || $post->post_type === 'event')) {
+                $user = get_user_by('id', $user_id);
+
+                if ($user && !empty($user->roles) && in_array(self::ORGANIZATION_MANAGER_ROLE, $user->roles, true)) {
+                    $assigned_org = $this->get_user_organization($user_id);
+
+                    if ($post->post_type === 'organization') {
+                        if ($assigned_org && $assigned_org == $post_id) {
+                            return array('edit_organizations');
+                        }
+
+                        return array('do_not_allow');
+                    }
+
+                    if ($post_id == 0 && $assigned_org) {
+                        return array('edit_events');
+                    }
+
+                    $event_org_id = get_post_meta($post_id, 'organization_id', true);
+                    if ($assigned_org && ($assigned_org == $event_org_id || empty($event_org_id))) {
+                        return array('edit_events');
+                    }
+
+                    return array('do_not_allow');
+                }
+            }
+        }
+
+        if ($cap === 'create_posts' || $cap === 'edit_posts') {
+            $user = get_user_by('id', $user_id);
+            if ($user && !empty($user->roles) && in_array(self::ORGANIZATION_MANAGER_ROLE, $user->roles, true)) {
+                global $pagenow, $typenow;
+                if (
+                    ($pagenow === 'post-new.php' && $typenow === 'event') ||
+                    (isset($_GET['post_type']) && $_GET['post_type'] === 'event')
+                ) {
+                    return array('edit_events');
+                }
+            }
+        }
+
+        if ($cap === 'delete_post' && isset($args[0])) {
+            $post_id = $args[0];
+
+            $checking = true;
+            $post = get_post($post_id);
+            $checking = false;
+
+            if ($post && $post->post_type === 'event') {
+                $user = get_user_by('id', $user_id);
+
+                if ($user && is_array($user->roles) && in_array(self::ORGANIZATION_MANAGER_ROLE, $user->roles, true)) {
+                    $assigned_org = $this->get_user_organization($user_id);
+                    $event_org_id = get_post_meta($post_id, 'organization_id', true);
+
+                    if ($assigned_org && $assigned_org == $event_org_id) {
+                        return array('delete_events');
+                    }
+
+                    return array('do_not_allow');
+                }
+            }
+        }
+
+        return $caps;
+    }
+
+    public function can_user_edit_organization_field($user_id, $field_name) {
+        $user = get_user_by('id', $user_id);
+
+        if (!$user || !is_array($user->roles) || !in_array(self::ORGANIZATION_MANAGER_ROLE, $user->roles, true)) {
+            return true;
+        }
+
+        return !in_array($field_name, $this->get_organization_manager_restricted_fields(), true);
+    }
+
+    public function get_organization_manager_allowed_fields() {
+        return array_merge(
+            UNBC_Organization_Fields::get_org_manager_editable_meta_keys(),
+            array(
+                'post_content',
+                'post_excerpt',
+                '_thumbnail_id',
+            )
+        );
+    }
+
+    public function get_organization_manager_restricted_fields() {
+        return array_merge(
+            UNBC_Organization_Fields::get_org_manager_restricted_meta_keys(),
+            array(
+                'post_name',
+                'post_status',
+                'post_title',
+            )
+        );
+    }
+
+    private static function sync_organization_manager_role() {
+        $role = get_role(self::ORGANIZATION_MANAGER_ROLE);
+        if (!$role) {
+            add_role(self::ORGANIZATION_MANAGER_ROLE, 'Organization Manager', array());
+            $role = get_role(self::ORGANIZATION_MANAGER_ROLE);
+        }
+
+        if (!$role) {
+            return;
+        }
+
+        foreach (self::get_organization_manager_capabilities() as $cap => $grant) {
+            self::set_role_capability($role, $cap, $grant);
+        }
+    }
+
+    private static function sync_administrator_capabilities() {
+        $role = get_role('administrator');
+        if (!$role) {
+            return;
+        }
+
+        foreach (self::get_administrator_capabilities() as $cap => $grant) {
+            self::set_role_capability($role, $cap, $grant);
+        }
+    }
+
+    private static function set_role_capability($role, $cap, $grant) {
+        if ($grant) {
+            $role->add_cap($cap);
+            return;
+        }
+
+        $role->remove_cap($cap);
+    }
+
+    private static function get_organization_manager_capabilities() {
+        return array(
             'read' => true,
             'upload_files' => true,
-            
-            // Explicitly deny general post and comment capabilities
             'edit_posts' => false,
             'delete_posts' => false,
             'publish_posts' => false,
@@ -31,36 +187,30 @@ class UNBC_Events_User_Roles {
             'delete_published_posts' => false,
             'moderate_comments' => false,
             'edit_comment' => false,
-            
-            // Organization capabilities
             'edit_organizations' => true,
             'edit_published_organizations' => true,
             'publish_organizations' => true,
             'read_organization' => true,
-            'delete_organizations' => false, // Cannot delete organizations
-            'edit_others_organizations' => false, // Cannot edit other organizations
-            'delete_published_organizations' => false, // Cannot delete published organizations
-            'delete_others_organizations' => false, // Cannot delete others' organizations
-            'manage_organization_terms' => false, // Cannot manage categories/tags
+            'delete_organizations' => false,
+            'edit_others_organizations' => false,
+            'delete_published_organizations' => false,
+            'delete_others_organizations' => false,
+            'manage_organization_terms' => false,
             'edit_organization_terms' => false,
             'delete_organization_terms' => false,
             'assign_organization_terms' => false,
-            
-            // Event capabilities
             'edit_events' => true,
             'edit_published_events' => true,
             'publish_events' => true,
             'delete_events' => true,
             'delete_published_events' => true,
             'read_event' => true,
-            'edit_others_events' => false, // Cannot edit other organizations' events
-            'delete_others_events' => false, // Cannot delete other organizations' events
-            'manage_event_terms' => true, // Can manage event categories for their events
+            'edit_others_events' => false,
+            'delete_others_events' => false,
+            'manage_event_terms' => true,
             'edit_event_terms' => true,
             'delete_event_terms' => false,
             'assign_event_terms' => true,
-            
-            // Explicitly deny staff profile capabilities
             'edit_staff_profiles' => false,
             'edit_others_staff_profiles' => false,
             'publish_staff_profiles' => false,
@@ -69,180 +219,35 @@ class UNBC_Events_User_Roles {
             'delete_others_staff_profiles' => false,
             'delete_published_staff_profiles' => false,
             'edit_published_staff_profiles' => false,
-        ));
+        );
     }
-    
-    public function ensure_role_exists() {
-        // Make sure the role exists, create it if it doesn't
-        if (!get_role('organization_manager')) {
-            $this->create_organization_manager_role();
-        }
-        
-        // Also ensure administrators have the custom post type capabilities
-        $this->add_admin_capabilities();
-    }
-    
-    public function add_admin_capabilities() {
-        $admin_role = get_role('administrator');
-        if ($admin_role) {
-            // Event capabilities for administrators
-            $admin_role->add_cap('edit_events');
-            $admin_role->add_cap('edit_others_events');
-            $admin_role->add_cap('publish_events');
-            $admin_role->add_cap('read_event');
-            $admin_role->add_cap('delete_events');
-            $admin_role->add_cap('delete_others_events');
-            $admin_role->add_cap('delete_published_events');
-            $admin_role->add_cap('edit_published_events');
-            $admin_role->add_cap('manage_event_terms');
-            $admin_role->add_cap('edit_event_terms');
-            $admin_role->add_cap('delete_event_terms');
-            $admin_role->add_cap('assign_event_terms');
-            
-            // Organization capabilities for administrators
-            $admin_role->add_cap('edit_organizations');
-            $admin_role->add_cap('edit_others_organizations');
-            $admin_role->add_cap('publish_organizations');
-            $admin_role->add_cap('read_organization');
-            $admin_role->add_cap('delete_organizations');
-            $admin_role->add_cap('delete_others_organizations');
-            $admin_role->add_cap('delete_published_organizations');
-            $admin_role->add_cap('edit_published_organizations');
-            $admin_role->add_cap('manage_organization_terms');
-            $admin_role->add_cap('edit_organization_terms');
-            $admin_role->add_cap('delete_organization_terms');
-            $admin_role->add_cap('assign_organization_terms');
-        }
-    }
-    
-    public function assign_organization_to_user() {
-        // This function can be used to assign a specific organization to a user
-        // when creating their account or through the admin interface
-    }
-    
-    public function set_user_organization($user_id, $organization_id) {
-        update_user_meta($user_id, 'assigned_organization', $organization_id);
-    }
-    
-    public function get_user_organization($user_id) {
-        return get_user_meta($user_id, 'assigned_organization', true);
-    }
-    
-    public function map_organization_edit_capability($caps, $cap, $user_id, $args) {
-        // Prevent infinite recursion
-        static $checking = false;
-        if ($checking) {
-            return $caps;
-        }
-        
-        // Handle organization editing capabilities
-        if ($cap === 'edit_post' && isset($args[0])) {
-            $post_id = $args[0];
-            
-            $checking = true;
-            $post = get_post($post_id);
-            $checking = false;
-            
-            if ($post && ($post->post_type === 'organization' || $post->post_type === 'event')) {
-                $user = get_user_by('id', $user_id);
-                
-                if ($user && !empty($user->roles) && in_array('organization_manager', $user->roles)) {
-                    $assigned_org = $this->get_user_organization($user_id);
-                    
-                    if ($post->post_type === 'organization') {
-                        // Organization managers can only edit their assigned organization
-                        if ($assigned_org && $assigned_org == $post_id) {
-                            return array('edit_organizations');
-                        } else {
-                            return array('do_not_allow');
-                        }
-                    } elseif ($post->post_type === 'event') {
-                        // For new events (post_id = 0), allow if user has organization assigned
-                        if ($post_id == 0 && $assigned_org) {
-                            return array('edit_events');
-                        }
-                        
-                        // For existing events, check if it belongs to their organization
-                        $event_org_id = get_post_meta($post_id, 'organization_id', true);
-                        if ($assigned_org && ($assigned_org == $event_org_id || empty($event_org_id))) {
-                            return array('edit_events');
-                        } else {
-                            return array('do_not_allow');
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Handle create new post capability
-        if ($cap === 'create_posts' || $cap === 'edit_posts') {
-            $user = get_user_by('id', $user_id);
-            if ($user && !empty($user->roles) && in_array('organization_manager', $user->roles)) {
-                // Check if this is for events
-                global $pagenow, $typenow;
-                if (($pagenow === 'post-new.php' && $typenow === 'event') || 
-                    (isset($_GET['post_type']) && $_GET['post_type'] === 'event')) {
-                    return array('edit_events');
-                }
-            }
-        }
-        
-        // Handle event deletion capabilities
-        if ($cap === 'delete_post' && isset($args[0])) {
-            $post_id = $args[0];
-            
-            $checking = true;
-            $post = get_post($post_id);
-            $checking = false;
-            
-            if ($post && $post->post_type === 'event') {
-                $user = get_user_by('id', $user_id);
-                
-                if ($user && is_array($user->roles) && in_array('organization_manager', $user->roles)) {
-                    $assigned_org = $this->get_user_organization($user_id);
-                    $event_org_id = get_post_meta($post_id, 'organization_id', true);
-                    
-                    if ($assigned_org && $assigned_org == $event_org_id) {
-                        return array('delete_events');
-                    } else {
-                        return array('do_not_allow');
-                    }
-                }
-            }
-        }
-        
-        return $caps;
-    }
-    
-    public function can_user_edit_organization_field($user_id, $field_name) {
-        $user = get_user_by('id', $user_id);
-        
-        if (!$user || !in_array('organization_manager', $user->roles)) {
-            return true; // Non-organization managers have full access
-        }
 
-        return !in_array($field_name, $this->get_organization_manager_restricted_fields(), true);
-    }
-    
-    public function get_organization_manager_allowed_fields() {
-        return array_merge(
-            UNBC_Organization_Fields::get_org_manager_editable_meta_keys(),
-            array(
-            'post_content', // Can edit description
-            'post_excerpt', // Can edit excerpt
-            '_thumbnail_id' // Can edit featured image
-            )
-        );
-    }
-    
-    public function get_organization_manager_restricted_fields() {
-        return array_merge(
-            UNBC_Organization_Fields::get_org_manager_restricted_meta_keys(),
-            array(
-            'post_name',
-            'post_status', 
-            'post_title'
-            )
-        );
+    private static function get_administrator_capabilities() {
+        return array_fill_keys(array(
+            'edit_events',
+            'edit_others_events',
+            'publish_events',
+            'read_event',
+            'delete_events',
+            'delete_others_events',
+            'delete_published_events',
+            'edit_published_events',
+            'manage_event_terms',
+            'edit_event_terms',
+            'delete_event_terms',
+            'assign_event_terms',
+            'edit_organizations',
+            'edit_others_organizations',
+            'publish_organizations',
+            'read_organization',
+            'delete_organizations',
+            'delete_others_organizations',
+            'delete_published_organizations',
+            'edit_published_organizations',
+            'manage_organization_terms',
+            'edit_organization_terms',
+            'delete_organization_terms',
+            'assign_organization_terms',
+        ), true);
     }
 }

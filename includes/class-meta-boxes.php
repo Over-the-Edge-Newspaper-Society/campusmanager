@@ -1,18 +1,9 @@
 <?php
 class UNBC_Events_Meta_Boxes {
-    private $user_roles_handler;
-    
     public function __construct() {
         add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
         add_action('save_post', array($this, 'save_meta_boxes'));
-        add_action('wp_loaded', array($this, 'init_user_roles_handler'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
-    }
-    
-    public function init_user_roles_handler() {
-        if (class_exists('UNBC_Events_User_Roles')) {
-            $this->user_roles_handler = new UNBC_Events_User_Roles();
-        }
     }
     
     public function enqueue_admin_scripts($hook) {

@@ -9,16 +9,17 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!defined('UNBC_EVENTS_PLUGIN_VERSION')) {
+    define('UNBC_EVENTS_PLUGIN_VERSION', '2.0.0');
+}
+
 class UNBC_Events_Plugin {
     public function __construct() {
-        add_action('init', array($this, 'init'));
-        
-        // Include files immediately
         $this->include_files();
-        
-        // REMOVED: Minimal organization settings page override
-        
-        // Initialize REST API immediately after including files
+
+        add_action('init', array($this, 'maybe_upgrade'), 5);
+        add_action('init', array($this, 'init'));
+
         new UNBC_Events_REST_API();
     }
 
@@ -42,6 +43,15 @@ class UNBC_Events_Plugin {
 
         // Force menu icon update
         add_action('admin_menu', array($this, 'update_menu_icons'), 999);
+    }
+
+    public function maybe_upgrade() {
+        $stored_version = get_option('unbc_events_plugin_version', '');
+        if ($stored_version === UNBC_EVENTS_PLUGIN_VERSION) {
+            return;
+        }
+
+        self::run_install_or_upgrade();
     }
     
     public function update_menu_icons() {
@@ -71,6 +81,9 @@ class UNBC_Events_Plugin {
     private function include_files() {
         $files_to_include = array(
             'includes/class-organization-fields.php',
+            'includes/class-organization-context.php',
+            'includes/class-event-import-service.php',
+            'includes/class-rest-organizations-controller.php',
             'includes/class-post-types.php',
             'includes/class-rest-api.php',
             'includes/class-meta-boxes.php',
@@ -98,6 +111,25 @@ class UNBC_Events_Plugin {
             }
         }
     }
+
+    public static function run_install_or_upgrade() {
+        if (class_exists('UNBC_Events_Post_Types')) {
+            $post_types = new UNBC_Events_Post_Types();
+            $post_types->register_post_types();
+            $post_types->register_taxonomies();
+        }
+
+        if (class_exists('UNBC_Event_Series')) {
+            UNBC_Event_Series::create_tables();
+        }
+
+        if (class_exists('UNBC_Events_User_Roles')) {
+            UNBC_Events_User_Roles::sync_roles();
+        }
+
+        flush_rewrite_rules();
+        update_option('unbc_events_plugin_version', UNBC_EVENTS_PLUGIN_VERSION);
+    }
 }
 
 // Initialize plugin
@@ -107,14 +139,5 @@ $unbc_events_plugin = new UNBC_Events_Plugin();
 register_activation_hook(__FILE__, 'unbc_events_plugin_activate');
 
 function unbc_events_plugin_activate() {
-    // Ensure our post types are registered
-    require_once plugin_dir_path(__FILE__) . 'includes/class-post-types.php';
-    require_once plugin_dir_path(__FILE__) . 'includes/class-event-series.php';
-    $post_types = new UNBC_Events_Post_Types();
-    $post_types->register_post_types();
-    $post_types->register_taxonomies();
-    UNBC_Event_Series::create_tables();
-
-    // Flush rewrite rules
-    flush_rewrite_rules();
+    UNBC_Events_Plugin::run_install_or_upgrade();
 }

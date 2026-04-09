@@ -168,6 +168,26 @@ class UNBC_Calendar_Blocks {
             'organizationsEndpoint' => rest_url('wp/v2/organization/')
         );
     }
+
+    private function resolve_organization_context($organization_id = '', $organization_name = '') {
+        if (!empty($organization_id)) {
+            $organization = get_post(absint($organization_id));
+            if ($organization && $organization->post_type === 'organization') {
+                return array($organization->ID, $organization_name ?: $organization->post_title);
+            }
+        }
+
+        if (!empty($organization_name)) {
+            return array($organization_id, $organization_name);
+        }
+
+        $organization = UNBC_Organization_Context::resolve_current_organization();
+        if ($organization) {
+            return array($organization->ID, $organization->post_title);
+        }
+
+        return array($organization_id, $organization_name);
+    }
     
     public function render_calendar_block($attributes) {
         // Ensure scripts are loaded
@@ -197,8 +217,6 @@ class UNBC_Calendar_Blocks {
     }
     
     public function render_events_list_block($attributes) {
-        global $post, $wp_query;
-        
         // Ensure scripts are loaded
         $this->enqueue_scripts();
         
@@ -206,47 +224,8 @@ class UNBC_Calendar_Blocks {
         $organization_name = isset($attributes['organizationName']) ? $attributes['organizationName'] : '';
         $limit = isset($attributes['limit']) ? intval($attributes['limit']) : 5;
         $show_past = isset($attributes['showPastEvents']) ? $attributes['showPastEvents'] : false;
-        
-        // If no organization specified, try to detect from context (same logic as shortcode)
-        if (empty($organization_id) && empty($organization_name)) {
-            $organization_post = null;
-            
-            // Method 1: Check if current post is organization
-            if ($post && $post->post_type === 'organization') {
-                $organization_post = $post;
-            }
-            
-            // Method 2: Check if we're on an organization single page via query vars
-            if (!$organization_post && isset($wp_query->queried_object) && $wp_query->queried_object->post_type === 'organization') {
-                $organization_post = $wp_query->queried_object;
-            }
-            
-            // Method 3: Check for organization in URL path
-            if (!$organization_post) {
-                $request_uri = $_SERVER['REQUEST_URI'];
-                $parsed_url = parse_url($request_uri);
-                $path = trim($parsed_url['path'], '/');
-                $path_parts = explode('/', $path);
-                
-                // Check for /organization/name or /clubs/name pattern
-                if (count($path_parts) >= 2 && ($path_parts[0] === 'organization' || $path_parts[0] === 'clubs')) {
-                    $org_slug = $path_parts[1];
-                    $organization_post = get_page_by_path($org_slug, OBJECT, 'organization');
-                }
-            }
-            
-            // Method 4: Check query string for organization name/slug
-            if (!$organization_post && isset($_GET['organization'])) {
-                $org_slug = sanitize_text_field($_GET['organization']);
-                $organization_post = get_page_by_path($org_slug, OBJECT, 'organization');
-            }
-            
-            // If we found an organization, use it
-            if ($organization_post) {
-                $organization_id = $organization_post->ID;
-                $organization_name = $organization_post->post_title;
-            }
-        }
+
+        list($organization_id, $organization_name) = $this->resolve_organization_context($organization_id, $organization_name);
         
         // Use React component for rendering with shared event popup
         return $this->render_events_list_component($organization_id, $organization_name, $limit, $show_past);
@@ -322,55 +301,17 @@ class UNBC_Calendar_Blocks {
     }
     
     public function organization_events_shortcode($atts) {
-        global $post, $wp_query;
-        
         $atts = shortcode_atts(array(
             'organization_id' => '',
             'organization_name' => '',
             'limit' => 5,
             'show_past' => 'false'
         ), $atts);
-        
-        // If no organization specified, try to detect from context
-        if (empty($atts['organization_id']) && empty($atts['organization_name'])) {
-            $organization_post = null;
-            
-            // Method 1: Check if current post is organization
-            if ($post && $post->post_type === 'organization') {
-                $organization_post = $post;
-            }
-            
-            // Method 2: Check if we're on an organization single page via query vars
-            if (!$organization_post && isset($wp_query->queried_object) && $wp_query->queried_object->post_type === 'organization') {
-                $organization_post = $wp_query->queried_object;
-            }
-            
-            // Method 3: Check for organization in URL path
-            if (!$organization_post) {
-                $request_uri = $_SERVER['REQUEST_URI'];
-                $parsed_url = parse_url($request_uri);
-                $path = trim($parsed_url['path'], '/');
-                $path_parts = explode('/', $path);
-                
-                // Check for /organization/name or /clubs/name pattern
-                if (count($path_parts) >= 2 && ($path_parts[0] === 'organization' || $path_parts[0] === 'clubs')) {
-                    $org_slug = $path_parts[1];
-                    $organization_post = get_page_by_path($org_slug, OBJECT, 'organization');
-                }
-            }
-            
-            // Method 4: Check query string for organization name/slug
-            if (!$organization_post && isset($_GET['organization'])) {
-                $org_slug = sanitize_text_field($_GET['organization']);
-                $organization_post = get_page_by_path($org_slug, OBJECT, 'organization');
-            }
-            
-            // If we found an organization, use it
-            if ($organization_post) {
-                $atts['organization_id'] = $organization_post->ID;
-                $atts['organization_name'] = $organization_post->post_title;
-            }
-        }
+
+        list($atts['organization_id'], $atts['organization_name']) = $this->resolve_organization_context(
+            $atts['organization_id'],
+            $atts['organization_name']
+        );
         
         $show_past = ($atts['show_past'] === 'true' || $atts['show_past'] === '1');
         
