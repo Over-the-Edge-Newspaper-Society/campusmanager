@@ -3,7 +3,7 @@
  * Plugin Name: Campus Manager
  * Plugin URI:  https://github.com/Over-the-Edge-Newspaper-Society/campusmanager
  * Description: Comprehensive management system for campus events and organizations.
- * Version:     2.0.0
+ * Version:     2.1.0
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author:      Over the Edge Newspaper Society
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('UNBC_EVENTS_PLUGIN_VERSION')) {
-    define('UNBC_EVENTS_PLUGIN_VERSION', '2.0.0');
+    define('UNBC_EVENTS_PLUGIN_VERSION', '2.1.0');
 }
 
 if (!defined('UNBC_EVENTS_GITHUB_REPOSITORY')) {
