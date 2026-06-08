@@ -88,7 +88,20 @@ class UNBC_Event_Import_Service {
             }
 
             if (!empty($event_data['categories'])) {
-                $categories = array_map('sanitize_text_field', (array) $event_data['categories']);
+                // Category values arrive as either term IDs (integers) or term
+                // names (strings). wp_set_object_terms() treats integers as term
+                // IDs but strings as term *names*, auto-creating any that don't
+                // exist. Running everything through sanitize_text_field()
+                // stringified numeric IDs, so "191"/"193" were created as brand
+                // new categories instead of assigning the existing event_category
+                // terms. Keep numeric values as ints so they map to real terms.
+                $categories = array_map(function ($term) {
+                    if (is_int($term)) {
+                        return $term;
+                    }
+                    $term = sanitize_text_field((string) $term);
+                    return ctype_digit($term) ? (int) $term : $term;
+                }, (array) $event_data['categories']);
                 wp_set_object_terms($post_id, $categories, 'event_category');
             }
 
