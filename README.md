@@ -420,7 +420,7 @@ For example, a Zoer local copy can save the event while blocking the outbound im
 
 Warnings from the latest performed import are retained privately on the event and shown to authorized editors on its edit screen. A successful subsequent import clears them; a skipped duplicate leaves the stored warning unchanged. Provider errors are replaced with safe messages so signed URLs and server paths are not exposed. Failed downloads and invalid images preserve any existing featured image. Authentication and Zoer's outbound protection remain enforced.
 
-The endpoint honors `event.status`. EventScrape's manual upload defaults to `draft`. Publishing requires both sending `publish` and an application-password account with `publish_events`; valid authentication alone does not grant publishing permission. The tested local integration account remains draft-only.
+The endpoint honors `event.status`. EventScrape's manual upload defaults to `draft`. Publishing requires both sending `publish` and an application-password account with `publish_events`; valid authentication alone does not grant publishing permission. The initial local integration account was draft-only. It was subsequently granted local event publishing permissions for an authorized 14-event publication; see the [publication follow-up](https://github.com/Over-the-Edge-Newspaper-Society/EventScrape/blob/main/docs/wordpress-integration.md#local-publication-follow-up--september-28-2026).
 
 Run the standalone regression suite with PHP 7.4 or later:
 
