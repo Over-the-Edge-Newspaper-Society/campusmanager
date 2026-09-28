@@ -415,7 +415,7 @@ class UNBC_Event_Importer {
                     continue;
                 }
 
-                $post_id = $this->import_single_event($event_data, $mappings, $default_category, $default_organization, $existing_event);
+                $post_id = $this->import_single_event($event_data, $mappings, $default_category, $default_organization, $duplicate_handling === 'update' ? $existing_event : false);
                 
                 if ($existing_event && $duplicate_handling === 'update') {
                     $results['updated']++;
@@ -436,6 +436,7 @@ class UNBC_Event_Importer {
         if (!empty($event_data['id'])) {
             $existing = get_posts(array(
                 'post_type' => 'event',
+                'post_status' => 'any',
                 'meta_query' => array(
                     array(
                         'key' => 'external_id',
@@ -496,84 +497,40 @@ class UNBC_Event_Importer {
             }
         }
 
-        // Prepare post data
-        $post_data = array(
-            'post_title' => $event_data['title'] ?? 'Untitled Event',
-            'post_content' => $event_data['description'] ?? '',
-            'post_type' => 'event',
-            'post_status' => 'publish'
-        );
+        $permission = UNBC_Write_Policy::event($existing_event_id, 'publish', $organization_id ?: null);
+        if (is_wp_error($permission)) throw new Exception($permission->get_error_message());
+        if ($permission !== null) $organization_id = $permission;
 
-        if ($existing_event_id) {
-            $post_data['ID'] = $existing_event_id;
-            $post_id = wp_update_post($post_data);
-        } else {
-            $post_id = wp_insert_post($post_data);
-        }
-
-        if (is_wp_error($post_id)) {
-            throw new Exception($post_id->get_error_message());
-        }
-
-        // Set category
-        if ($category_id) {
-            wp_set_post_terms($post_id, array($category_id), 'event_category');
-        }
-
-        // Convert UTC dates to local timezone
-        $local_start_date = '';
-        $local_start_time = '';
-        $local_end_time = '';
-        
-        if (!empty($event_data['startDatetime'])) {
-            $timezone = $event_data['timezone'] ?? 'UTC';
-            $utc_start = new DateTime($event_data['startDatetime'], new DateTimeZone('UTC'));
-            $local_tz = new DateTimeZone($timezone);
-            $utc_start->setTimezone($local_tz);
-            
-            $local_start_date = $utc_start->format('Y-m-d');
-            $local_start_time = $utc_start->format('H:i');
-        }
-        
-        if (!empty($event_data['endDatetime'])) {
-            $timezone = $event_data['timezone'] ?? 'UTC';
-            $utc_end = new DateTime($event_data['endDatetime'], new DateTimeZone('UTC'));
-            $local_tz = new DateTimeZone($timezone);
-            $utc_end->setTimezone($local_tz);
-            
-            $local_end_time = $utc_end->format('H:i');
-        }
-
-        // Set meta data
-        $meta_mappings = array(
-            'external_id' => $event_data['id'] ?? '',
-            'event_date' => $local_start_date,
-            'start_time' => $local_start_time,
-            'end_time' => $local_end_time,
-            'timezone' => $event_data['timezone'] ?? '',
-            'location' => $event_data['venueName'] ?? '',
-            'building' => $event_data['venueAddress'] ?? '',
-            'room' => '', // Not in source data
-            'cost' => 'Free', // Default
-            'organization_id' => $organization_id ?: '',
-            'contact_email' => '', // Not in source data
-            'virtual_link' => $event_data['url'] ?? '',
-            'website' => $event_data['url'] ?? '',
-            'registration_required' => '0',
-            'imported_organizer' => $organizer,
-            'import_source_url' => $event_data['url'] ?? ''
-        );
-
-        foreach ($meta_mappings as $meta_key => $meta_value) {
-            if ($meta_value !== '') {
-                update_post_meta($post_id, $meta_key, $meta_value);
+        // Validate all dates before writing the parent. Occurrences use site-local
+        // storage; the original timezone is preserved only as source metadata.
+        $start = UNBC_Event_Store::datetime($event_data['startDatetime'] ?? '');
+        $end = !empty($event_data['endDatetime']) ? UNBC_Event_Store::datetime($event_data['endDatetime']) : $start;
+        $rows = UNBC_Event_Store::normalize_occurrences(array(array('start_datetime'=>$start->format(DATE_ATOM), 'end_datetime'=>$end->format(DATE_ATOM))));
+        global $wpdb;
+        $post_id = 0;
+        UNBC_Event_Store::checked($wpdb->query('START TRANSACTION'));
+        try {
+            $post_data = array('post_title'=>$event_data['title'] ?? 'Untitled Event', 'post_content'=>$event_data['description'] ?? '', 'post_type'=>'event', 'post_status'=>'publish');
+            if ($existing_event_id) $post_data['ID'] = $existing_event_id;
+            $post_id = wp_insert_post($post_data, true);
+            if (is_wp_error($post_id) || !$post_id) { $post_id = 0; throw new RuntimeException('Event could not be saved.'); }
+            if ($category_id) {
+                $terms = wp_set_post_terms($post_id, array($category_id), 'event_category');
+                if (is_wp_error($terms)) throw new RuntimeException($terms->get_error_message());
             }
+            $meta = array('external_id'=>$event_data['id'] ?? '', 'event_date'=>$start->format('Y-m-d'),
+                'start_time'=>$start->format('H:i:s'), 'end_date'=>$end->format('Y-m-d'), 'end_time'=>$end->format('H:i:s'),
+                'timezone'=>wp_timezone_string(), 'location'=>$event_data['venueName'] ?? '', 'building'=>$event_data['venueAddress'] ?? '',
+                'cost'=>'Free', 'organization_id'=>$organization_id, 'website'=>$event_data['url'] ?? '',
+                'registration_required'=>'0', 'imported_organizer'=>$organizer, 'import_source_url'=>$event_data['url'] ?? '');
+            foreach ($meta as $key=>$value) UNBC_Event_Store::meta($post_id, $key, $value);
+            UNBC_Event_Store::write($post_id, array(), $rows);
+            UNBC_Event_Store::checked($wpdb->query('COMMIT'));
+        } catch (Exception $e) {
+            $wpdb->query('ROLLBACK'); if ($post_id) clean_post_cache($post_id); throw $e;
         }
-
-        // Handle image if present
-        if (!empty($event_data['imageUrl'])) {
-            $this->import_event_image($post_id, $event_data['imageUrl']);
-        }
+        UNBC_Events_REST_API::bump_cache_generation();
+        if (!empty($event_data['imageUrl'])) $this->import_event_image($post_id, $event_data['imageUrl']);
 
         return $post_id;
     }

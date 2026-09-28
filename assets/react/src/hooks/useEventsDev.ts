@@ -22,7 +22,7 @@ const generateSampleEvents = (startDate?: string, endDate?: string): Event[] => 
   const end = new Date(endDate);
   
   // Generate events for each month in the range
-  let currentDate = new Date(start.getFullYear(), start.getMonth(), 1);
+  const currentDate = new Date(start.getFullYear(), start.getMonth(), 1);
   
   while (currentDate <= end) {
     const monthEvents = generateEventsForMonth(currentDate.getFullYear(), currentDate.getMonth());

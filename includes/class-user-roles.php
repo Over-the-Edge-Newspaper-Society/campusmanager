@@ -58,7 +58,7 @@ class UNBC_Events_User_Roles {
                     }
 
                     $event_org_id = get_post_meta($post_id, 'organization_id', true);
-                    if ($assigned_org && ($assigned_org == $event_org_id || empty($event_org_id))) {
+                    if ($assigned_org && ($assigned_org == $event_org_id || (empty($event_org_id) && (int) $post->post_author === (int) $user_id && in_array($post->post_status, array('draft', 'auto-draft', 'pending'), true)))) {
                         return array('edit_events');
                     }
 
@@ -189,7 +189,8 @@ class UNBC_Events_User_Roles {
             'edit_comment' => false,
             'edit_organizations' => true,
             'edit_published_organizations' => true,
-            'publish_organizations' => true,
+            'publish_organizations' => false,
+            'create_organizations' => false,
             'read_organization' => true,
             'delete_organizations' => false,
             'edit_others_organizations' => false,
@@ -236,6 +237,7 @@ class UNBC_Events_User_Roles {
             'edit_event_terms',
             'delete_event_terms',
             'assign_event_terms',
+            'create_organizations',
             'edit_organizations',
             'edit_others_organizations',
             'publish_organizations',

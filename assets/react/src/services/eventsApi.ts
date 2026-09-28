@@ -75,7 +75,7 @@ interface EventFilters {
   month?: number; // Calendar Plus style: specific month for caching
 }
 
-class EventsAPI {
+export class EventsAPI {
   private baseUrl: string;
   private cache: Map<string, { data: EventsApiResponse; timestamp: number }>;
   private cacheTimeout: number;
@@ -88,14 +88,13 @@ class EventsAPI {
     this.cacheTimeout = 5 * 60 * 1000; // 5 minutes cache
   }
 
-  async fetchEvents(filters: EventFilters = {}): Promise<EventsApiResponse> {
-    try {
+  async fetchEvents(filters: EventFilters = {}, options: { refresh?: boolean; signal?: AbortSignal } = {}): Promise<EventsApiResponse> {
       // Generate cache key for this request
       const cacheKey = this.generateCacheKey(filters);
       
       // Check if we have cached data
       const cachedData = this.getFromCache(cacheKey);
-      if (cachedData) {
+      if (cachedData && !options.refresh) {
         return cachedData;
       }
 
@@ -124,7 +123,8 @@ class EventsAPI {
       const response = await fetch(url, {
         method: 'GET',
         headers: headers,
-        credentials: 'same-origin'
+        credentials: 'same-origin',
+        signal: options.signal
       });
       
       if (!response.ok) {
@@ -135,12 +135,10 @@ class EventsAPI {
       const data = await response.json();
       
       // Cache the response
-      this.setCache(cacheKey, data);
+      if (!options.signal?.aborted) this.setCache(cacheKey, data);
       
       return data;
-    } catch (error) {
-      throw error;
-    }
+
   }
 
   transformWordPressEventToEvent(wpEvent: WordPressEvent): Event {
@@ -216,13 +214,11 @@ class EventsAPI {
   }
 
   private generateCacheKey(filters: EventFilters): string {
-    // Create cache key exactly like Calendar Plus: year + '-' + month + '-' + category + '-' + search
-    const year = filters.year || new Date().getFullYear();
-    const month = filters.month || (new Date().getMonth() + 1);
-    const category = filters.category || '';
-    const search = filters.search || '';
-    
-    return `${year}-${month}-${category}-${search}`;
+    const params = Object.entries(filters)
+      .filter(([, value]) => value !== undefined && value !== null && value !== '')
+      .map(([key, value]) => [key, String(value)])
+      .sort(([a], [b]) => a.localeCompare(b));
+    return JSON.stringify([this.baseUrl.replace(/\/$/, ''), params]);
   }
 
   private getFromCache(key: string): EventsApiResponse | null {

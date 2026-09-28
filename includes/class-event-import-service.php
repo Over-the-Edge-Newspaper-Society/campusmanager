@@ -5,14 +5,39 @@ if (!defined('ABSPATH')) {
 }
 
 class UNBC_Event_Import_Service {
+    const WARNINGS_META_KEY = '_unbc_events_import_warnings';
+
+    public function __construct() {
+        add_action('admin_notices', array($this, 'show_import_warnings'));
+    }
+
+    public function show_import_warnings() {
+        $screen = get_current_screen();
+        $post_id = isset($_GET['post']) ? absint($_GET['post']) : 0;
+        if (!$screen || $screen->base !== 'post' || $screen->post_type !== 'event'
+            || !$post_id || !current_user_can('edit_post', $post_id)) {
+            return;
+        }
+        $warnings = get_post_meta($post_id, self::WARNINGS_META_KEY, true);
+        if (!is_array($warnings) || empty($warnings)) {
+            return;
+        }
+        echo '<div class="notice notice-warning"><p><strong>' . esc_html__('Event import warnings', 'unbc-events') . '</strong></p><ul>';
+        foreach ($warnings as $warning) {
+            echo '<li>' . esc_html($warning) . '</li>';
+        }
+        echo '</ul></div>';
+    }
+
     public function check_import_permission($request) {
-        return current_user_can('edit_posts') || $this->validate_api_key($request);
+        return current_user_can('edit_events') || $this->validate_api_key($request);
     }
 
     public function import_event_with_occurrences($request) {
         $event_data = $request->get_param('event');
         $update_if_exists = $request->get_param('update_if_exists') ?? false;
         $warnings = array();
+        $media = array('status' => 'not_requested');
         $series_id = null;
         $occurrences = array();
 
@@ -20,12 +45,21 @@ class UNBC_Event_Import_Service {
             return new WP_Error('missing_data', 'Event data is required', array('status' => 400));
         }
 
+        global $wpdb;
+        $transaction = false;
+        $post_id = 0;
         try {
             $title = sanitize_text_field($event_data['title'] ?? '');
             $content = wp_kses_post($event_data['description'] ?? '');
             $external_id = sanitize_text_field($event_data['external_id'] ?? '');
 
             $existing_post = $this->find_existing_event($title, $external_id, $event_data['meta'] ?? array());
+
+            $meta = $event_data['meta'] ?? array();
+            $permission = UNBC_Write_Policy::event($existing_post ? $existing_post->ID : 0,
+                $event_data['status'] ?? 'publish', $meta['organization_id'] ?? null, $this->validate_api_key($request));
+            if (is_wp_error($permission)) return $permission;
+            if ($permission !== null) $event_data['meta']['organization_id'] = $permission;
 
             if ($existing_post && !$update_if_exists) {
                 return rest_ensure_response(array(
@@ -35,8 +69,16 @@ class UNBC_Event_Import_Service {
                     'post_url' => get_permalink($existing_post->ID),
                     'series_created' => false,
                     'occurrences_created' => 0,
+                    'warnings' => array(),
+                    'media' => array('status' => 'not_attempted'),
                 ));
             }
+
+            $series_data = UNBC_Event_Store::normalize_series($event_data['series_data'] ?? array());
+            $normalized_occurrences = array_key_exists('occurrences', $event_data)
+                ? UNBC_Event_Store::normalize_occurrences($event_data['occurrences']) : null;
+            UNBC_Event_Store::checked($wpdb->query('START TRANSACTION'));
+            $transaction = true;
 
             $post_data = array(
                 'post_title' => $title,
@@ -47,46 +89,37 @@ class UNBC_Event_Import_Service {
 
             if ($existing_post) {
                 $post_data['ID'] = $existing_post->ID;
-                $post_id = wp_update_post($post_data);
+                $post_id = wp_update_post($post_data, true);
                 $action = 'updated';
             } else {
-                $post_id = wp_insert_post($post_data);
+                $post_id = wp_insert_post($post_data, true);
                 $action = 'created';
             }
 
-            if (is_wp_error($post_id)) {
-                return new WP_Error('post_creation_failed', $post_id->get_error_message(), array('status' => 500));
+            if (!$post_id || is_wp_error($post_id)) {
+                $post_id = 0;
+                throw new RuntimeException('Event could not be saved.');
             }
 
             $meta = $event_data['meta'] ?? array();
-            update_post_meta($post_id, 'external_id', $external_id);
-            update_post_meta($post_id, 'event_date', sanitize_text_field($meta['date'] ?? ''));
-            update_post_meta($post_id, 'start_time', sanitize_text_field($meta['start_time'] ?? ''));
-            update_post_meta($post_id, 'end_time', sanitize_text_field($meta['end_time'] ?? ''));
-            update_post_meta($post_id, 'location', sanitize_text_field($meta['location'] ?? ''));
-            update_post_meta($post_id, 'cost', sanitize_text_field($meta['cost'] ?? ''));
-            update_post_meta($post_id, 'website', esc_url_raw($meta['website'] ?? ''));
-            update_post_meta($post_id, 'virtual_link', esc_url_raw($meta['virtual_link'] ?? ''));
-            update_post_meta($post_id, 'is_virtual', !empty($meta['virtual_link']) ? 1 : 0);
+            UNBC_Event_Store::meta($post_id, 'external_id', $external_id);
+            UNBC_Event_Store::meta($post_id, 'event_date', sanitize_text_field($meta['date'] ?? ''));
+            UNBC_Event_Store::meta($post_id, 'start_time', sanitize_text_field($meta['start_time'] ?? ''));
+            UNBC_Event_Store::meta($post_id, 'end_time', sanitize_text_field($meta['end_time'] ?? ''));
+            UNBC_Event_Store::meta($post_id, 'location', sanitize_text_field($meta['location'] ?? ''));
+            UNBC_Event_Store::meta($post_id, 'cost', sanitize_text_field($meta['cost'] ?? ''));
+            UNBC_Event_Store::meta($post_id, 'website', esc_url_raw($meta['website'] ?? ''));
+            UNBC_Event_Store::meta($post_id, 'virtual_link', esc_url_raw($meta['virtual_link'] ?? ''));
+            UNBC_Event_Store::meta($post_id, 'is_virtual', !empty($meta['virtual_link']) ? 1 : 0);
 
             if (!empty($meta['organization_id'])) {
-                update_post_meta($post_id, 'organization_id', absint($meta['organization_id']));
+                UNBC_Event_Store::meta($post_id, 'organization_id', absint($meta['organization_id']));
             }
 
-            $series_data = $event_data['series_data'] ?? null;
-            $occurrences = $event_data['occurrences'] ?? array();
-            if ($series_data || !empty($occurrences)) {
-                $series_id = $this->upsert_series_data($post_id, $series_data, $occurrences);
+            if (array_key_exists('series_data', $event_data) || $normalized_occurrences !== null) {
+                $series_id = UNBC_Event_Store::write($post_id, $series_data, $normalized_occurrences);
             }
-
-            if (!empty($event_data['featured_media_url'])) {
-                if ($this->can_import_remote_media($request, $event_data['featured_media_url'])) {
-                    $this->set_featured_image_from_url($post_id, $event_data['featured_media_url']);
-                } else {
-                    $warnings[] = 'featured_media_url was skipped because remote media imports are not allowed for this request.';
-                }
-            }
-
+            $occurrences = $normalized_occurrences ?? array();
             if (!empty($event_data['categories'])) {
                 // Category values arrive as either term IDs (integers) or term
                 // names (strings). wp_set_object_terms() treats integers as term
@@ -102,7 +135,33 @@ class UNBC_Event_Import_Service {
                     $term = sanitize_text_field((string) $term);
                     return ctype_digit($term) ? (int) $term : $term;
                 }, (array) $event_data['categories']);
-                wp_set_object_terms($post_id, $categories, 'event_category');
+                $saved_terms = wp_set_object_terms($post_id, $categories, 'event_category');
+                if (is_wp_error($saved_terms)) throw new RuntimeException($saved_terms->get_error_message());
+            }
+
+            UNBC_Event_Store::checked($wpdb->query('COMMIT'));
+            $transaction = false;
+            UNBC_Events_REST_API::bump_cache_generation();
+
+            if (!empty($event_data['featured_media_url'])) {
+                if ($this->can_import_remote_media($request, $event_data['featured_media_url'])) {
+                    $media_id = $this->set_featured_image_from_url($post_id, $event_data['featured_media_url']);
+                    if (is_wp_error($media_id)) {
+                        $warnings[] = $media_id->get_error_message();
+                        $media = array('status' => 'failed', 'error_code' => $media_id->get_error_code());
+                    } else {
+                        $media = array('status' => 'imported', 'attachment_id' => $media_id);
+                    }
+                } else {
+                    $warnings[] = 'featured_media_url was skipped because remote media imports are not allowed for this request.';
+                    $media = array('status' => 'skipped', 'error_code' => 'remote_media_not_allowed');
+                }
+            }
+
+            if ($warnings) {
+                update_post_meta($post_id, self::WARNINGS_META_KEY, $warnings);
+            } else {
+                delete_post_meta($post_id, self::WARNINGS_META_KEY);
             }
 
             return rest_ensure_response(array(
@@ -113,9 +172,11 @@ class UNBC_Event_Import_Service {
                 'series_created' => !empty($series_id),
                 'occurrences_created' => count($occurrences),
                 'warnings' => $warnings,
+                'media' => $media,
             ));
         } catch (Exception $e) {
-            return new WP_Error('import_failed', $e->getMessage(), array('status' => 500));
+            if ($transaction) { $wpdb->query('ROLLBACK'); if ($post_id) clean_post_cache($post_id); }
+            return new WP_Error('import_failed', $e->getMessage(), array('status' => $e instanceof InvalidArgumentException ? 400 : 500));
         }
     }
 
@@ -173,71 +234,6 @@ class UNBC_Event_Import_Service {
         }
 
         return null;
-    }
-
-    private function upsert_series_data($post_id, $series_data, $occurrences) {
-        if (!class_exists('UNBC_Event_Series')) {
-            return null;
-        }
-
-        global $wpdb;
-        $series_table = $wpdb->prefix . 'event_series';
-        $occurrences_table = $wpdb->prefix . 'event_occurrences';
-
-        $series_db_data = array(
-            'post_id' => $post_id,
-            'occurrence_type' => sanitize_text_field($series_data['occurrence_type'] ?? 'single'),
-            'recurrence_type' => sanitize_text_field($series_data['recurrence_type'] ?? 'none'),
-            'recurrence_pattern' => sanitize_text_field($series_data['recurrence_pattern'] ?? ''),
-            'is_all_day' => !empty($series_data['is_all_day']) ? 1 : 0,
-            'is_virtual' => !empty($series_data['is_virtual']) ? 1 : 0,
-            'event_status' => sanitize_text_field($series_data['event_status'] ?? 'scheduled'),
-            'status_reason' => sanitize_textarea_field($series_data['status_reason'] ?? ''),
-        );
-
-        $existing_series = $wpdb->get_row($wpdb->prepare(
-            "SELECT id FROM $series_table WHERE post_id = %d",
-            $post_id
-        ));
-
-        if ($existing_series) {
-            $wpdb->update($series_table, $series_db_data, array('post_id' => $post_id));
-            $series_id = (int) $existing_series->id;
-        } else {
-            $wpdb->insert($series_table, $series_db_data);
-            $series_id = (int) $wpdb->insert_id;
-        }
-
-        if (empty($occurrences) || !$series_id) {
-            return $series_id;
-        }
-
-        $wpdb->delete($occurrences_table, array('series_id' => $series_id));
-
-        foreach ($occurrences as $index => $occurrence) {
-            $start_dt = new DateTime($occurrence['start_datetime']);
-            $end_dt = !empty($occurrence['end_datetime']) ? new DateTime($occurrence['end_datetime']) : null;
-            $duration = $end_dt ? ($end_dt->getTimestamp() - $start_dt->getTimestamp()) : null;
-            $hash = md5(
-                $series_id .
-                $start_dt->format('Y-m-d H:i:s') .
-                ($end_dt ? $end_dt->format('Y-m-d H:i:s') : '')
-            );
-
-            $wpdb->insert($occurrences_table, array(
-                'series_id' => $series_id,
-                'post_id' => $post_id,
-                'sequence' => $occurrence['sequence'] ?? ($index + 1),
-                'occurrence_hash' => $hash,
-                'start_datetime' => $start_dt->format('Y-m-d H:i:s'),
-                'end_datetime' => $end_dt ? $end_dt->format('Y-m-d H:i:s') : null,
-                'duration_seconds' => $duration,
-                'has_recurrence' => count($occurrences) > 1 ? 1 : 0,
-                'is_provisional' => !empty($occurrence['is_provisional']) ? 1 : 0,
-            ));
-        }
-
-        return $series_id;
     }
 
     private function validate_api_key($request) {
@@ -305,13 +301,16 @@ class UNBC_Event_Import_Service {
         ));
 
         if ($existing_attachment) {
-            set_post_thumbnail($post_id, $existing_attachment);
-            return (int) $existing_attachment;
+            return $this->attach_featured_image($post_id, (int) $existing_attachment);
         }
 
         $tmp = download_url($image_url);
         if (is_wp_error($tmp)) {
-            return false;
+            // Do not expose provider error text: it can contain signed URLs or paths.
+            if ($tmp->get_error_code() === 'local_copy') {
+                return new WP_Error('local_copy', 'The event was saved, but its featured image was not imported because outbound requests are disabled in this local copy.');
+            }
+            return new WP_Error('featured_media_download_failed', 'The event was saved, but its featured image could not be downloaded. Any existing featured image was kept.');
         }
 
         $file_array = array(
@@ -322,12 +321,22 @@ class UNBC_Event_Import_Service {
         $media_id = media_handle_sideload($file_array, $post_id);
         if (is_wp_error($media_id)) {
             @unlink($file_array['tmp_name']);
-            return false;
+            return new WP_Error('featured_media_sideload_failed', 'The event was saved, but WordPress could not save its featured image. Any existing featured image was kept.');
         }
 
-        set_post_thumbnail($post_id, $media_id);
+        return $this->attach_featured_image($post_id, (int) $media_id);
+    }
 
-        return (int) $media_id;
+    private function attach_featured_image($post_id, $media_id) {
+        if (!wp_attachment_is_image($media_id)) {
+            return new WP_Error('featured_media_invalid_image', 'The event was saved, but its media attachment is not a supported image. Any existing featured image was kept.');
+        }
+        set_post_thumbnail($post_id, $media_id);
+        // WordPress returns false for an unchanged thumbnail as well as errors.
+        if ((int) get_post_thumbnail_id($post_id) !== $media_id) {
+            return new WP_Error('featured_media_attach_failed', 'The event was saved, but WordPress could not attach its featured image.');
+        }
+        return $media_id;
     }
 
     private function get_image_extension($url) {

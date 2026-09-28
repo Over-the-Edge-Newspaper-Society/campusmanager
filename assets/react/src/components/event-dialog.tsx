@@ -1,3 +1,4 @@
+import { serializeCalendar, calendarDates } from '@/utils/ical';
 import React from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -14,15 +15,10 @@ interface EventDialogProps {
 }
 
 export function EventDialog({ event, eventMetadata, open, onOpenChange, showCost = true }: EventDialogProps) {
+  const trigger = React.useRef<HTMLElement | null>(null);
+  React.useEffect(() => { if (open) trigger.current = document.activeElement as HTMLElement; }, [open]);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = React.useState(false);
   
-  // Debug website URL
-  React.useEffect(() => {
-    if (event && eventMetadata[event.id]?.website) {
-      console.log('Event website URL:', eventMetadata[event.id].website);
-    }
-  }, [event, eventMetadata]);
-
   if (!event) return null;
 
   const metadata = eventMetadata[event.id];
@@ -43,48 +39,24 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange, showCost
 
   // Generate calendar links
   const generateCalendarLink = (type: 'google' | 'outlook' | 'apple') => {
-    const startDate = event.startDate;
-    const endDate = event.endDate || new Date(startDate.getTime() + 60 * 60 * 1000);
-    
-    const formatDateForGoogle = (date: Date) => {
-      return date.toISOString().replace(/-|:|\.\d\d\d/g, '');
-    };
-
     switch (type) {
-      case 'google':
+      case 'google': {
         const googleUrl = new URL('https://calendar.google.com/calendar/render');
         googleUrl.searchParams.append('action', 'TEMPLATE');
         googleUrl.searchParams.append('text', event.title);
-        googleUrl.searchParams.append('dates', `${formatDateForGoogle(startDate)}/${formatDateForGoogle(endDate)}`);
+        googleUrl.searchParams.append('dates', calendarDates(event).join('/'));
         googleUrl.searchParams.append('details', event.description || '');
         if (metadata?.location) {
           googleUrl.searchParams.append('location', metadata.location);
         }
         return googleUrl.toString();
+      }
         
       case 'outlook':
-      case 'apple':
-        // Both Outlook and Apple use the same .ics format
-        const icsContent = [
-          'BEGIN:VCALENDAR',
-          'VERSION:2.0',
-          'PRODID:-//UNBC Calendar//Events//EN',
-          'METHOD:PUBLISH',
-          'BEGIN:VEVENT',
-          `UID:${event.id}@unbc-calendar`,
-          `DTSTART:${formatDateForGoogle(startDate)}`,
-          `DTEND:${formatDateForGoogle(endDate)}`,
-          `SUMMARY:${event.title}`,
-          `DESCRIPTION:${event.description || ''}`,
-          metadata?.location ? `LOCATION:${metadata.location}` : '',
-          metadata?.website ? `URL:${metadata.website}` : '',
-          `ORGANIZER;CN=${metadata?.organization || 'Over the Edge'}:MAILTO:ote@unbc.ca`,
-          'STATUS:CONFIRMED',
-          'END:VEVENT',
-          'END:VCALENDAR'
-        ].filter(line => line).join('\n');
-        
+      case 'apple': {
+        const icsContent = serializeCalendar(event, metadata);
         return `data:text/calendar;charset=utf8,${encodeURIComponent(icsContent)}`;
+      }
     }
   };
 
@@ -97,7 +69,7 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange, showCost
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto overflow-x-hidden bg-card border border-border sm:w-full p-4 sm:p-6">
+      <DialogContent onCloseAutoFocus={(e) => { e.preventDefault(); trigger.current?.focus(); }} className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto overflow-x-hidden bg-card border border-border sm:w-full p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-xl text-foreground">{event.title}</DialogTitle>
           {event.description && (

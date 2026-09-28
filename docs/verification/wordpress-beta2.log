@@ -1,0 +1,61 @@
+
+PASS contributor cannot import without event capability
+PASS manager cannot edit foreign or other-author unassigned events
+PASS manager can import assigned-organization event
+PASS import duplicate requires target ownership
+PASS import cannot reassign manager event to another organization
+PASS REST metadata cannot reassign organization
+PASS REST external ID cannot redirect create to foreign post
+PASS REST external ID cannot redirect update
+PASS manager cannot create organization through REST
+PASS manager cannot rename organization through REST
+PASS manager cannot unpublish organization through REST
+PASS manager can update allowed organization content
+PASS malformed second occurrence preserves complete schedule and parent
+PASS duplicate occurrence rejects before deleting schedule
+PASS database failure rolls back parent, series and occurrences
+PASS omitted occurrences preserve existing schedule
+PASS explicit empty occurrence array removes schedule
+PASS schedule restores after intentional removal
+PASS failed parent post write returns failure
+PASS draft-only integration account cannot publish
+PASS draft-only integration can still import drafts
+PASS authorized editor can publish
+PASS invalid API key is rejected
+PASS trusted API-key import retains explicit integration policy
+PASS stores large recurrence fixture
+PASS bounded occurrence page loads
+PASS bounded occurrence page loads
+PASS bounded occurrence page loads
+PASS bounded occurrence page loads
+PASS bounded occurrence page loads
+PASS bounded occurrence page loads
+PASS pagination retrieves every occurrence beyond 500 without duplicates
+BENCHMARK 505 rows: 122ms, 46 queries over 6 requests
+PASS public page size is bounded
+PASS excessive date range rejected
+PASS single occurrence retains overnight dates, overrides, cancellation and all-day state
+PASS calendar response is cached
+PASS organization edit invalidates cached metadata
+PASS object-cache transient path caches responses
+PASS generation invalidation works through object-cache transient path
+PASS DST overnight occurrence preserves elapsed duration
+PASS independent upcoming start bound excludes past occurrences
+PASS exactly full last page does not report another page
+PASS repeated DST hour preserves exact instants
+PASS export graph imports same-title events as distinct records
+PASS export relations map to destination IDs
+PASS export round trip preserves recurrence and overrides
+PASS repeat graph import deduplicates by stable identity
+PASS category configuration uses explicit versioned contract
+PASS admin create produces new identity while update retains original
+PASS admin skip mode reports actual operation counts
+PASS admin update mode reports actual operation counts
+PASS admin create mode reports actual operation counts
+PASS manager admin publish list retains assigned event
+PASS manager admin draft list retains assigned event
+PASS manager admin pending list retains assigned event
+PASS manager admin trash list retains assigned event
+ALL WORDPRESS REGRESSIONS PASSED
+Fixture cleanup complete
+zoer$ 

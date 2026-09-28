@@ -9,6 +9,11 @@ class UNBC_Event_Series {
     public function __construct() {
         // Add series meta boxes to event edit screen
         add_action('add_meta_boxes', array($this, 'add_series_meta_boxes'));
+        add_action('admin_notices', function() {
+            $key = 'unbc_series_error_' . get_current_user_id();
+            $error = get_transient($key);
+            if ($error) { delete_transient($key); echo '<div class="notice notice-error"><p>' . esc_html($error) . '</p></div>'; }
+        });
         add_action('save_post_event', array($this, 'save_series_meta'), 10, 2);
 
         // REST API fields for series data
@@ -24,7 +29,7 @@ class UNBC_Event_Series {
 
         // Event Series table (parent events)
         $series_table = $wpdb->prefix . 'event_series';
-        $series_sql = "CREATE TABLE IF NOT EXISTS $series_table (
+        $series_sql = "CREATE TABLE $series_table (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             post_id bigint(20) unsigned NOT NULL,
             occurrence_type varchar(20) NOT NULL DEFAULT 'single',
@@ -45,7 +50,7 @@ class UNBC_Event_Series {
 
         // Event Occurrences table (individual instances)
         $occurrences_table = $wpdb->prefix . 'event_occurrences';
-        $occurrences_sql = "CREATE TABLE IF NOT EXISTS $occurrences_table (
+        $occurrences_sql = "CREATE TABLE $occurrences_table (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             series_id bigint(20) unsigned NOT NULL,
             post_id bigint(20) unsigned NOT NULL,
@@ -53,11 +58,15 @@ class UNBC_Event_Series {
             occurrence_hash varchar(64) NOT NULL,
             start_datetime datetime NOT NULL,
             end_datetime datetime,
+            start_utc datetime,
+            end_utc datetime,
             duration_seconds int(11),
             has_recurrence tinyint(1) NOT NULL DEFAULT 0,
             is_provisional tinyint(1) NOT NULL DEFAULT 0,
             title_override text,
+            description_override longtext,
             location_override text,
+            status_reason_override text,
             event_status_override varchar(20),
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -272,19 +281,11 @@ class UNBC_Event_Series {
             'is_virtual' => $is_virtual,
         );
 
-        if ($existing) {
-            // Update
-            $wpdb->update(
-                $series_table,
-                $data,
-                array('post_id' => $post_id),
-                array('%d', '%s', '%s', '%s', '%s', '%d', '%d'),
-                array('%d')
-            );
-        } else {
-            // Insert
-            $wpdb->insert($series_table, $data, array('%d', '%s', '%s', '%s', '%s', '%d', '%d'));
+        $saved = UNBC_Event_Store::replace($post_id, $data, null);
+        if (is_wp_error($saved)) {
+            set_transient('unbc_series_error_' . get_current_user_id(), $saved->get_error_message(), 60);
         }
+
     }
 
     /**
@@ -330,45 +331,7 @@ class UNBC_Event_Series {
      * Create occurrences from series dates
      */
     public function create_occurrences($post_id, $series_dates) {
-        global $wpdb;
-        $series_table = $wpdb->prefix . 'event_series';
-        $occurrences_table = $wpdb->prefix . 'event_occurrences';
-
-        // Get or create series
-        $series_id = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $series_table WHERE post_id = %d",
-            $post_id
-        ));
-
-        if (!$series_id) {
-            return false;
-        }
-
-        // Clear existing occurrences
-        $wpdb->delete($occurrences_table, array('series_id' => $series_id), array('%d'));
-
-        // Create new occurrences
-        foreach ($series_dates as $index => $date_info) {
-            $start = new DateTime($date_info['start']);
-            $end = isset($date_info['end']) ? new DateTime($date_info['end']) : null;
-
-            $duration = $end ? ($end->getTimestamp() - $start->getTimestamp()) : null;
-            $hash = md5($series_id . $start->format('Y-m-d H:i:s') . ($end ? $end->format('Y-m-d H:i:s') : ''));
-
-            $wpdb->insert($occurrences_table, array(
-                'series_id' => $series_id,
-                'post_id' => $post_id,
-                'sequence' => $index + 1,
-                'occurrence_hash' => $hash,
-                'start_datetime' => $start->format('Y-m-d H:i:s'),
-                'end_datetime' => $end ? $end->format('Y-m-d H:i:s') : null,
-                'duration_seconds' => $duration,
-                'has_recurrence' => count($series_dates) > 1 ? 1 : 0,
-                'is_provisional' => 0,
-            ), array('%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d'));
-        }
-
-        return true;
+        return UNBC_Event_Store::replace($post_id, array(), $series_dates);
     }
 
     /**

@@ -1,0 +1,86 @@
+[
+  {
+    "path": "assets/react/dist/style.css",
+    "sha256": "eb37543002eb7c6e959eae3f9911155d246a967253f1804e7ca7a7ed38b93265"
+  },
+  {
+    "path": "assets/react/dist/unbc-calendar.es.js",
+    "sha256": "f8e2fb2c02994e1e670c774d787d6d225961e504d35dbbc9a885843cc9a242b8"
+  },
+  {
+    "path": "assets/react/dist/unbc-calendar.umd.js",
+    "sha256": "a08648aae5fd3e1e8213124d41b56b7cc21b8db3282fe0b9c4d885bc6d36292e"
+  },
+  {
+    "path": "assets/react/dist/unbc-today-events-widget.es.js",
+    "sha256": "6a66d888b02a772bc5c08cb25922bec2dbffac6e912a2a51092c1b2409528ab4"
+  },
+  {
+    "path": "assets/react/dist/unbc-today-events-widget.umd.js",
+    "sha256": "a98b7881386939356b7a29ab2be4c6b03111494e40ae750a20d5599b8fde7403"
+  },
+  {
+    "path": "assets/react/dist/widget-style.css",
+    "sha256": "eb37543002eb7c6e959eae3f9911155d246a967253f1804e7ca7a7ed38b93265"
+  },
+  {
+    "path": "includes/class-calendar-blocks.php",
+    "sha256": "e0ec8b9a33c325fe0452deb23f457cffeec67722a2662ef2ec6034466983ad8e"
+  },
+  {
+    "path": "includes/class-category-colors.php",
+    "sha256": "4398ae5a69d7a2cc122230a20054fa92892b11398aa5924bd893db3048935836"
+  },
+  {
+    "path": "includes/class-event-import-service.php",
+    "sha256": "5e9a6be6d9157f55371946835b506c4793389d78b77780482ce2f5d99abddfcb"
+  },
+  {
+    "path": "includes/class-event-importer.php",
+    "sha256": "de694ae6782d401fbbbda9197fd89ba2cd6817cf0d72a4af5dc0fa16a49f27da"
+  },
+  {
+    "path": "includes/class-event-series.php",
+    "sha256": "ab4cdecabe9094d6d03c73a113b97d51dd4ddc4274c785af35caafa225ee00da"
+  },
+  {
+    "path": "includes/class-meta-boxes.php",
+    "sha256": "197fc07428e33453c6e976265e3756af92c1b49d659cef1a9deec5007e3f85cc"
+  },
+  {
+    "path": "includes/class-organization-import-export.php",
+    "sha256": "38a06231d768ce33f32e9409cd5cb00995950dabfa8f53a18cd0b12f95b62ee0"
+  },
+  {
+    "path": "includes/class-post-types.php",
+    "sha256": "e980feb41dfb96cbdd754a918158a81cd4cc3cbe6baaed56e177c85072bf8637"
+  },
+  {
+    "path": "includes/class-rest-api.php",
+    "sha256": "b7c49cab6377cd7ac4f8d91cf0b55696ccec09ec5589d3affd7e913a9320d541"
+  },
+  {
+    "path": "includes/class-rest-organizations-controller.php",
+    "sha256": "e2a716b5dc933bba45e3f101b703b4f385a92c522ee1a50cad9a88d5351457f4"
+  },
+  {
+    "path": "includes/class-user-roles.php",
+    "sha256": "4e57fe2a894ce9c8ff77956af745321919919f81e1dac9ea16677cb358505a4b"
+  },
+  {
+    "path": "unbc-events.php",
+    "sha256": "5393864b05bf194963a187219728d2034780975e9e13523b062eb3891e2a4f9e"
+  },
+  {
+    "path": "includes/class-event-store.php",
+    "sha256": "ab3b7aedbba55883c625a8a9a5a423d905b5c8a16ee028b4f05c7109b91abf2c"
+  },
+  {
+    "path": "includes/class-write-policy.php",
+    "sha256": "79482ae69d4f501e857f62dfa18b36be721d949c0184a3f7ced4ccee83e87614"
+  },
+  {
+    "path": "includes/class-event-query.php",
+    "sha256": "b3e540dafea1c91473b810da0ceb1230d51973a745056ff077160bf956dde2d9"
+  }
+]

@@ -13,8 +13,8 @@ on:
         type: boolean
 
 concurrency:
-  group: build-zip
-  cancel-in-progress: true
+  group: build-zip-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   build:
@@ -36,6 +36,29 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+      - name: Install pinned npm and frontend dependencies
+        run: |
+          npm install --global npm@10.9.4
+          for dir in assets/react blocks/calendar-view blocks/events-list blocks/today-events-widget blocks/organization-field; do
+            npm --prefix "$dir" ci --no-audit --no-fund
+          done
+      - name: Check source and build every frontend package
+        run: |
+          find . -name node_modules -prune -o -name '*.php' -print0 | xargs -0 -n1 php -l
+          php tests/event-import-media.php
+          npm --prefix assets/react run lint
+          npm --prefix assets/react run typecheck
+          npm --prefix assets/react test
+          npm --prefix assets/react run build:all
+      - name: WordPress integration regression checks
+        run: bash scripts/test-wordpress.sh
+
       - name: Resolve release metadata
         id: release_meta
         shell: bash
@@ -47,6 +70,15 @@ jobs:
             release_tag="latest"
             release_version=""
           fi
+
+          prerelease=false
+          manifest="plugin-manifest.json"
+          if [[ "$release_version" == *-* || "$release_tag" == latest ]]; then
+            prerelease=true
+            manifest="plugin-manifest-beta.json"
+          fi
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "PLUGIN_MANIFEST=$manifest" >> "$GITHUB_ENV"
 
           download_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${release_tag}/${PLUGIN_SLUG}.zip"
           release_timestamp="$(date -u '+%Y-%m-%d %H:%M:%S')"
@@ -67,7 +99,7 @@ jobs:
           php scripts/generate-plugin-manifest.php \
             --plugin-file="${PLUGIN_FILE}" \
             --output="build/${PLUGIN_MANIFEST}" \
-            --template="${PLUGIN_MANIFEST}" \
+            --template="plugin-manifest.json" \
             --slug="${PLUGIN_SLUG}" \
             --homepage="${PLUGIN_HOMEPAGE}" \
             --download-url="${{ steps.release_meta.outputs.download_url }}" \
@@ -86,6 +118,9 @@ jobs:
         run: |
           cd build
           zip -r "${PLUGIN_SLUG}.zip" "${PLUGIN_SLUG}"
+
+      - name: Verify archive contents
+        run: python3 scripts/check-package.py "build/${PLUGIN_SLUG}.zip"
 
       - name: Delete previous artifact
         uses: geekyeggo/delete-artifact@v5
@@ -111,10 +146,10 @@ jobs:
           name: Latest
           artifacts: build/${{ env.PLUGIN_SLUG }}.zip,build/${{ env.PLUGIN_MANIFEST }}
           draft: false
-          prerelease: false
+          prerelease: ${{ steps.release_meta.outputs.prerelease }}
           allowUpdates: true
           replacesArtifacts: true
-          makeLatest: true
+          makeLatest: false
 
       - name: Create tagged release with asset
         if: startsWith(github.ref, 'refs/tags/')
@@ -124,10 +159,10 @@ jobs:
           name: ${{ github.ref_name }}
           artifacts: build/${{ env.PLUGIN_SLUG }}.zip,build/${{ env.PLUGIN_MANIFEST }}
           draft: false
-          prerelease: false
+          prerelease: ${{ steps.release_meta.outputs.prerelease }}
           allowUpdates: true
           replacesArtifacts: true
-          makeLatest: false
+          makeLatest: ${{ steps.release_meta.outputs.prerelease == 'false' }}
 
       - name: Refresh tracked manifest on main
         if: startsWith(github.ref, 'refs/tags/')
@@ -136,19 +171,11 @@ jobs:
           cp "build/${PLUGIN_MANIFEST}" /tmp/${PLUGIN_MANIFEST}
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git show-ref --verify --quiet refs/heads/main; then
-            git switch main
-          else
-            git switch -c main --track origin/main
-          fi
-          git pull --ff-only origin main
+          git worktree add /tmp/campus-manager-manifest origin/main
+          cd /tmp/campus-manager-manifest
           cp "/tmp/${PLUGIN_MANIFEST}" "${PLUGIN_MANIFEST}"
           git add "${PLUGIN_MANIFEST}"
-
-          if git diff --cached --quiet; then
-            echo "No manifest changes to commit."
-            exit 0
-          fi
-
-          git commit -m "chore(release): refresh plugin manifest for ${GITHUB_REF_NAME}"
-          git push origin main
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "chore(release): refresh ${PLUGIN_MANIFEST} for ${GITHUB_REF_NAME}"
+          git pull --rebase origin main
+          git push origin HEAD:main

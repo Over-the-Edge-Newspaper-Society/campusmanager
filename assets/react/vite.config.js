@@ -21,9 +21,9 @@ export default defineConfig({
       fileName: (format) => `unbc-calendar.${format}.js`
     },
     rollupOptions: {
-      external: [],
+      external: ['react', 'react-dom', 'react-dom/client'],
       output: {
-        globals: {},
+        globals: { react: 'React', 'react-dom': 'ReactDOM', 'react-dom/client': 'ReactDOM' },
         assetFileNames: (assetInfo) => {
           if (assetInfo.name === 'style.css') return 'style.css';
           return assetInfo.name;

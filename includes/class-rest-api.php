@@ -11,7 +11,12 @@ class UNBC_Events_REST_API {
         add_action('rest_api_init', array($this, 'register_meta_fields'));
         
         // Clear cache when events are modified
-        add_action('save_post_event', array($this, 'clear_events_cache'));
+        add_action('save_post', array($this, 'clear_events_cache'));
+        foreach (array('added_post_meta', 'updated_post_meta', 'deleted_post_meta') as $hook) {
+            add_action($hook, function($meta_id, $post_id) { $this->clear_events_cache($post_id); }, 10, 2);
+        }
+        add_action('set_object_terms', array($this, 'clear_events_cache'));
+        add_action('edited_term', array(__CLASS__, 'bump_cache_generation'));
         add_action('delete_post', array($this, 'clear_events_cache_on_delete'));
         add_action('trashed_post', array($this, 'clear_events_cache_on_delete'));
     }
@@ -114,236 +119,67 @@ class UNBC_Events_REST_API {
 
     public function get_events($request) {
         try {
-            $params = $request->get_params();
-            
-            // Skip view-based strategy if we have explicit start/end dates
-            if (!isset($params['start_date']) || !isset($params['end_date'])) {
-                // Apply view-based loading strategy only if no explicit dates provided
-                $this->apply_view_based_strategy($params);
-            }
-            
-            // Create cache key based on parameters
-            $cache_key = 'unbc_events_api_' . md5(serialize($params));
-            $cached_result = get_transient($cache_key);
-            
-            if ($cached_result !== false && !WP_DEBUG) {
-                // Add cache hit info
-                $cached_result['performance']['cache_hit'] = true;
-                return rest_ensure_response($cached_result);
-            }
-            
-            $args = array(
-                'post_type' => 'event',
-                'post_status' => 'publish',
-                'posts_per_page' => $params['per_page'],
-                'paged' => $params['page'],
-                'meta_query' => array(),
-                'tax_query' => array()
-            );
-
-        // Date filtering - need to handle both regular events and events with occurrences
-        $date_filtered_post_ids = array();
-        if (!empty($params['start_date']) && !empty($params['end_date'])) {
             global $wpdb;
-            $occurrences_table = $wpdb->prefix . 'event_occurrences';
-
-            // Get post IDs that have occurrences in the date range
-            $posts_with_occurrences = $wpdb->get_col($wpdb->prepare(
-                "SELECT DISTINCT o.post_id
-                FROM $occurrences_table o
-                WHERE DATE(o.start_datetime) >= %s
-                AND DATE(o.start_datetime) <= %s",
-                $params['start_date'],
-                $params['end_date']
-            ));
-
-            // Also get regular events in the date range using meta_query
-            $date_args = array(
-                'post_type' => 'event',
-                'post_status' => 'publish',
-                'posts_per_page' => -1,
-                'fields' => 'ids',
-                'meta_query' => array(
-                    'relation' => 'AND',
-                    array(
-                        'key' => 'event_date',
-                        'value' => $params['start_date'],
-                        'compare' => '>='
-                    ),
-                    array(
-                        'key' => 'event_date',
-                        'value' => $params['end_date'],
-                        'compare' => '<='
-                    )
-                )
-            );
-
-            $regular_events = get_posts($date_args);
-
-            // Combine both sets of post IDs
-            $date_filtered_post_ids = array_unique(array_merge($posts_with_occurrences, $regular_events));
-
-            if (!empty($date_filtered_post_ids)) {
-                $args['post__in'] = $date_filtered_post_ids;
-            } else {
-                // No events found in date range, return empty
-                $args['post__in'] = array(0); // Will return no results
+            $params = $request->get_params();
+            if (empty($params['start_date']) && empty($params['end_date'])) $this->apply_view_based_strategy($params);
+            $params['per_page'] = max(1, min(100, absint($params['per_page'] ?? 100)));
+            $params['page'] = max(1, absint($params['page'] ?? 1));
+            ksort($params);
+            $cache_key = 'unbc_events_api_' . md5(get_option('unbc_events_cache_generation', '0') . serialize($params));
+            $cached = get_transient($cache_key);
+            if ($cached !== false) { $cached['performance']['cache_hit'] = true; return rest_ensure_response($cached); }
+            list($rows, $total) = UNBC_Event_Query::page($params);
+            $ids = array_values(array_unique(array_map(function($row) { return (int) $row->post_id; }, $rows)));
+            $occurrences = array(); $series = array();
+            if ($ids) {
+                _prime_post_caches($ids, true, true);
+                $in = implode(',', $ids);
+                foreach ($wpdb->get_results("SELECT * FROM {$wpdb->prefix}event_series WHERE post_id IN ($in)") as $item) $series[$item->post_id] = $item;
+                $occ_ids = array_filter(array_map(function($row) { return (int) $row->occurrence_id; }, $rows));
+                if ($occ_ids) foreach ($wpdb->get_results('SELECT * FROM ' . $wpdb->prefix . 'event_occurrences WHERE id IN (' . implode(',', $occ_ids) . ')') as $item) $occurrences[$item->id] = $item;
+                $org_ids = array_filter(array_map(function($id) { return absint(get_post_meta($id, 'organization_id', true)); }, $ids));
+                if ($org_ids) _prime_post_caches(array_unique($org_ids), false, true);
             }
-        }
-
-        // Category filtering
-        if (!empty($params['category'])) {
-            $args['tax_query'][] = array(
-                'taxonomy' => 'event_category',
-                'field' => 'slug',
-                'terms' => $params['category']
-            );
-        }
-
-        // Organization filtering
-        if (!empty($params['organization'])) {
-            $args['meta_query'][] = array(
-                'key' => 'organization_id',
-                'value' => $params['organization'],
-                'compare' => '='
-            );
-        }
-
-        // Featured filtering
-        if (isset($params['featured']) && $params['featured']) {
-            $args['meta_query'][] = array(
-                'key' => 'featured',
-                'value' => '1',
-                'compare' => '='
-            );
-        }
-
-        // Search functionality
-        if (!empty($params['search'])) {
-            $args['s'] = $params['search'];
-        }
-
-        $query = new WP_Query($args);
-        $events = array();
-        $organizations_with_events = array();
-        $event_metadata = array();
-        $category_mappings = array();
-
-        if ($query->have_posts()) {
-            while ($query->have_posts()) {
-                $query->the_post();
-                $post_id = get_the_ID();
-                $formatted_event = $this->format_event_data($post_id);
-
-                if ($formatted_event) {
-                    // Check if this event has occurrences
-                    $occurrences = $this->get_event_occurrences($post_id);
-
-                    if (!empty($occurrences) && count($occurrences) > 1) {
-                        // Event has multiple occurrences - create separate calendar entries for each
-                        foreach ($occurrences as $index => $occurrence) {
-                            $occ_date = date('Y-m-d', strtotime($occurrence->start_datetime));
-
-                            // Filter by date range if specified
-                            if (!empty($params['start_date']) && $occ_date < $params['start_date']) {
-                                continue;
-                            }
-                            if (!empty($params['end_date']) && $occ_date > $params['end_date']) {
-                                continue;
-                            }
-
-                            // Clone the formatted event and update with occurrence-specific data
-                            $occurrence_event = $formatted_event;
-                            $occurrence_event['id'] = $post_id . '_occ_' . $occurrence->sequence;
-                            $occurrence_event['date'] = $occ_date;
-                            $occurrence_event['start_time'] = date('H:i:s', strtotime($occurrence->start_datetime));
-                            $occurrence_event['end_time'] = $occurrence->end_datetime ? date('H:i:s', strtotime($occurrence->end_datetime)) : '';
-
-                            // Transform to calendar-ready format
-                            $calendar_event = $this->transform_to_calendar_format($occurrence_event);
-                            $events[] = $calendar_event;
-
-                            // Build event metadata for this occurrence
-                            $event_metadata[$calendar_event['id']] = $this->build_event_metadata($occurrence_event);
-
-                            // Collect organizations (only those with events)
-                            if ($formatted_event['organization_id']) {
-                                $organizations_with_events[$formatted_event['organization_id']] = $formatted_event['organization'];
-                            }
-
-                            // Collect category mappings
-                            foreach ($formatted_event['categories'] as $category) {
-                                if (!isset($category_mappings[$category['slug']])) {
-                                    $category_mappings[$category['slug']] = $this->get_category_variant($category['slug']);
-                                }
-                            }
-                        }
-                    } else {
-                        // Single occurrence event - process normally
-                        $calendar_event = $this->transform_to_calendar_format($formatted_event);
-                        $events[] = $calendar_event;
-
-                        // Build event metadata
-                        $event_metadata[$calendar_event['id']] = $this->build_event_metadata($formatted_event);
-
-                        // Collect organizations (only those with events)
-                        if ($formatted_event['organization_id']) {
-                            $organizations_with_events[$formatted_event['organization_id']] = $formatted_event['organization'];
-                        }
-
-                        // Collect category mappings
-                        foreach ($formatted_event['categories'] as $category) {
-                            if (!isset($category_mappings[$category['slug']])) {
-                                $category_mappings[$category['slug']] = $this->get_category_variant($category['slug']);
-                            }
-                        }
-                    }
+            $events = array(); $metadata = array(); $organizations = array(); $colors = array();
+            foreach ($rows as $row) {
+                $data = $this->format_event_data($row->post_id);
+                if (!$data) continue;
+                $occ = $occurrences[$row->occurrence_id] ?? null;
+                $sr = $series[$row->post_id] ?? null;
+                $data['id'] = $row->occurrence_id ? $row->post_id . '_occ_' . $row->sequence : $row->post_id;
+                $data['date'] = substr($row->start_datetime, 0, 10);
+                $data['start_time'] = substr($row->start_datetime, 11);
+                $data['end_date'] = $row->end_datetime ? substr($row->end_datetime, 0, 10) : $data['date'];
+                $data['end_time'] = $row->end_datetime ? substr($row->end_datetime, 11) : $data['start_time'];
+                // Recurrence storage is normalized to site-local time; legacy
+                // metadata carries the timezone used by its original writer.
+                if ($occ) $data['timezone'] = wp_timezone_string();
+                $data['event_status'] = $occ->event_status_override ?? $sr->event_status ?? 'scheduled';
+                $data['status_reason'] = $occ->status_reason_override ?? $sr->status_reason ?? '';
+                $data['is_all_day'] = !empty($sr->is_all_day);
+                if ($occ) {
+                    foreach (array('title_override'=>'title', 'description_override'=>'description', 'location_override'=>'full_location') as $from=>$to) if (!empty($occ->$from)) $data[$to] = $occ->$from;
                 }
+                $event = $this->transform_to_calendar_format($data);
+                if ($occ && !empty($occ->start_utc)) {
+                    $event['startDate'] = str_replace(' ', 'T', $occ->start_utc) . 'Z';
+                    $event['endDate'] = str_replace(' ', 'T', $occ->end_utc ?: $occ->start_utc) . 'Z';
+                }
+                $events[] = $event; $metadata[$event['id']] = $this->build_event_metadata($data);
+                if ($data['organization_id']) $organizations[$data['organization_id']] = $data['organization'];
+                foreach ($data['categories'] as $cat) $colors[$cat['slug']] = $this->get_category_variant($cat['slug']);
             }
-            wp_reset_postdata();
-        }
-
-        // Determine if there are more events available
-        $hasMore = $this->has_more_events(
-            $params['date'] ?? date('Y-m-d'),
-            $params['view'] ?? 'month',
-            $query->found_posts,
-            $params['per_page'],
-            $params['page']
-        );
-
-        $response = array(
-            'events' => $events,
-            'eventMetadata' => $event_metadata,
-            'organizations' => array_values($organizations_with_events),
-            'categoryMappings' => $category_mappings,
-            'total' => $query->found_posts,
-            'pages' => $query->max_num_pages,
-            'performance' => array(
-                'server_processed' => true,
-                'cache_hit' => false,
-                'processing_time' => 0
-            ),
-            'pagination' => array(
-                'hasMore' => $hasMore,
-                'nextPage' => $hasMore ? ($params['page'] + 1) : null,
-                'currentPage' => $params['page'],
-                'perPage' => $params['per_page'],
-                'view' => $params['view'] ?? 'month',
-                'loadedRange' => array(
-                    'start' => !empty($events) ? $events[0]['startDate'] : null,
-                    'end' => !empty($events) ? $events[count($events) - 1]['startDate'] : null
-                )
-            )
-        );
-
-        // Cache the result for 15 minutes
-        set_transient($cache_key, $response, 15 * MINUTE_IN_SECONDS);
-        
-        return rest_ensure_response($response);
-        
+            $has_more = $params['page'] * $params['per_page'] < $total;
+            $response = array('events'=>$events, 'eventMetadata'=>$metadata, 'organizations'=>$organizations, 'categoryMappings'=>$colors,
+                'total'=>$total, 'pages'=>(int) ceil($total/$params['per_page']),
+                'performance'=>array('server_processed'=>true, 'cache_hit'=>false),
+                'pagination'=>array('hasMore'=>$has_more, 'nextPage'=>$has_more ? $params['page']+1 : null,
+                    'currentPage'=>$params['page'], 'perPage'=>$params['per_page'], 'view'=>$params['view'] ?? 'month',
+                    'loadedRange'=>array('start'=>$params['start_date'] ?? null, 'end'=>$params['end_date'] ?? null)));
+            set_transient($cache_key, $response, 15 * MINUTE_IN_SECONDS);
+            return rest_ensure_response($response);
         } catch (Exception $e) {
-            return new WP_Error('events_api_error', $e->getMessage(), array('status' => 500));
+            return new WP_Error('events_api_error', $e->getMessage(), array('status'=>$e instanceof InvalidArgumentException ? 400 : 500));
         }
     }
 
@@ -428,12 +264,14 @@ class UNBC_Events_REST_API {
     private function transform_to_calendar_format($event_data) {
         // Create proper DateTime objects for React
         $start_datetime = $this->create_datetime($event_data['date'], $event_data['start_time'], $event_data['timezone'] ?? null);
-        $end_datetime = $this->create_datetime($event_data['date'], $event_data['end_time'], $event_data['timezone'] ?? null);
+        $end_datetime = $this->create_datetime($event_data['end_date'] ?? $event_data['date'], $event_data['end_time'], $event_data['timezone'] ?? null);
 
         return array(
             'id' => (string)$event_data['id'],
             'title' => $event_data['title'],
             'description' => $event_data['description'],
+            'isAllDay' => !empty($event_data['is_all_day']),
+            'status' => $event_data['event_status'] ?? 'scheduled',
             'startDate' => $start_datetime,
             'endDate' => $end_datetime,
             'category' => !empty($event_data['categories']) ? $event_data['categories'][0]['slug'] : 'academic',
@@ -446,6 +284,10 @@ class UNBC_Events_REST_API {
      */
     private function build_event_metadata($event_data) {
         return array(
+            'categories' => $event_data['categories'],
+            'status' => $event_data['event_status'] ?? 'scheduled',
+            'statusReason' => $event_data['status_reason'] ?? '',
+            'isAllDay' => !empty($event_data['is_all_day']),
             'location' => $event_data['full_location'],
             'organization' => $event_data['organization'],
             'organization_id' => $event_data['organization_id'],
@@ -477,9 +319,9 @@ class UNBC_Events_REST_API {
 
             $datetime_string = trim($date . ' ' . $time_part);
 
-            // Times are already stored in local timezone, so always use site timezone
-            // regardless of what's in the timezone field
-            $timezone_object = wp_timezone();
+            // Interpret legacy metadata in its declared timezone. Occurrences
+            // have already been normalized to the site timezone.
+            $timezone_object = $timezone ? new DateTimeZone($timezone) : wp_timezone();
 
             $datetime = new DateTime($datetime_string, $timezone_object);
             return $datetime->format('c'); // ISO 8601 format
@@ -608,9 +450,9 @@ class UNBC_Events_REST_API {
                 );
             },
             'update_callback' => function($value, $post) {
-                if (!is_array($value)) {
-                    return false;
-                }
+                if (!is_array($value)) return false;
+                $permission = UNBC_Write_Policy::event($post->ID, get_post_status($post->ID), $value['organization'] ?? null);
+                if (is_wp_error($permission)) return $permission;
 
                 if (isset($value['date'])) {
                     update_post_meta($post->ID, 'event_date', sanitize_text_field($value['date']));
@@ -664,37 +506,20 @@ class UNBC_Events_REST_API {
     }
 
     public function create_calendar_event($request) {
-        $event_data = $request->get_param('event_data');
-        
-        // TODO: Add authentication check
-        // if (!current_user_can('edit_posts')) {
-        //     return new WP_Error('rest_forbidden', 'You do not have permissions to create events.', array('status' => 403));
-        // }
-        
-        // Create calendar event in appropriate calendar service
-        // This is a placeholder for calendar integration
-        
-        return rest_ensure_response(array(
-            'success' => true,
-            'message' => 'Calendar event created successfully',
-            'calendar_url' => 'https://calendar.google.com/event/...' // Example URL
-        ));
+        return new WP_Error('not_implemented', 'Calendar creation is not implemented.', array('status' => 501));
     }
-    
+
     /**
      * Clear events cache when events are modified
      */
-    public function clear_events_cache($post_id) {
-        if (get_post_type($post_id) !== 'event') {
-            return;
-        }
-        
-        // Clear all event-related transients
-        global $wpdb;
-        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_unbc_events_api_%'");
-        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_unbc_events_api_%'");
+    public static function bump_cache_generation() {
+        update_option('unbc_events_cache_generation', wp_generate_uuid4(), false);
     }
-    
+
+    public function clear_events_cache($post_id) {
+        if (in_array(get_post_type($post_id), array('event', 'organization'), true)) self::bump_cache_generation();
+    }
+
     /**
      * Clear cache when post is deleted or trashed
      */
@@ -707,7 +532,7 @@ class UNBC_Events_REST_API {
      */
     private function apply_view_based_strategy(&$params) {
         $view = $params['view'] ?? 'month';
-        $date = $params['date'] ?? date('Y-m-d');
+        $date = $params['date'] ?? current_time('Y-m-d');
         $current_date = new DateTime($date);
         
         switch ($view) {
@@ -758,16 +583,9 @@ class UNBC_Events_REST_API {
 
                 // Set start date to today if not specified
                 if (!isset($params['start_date'])) {
-                    $params['start_date'] = date('Y-m-d');
+                    $params['start_date'] = current_time('Y-m-d');
                 }
 
-                // Set end date to 1 year from start date if not specified
-                if (!isset($params['end_date'])) {
-                    $start_date = new DateTime($params['start_date']);
-                    $end_date = clone $start_date;
-                    $end_date->modify('+1 year');
-                    $params['end_date'] = $end_date->format('Y-m-d');
-                }
                 break;
                 
             default:

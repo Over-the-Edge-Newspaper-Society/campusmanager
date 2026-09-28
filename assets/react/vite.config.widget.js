@@ -21,9 +21,9 @@ export default defineConfig({
       fileName: (format) => `unbc-today-events-widget.${format}.js`
     },
     rollupOptions: {
-      external: [],
+      external: ['react', 'react-dom', 'react-dom/client'],
       output: {
-        globals: {},
+        globals: { react: 'React', 'react-dom': 'ReactDOM', 'react-dom/client': 'ReactDOM' },
         assetFileNames: (assetInfo) => {
           if (assetInfo.name === 'style.css') return 'widget-style.css';
           return assetInfo.name;

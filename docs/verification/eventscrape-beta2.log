@@ -1,0 +1,16 @@
+Uploaded 14 events, 0 failed, 0 skipped, 5 with warnings
+22379 updated {'status': 'not_requested'} 1 occurrences preserved
+22380 updated {'status': 'not_requested'} 1 occurrences preserved
+22381 updated {'status': 'not_requested'} 1 occurrences preserved
+22382 updated {'status': 'not_requested'} 1 occurrences preserved
+22383 updated {'status': 'not_requested'} 1 occurrences preserved
+22384 updated {'error_code': 'local_copy', 'status': 'failed'} 1 occurrences preserved
+22385 updated {'error_code': 'local_copy', 'status': 'failed'} 1 occurrences preserved
+22386 updated {'status': 'not_requested'} 1 occurrences preserved
+22387 updated {'status': 'not_requested'} 1 occurrences preserved
+22388 updated {'error_code': 'local_copy', 'status': 'failed'} 2 occurrences preserved
+22389 updated {'status': 'not_requested'} 2 occurrences preserved
+22390 updated {'error_code': 'local_copy', 'status': 'failed'} 1 occurrences preserved
+22391 updated {'error_code': 'local_copy', 'status': 'failed'} 3 occurrences preserved
+22392 updated {'status': 'not_requested'} 1 occurrences preserved
+All 14 EventScrape events preserved their content, drafts, categories, images and recurrence schedule.

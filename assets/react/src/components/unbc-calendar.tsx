@@ -1,4 +1,4 @@
-"use client";
+import { eventRange } from '@/utils/eventRange';
 
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -179,7 +179,7 @@ export default function UNBCCalendar({
 
   // Detect and apply dark mode directly to calendar component
   React.useEffect(() => {
-    let observer: MutationObserver;
+
 
     const detectTheme = () => {
       // Check various theme detection methods (but don't check html.dark to avoid circular detection)
@@ -207,9 +207,9 @@ export default function UNBCCalendar({
       // Apply dark class to html element for global Tailwind dark mode support
       // This ensures portaled components (dialogs, selects) also get dark mode
       if (isDark) {
-        document.documentElement.classList.add('dark');
+        document.querySelectorAll('.unbc-calendar-container, .unbc-today-events-widget').forEach(el => el.classList.add('dark'));
       } else {
-        document.documentElement.classList.remove('dark');
+        document.querySelectorAll('.unbc-calendar-container, .unbc-today-events-widget').forEach(el => el.classList.remove('dark'));
       }
 
       // Reconnect observer after making changes
@@ -220,8 +220,8 @@ export default function UNBCCalendar({
     };
 
     // Run detection initially and on changes
+    const observer = new MutationObserver(detectTheme);
     detectTheme();
-    observer = new MutationObserver(detectTheme);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-color-scheme'] });
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
@@ -239,41 +239,26 @@ export default function UNBCCalendar({
   const isDev = import.meta.env.DEV;
   
   // Filters
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [organizationFilter, setOrganizationFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState(initialCategoryFilter);
+  const [organizationFilter, setOrganizationFilter] = useState(initialOrganizationFilter);
   const [searchFilter, setSearchFilter] = useState("");
   const [searchInput, setSearchInput] = useState("");
 
-  // Calculate month-based date range like Calendar Plus approach
-  const dateFilters = React.useMemo(() => {
-    // Use calendarViewDate for month-based loading
-    const baseDate = new Date(calendarViewDate.getTime());
-    const year = baseDate.getFullYear();
-    const month = baseDate.getMonth();
-
-    // Start: First day of current month
-    const startDate = new Date(year, month, 1);
-
-    // End: Last day of current month
-    const endDate = new Date(year, month + 1, 0);
-
-    return {
-      per_page: 500,
-      start_date: startDate.toISOString().split('T')[0],
-      end_date: endDate.toISOString().split('T')[0],
-      year: year,
-      month: month + 1, // Calendar Plus uses 1-based months
-      category: categoryFilter === "all" ? "" : categoryFilter,
-      // Don't send search to API - handle client-side only for better UX
-    };
-  }, [calendarViewDate, categoryFilter]); // Removed searchFilter dependency
+  const categoryConfigData = useCategoryConfig();
+  const dateFilters = React.useMemo(() => ({
+    ...eventRange(activeTab, activeTab === 'list' ? new Date() : calendarViewDate),
+    per_page: 100,
+    view: activeTab as 'month' | 'week' | 'day' | 'list',
+    organization: organizationFilter === 'all' ? '' : organizationFilter,
+    category: categoryFilter === 'all' ? '' : [categoryFilter, ...(categoryConfigData.config?.categoryRelationships[categoryFilter] || [])].join(','),
+    search: searchFilter,
+  }), [activeTab, calendarViewDate, organizationFilter, categoryFilter, categoryConfigData.config, searchFilter]);
 
   // Use appropriate hooks based on environment
   const devData = useEventsDev(dateFilters);
   const prodEventsData = useEvents(dateFilters);
   const prodOrgsData = useOrganizations();
   const categoriesData = useEventCategories();
-  const categoryConfigData = useCategoryConfig();
 
   // Debounce search input to improve performance
   React.useEffect(() => {
@@ -291,7 +276,7 @@ export default function UNBCCalendar({
 
   // Reset organization filter when category changes to something that doesn't support organizations
   React.useEffect(() => {
-    if (!categoriesWithOrganizations.includes(categoryFilter) && categoryFilter !== "all") {
+    if (initialOrganizationFilter === "all" && categoriesWithOrganizations.length && !categoriesWithOrganizations.includes(categoryFilter) && categoryFilter !== "all") {
       setOrganizationFilter("all");
     }
   }, [categoryFilter, categoriesWithOrganizations]);
@@ -348,16 +333,9 @@ export default function UNBCCalendar({
     const metadata = eventMetadata[event.id];
     if (!metadata) return false;
     
-    // Check if this category has relationships defined
-    const relatedCategories = categoryConfigData.config?.categoryRelationships?.[categorySlug];
-    
-    if (relatedCategories) {
-      // This category shows events from multiple categories
-      return relatedCategories.includes(metadata.category);
-    } else {
-      // Direct category match
-      return metadata.category === categorySlug;
-    }
+    const accepted = [categorySlug, ...(categoryConfigData.config?.categoryRelationships?.[categorySlug] || [])];
+    const slugs = metadata.categories?.map(category => category.slug) || [metadata.category || ''];
+    return slugs.some(slug => accepted.includes(slug));
   }, [eventMetadata, categoryConfigData.config]);
 
   // Filter events client-side for better UX and to handle server-side limitations
@@ -412,7 +390,7 @@ export default function UNBCCalendar({
         const metadata = eventMetadata[event.id];
         return (
           event.title.toLowerCase().includes(searchLower) ||
-          metadata?.description?.toLowerCase().includes(searchLower) ||
+          event.description?.toLowerCase().includes(searchLower) ||
           metadata?.location?.toLowerCase().includes(searchLower) ||
           metadata?.organization?.toLowerCase().includes(searchLower)
         );
@@ -425,6 +403,7 @@ export default function UNBCCalendar({
 
   const handleDateClick = React.useCallback((date: Date) => {
     setSelectedDate(date);
+    setCalendarViewDate(date);
     if (!isSidebarMode) {
       if (showDayView) {
         setActiveTab("day");
@@ -446,7 +425,8 @@ export default function UNBCCalendar({
   const handleLoadMore = React.useCallback(() => {
     // Use client-side pagination to maintain consistent data across views
     setListDisplayCount(prev => prev + listLoadMoreCount);
-  }, [listLoadMoreCount]);
+    if (hasMore) loadMore();
+  }, [listLoadMoreCount, hasMore, loadMore]);
 
   React.useEffect(() => {
     if (!showWeekView && activeTab === "week") {
@@ -474,7 +454,7 @@ export default function UNBCCalendar({
       <div className="w-full flex items-center justify-center py-12">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">{isDev ? 'Loading sample events...' : 'Loading calendar...'}</p>
+          <p role="status" className="text-muted-foreground">{isDev ? 'Loading sample events...' : 'Loading calendar...'}</p>
         </div>
       </div>
     );
@@ -486,7 +466,7 @@ export default function UNBCCalendar({
       <div className="w-full py-12">
         <Card className="max-w-md mx-auto">
           <CardContent className="pt-6 text-center">
-            <p className="text-red-600 mb-4">Error loading events: {error}</p>
+            <p role="alert" className="text-red-600 mb-4">Error loading events: {error}</p>
             <button 
               onClick={() => window.location.reload()} 
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -749,7 +729,9 @@ export default function UNBCCalendar({
 
           {showWeekView && (
             <TabsContent value="week" className="px-6 pb-6 md:p-6">
-              <WeekView 
+              <WeekView
+                currentDate={calendarViewDate}
+                onDateChange={handleMonthChange}
                 events={events} 
                 eventMetadata={eventMetadata}
                 categoryMappings={categoryMappings}
@@ -764,7 +746,8 @@ export default function UNBCCalendar({
                 events={events} 
                 eventMetadata={eventMetadata}
                 categoryMappings={categoryMappings}
-                initialDate={selectedDate} 
+                currentDate={calendarViewDate}
+                onDateChange={handleMonthChange}
                 onEventClick={handleEventClick} 
               />
             </TabsContent>
@@ -778,7 +761,7 @@ export default function UNBCCalendar({
                 categoryMappings={categoryMappings}
                 onEventClick={handleEventClick}
                 onLoadMore={handleLoadMore}
-                hasMore={events.length > listDisplayCount}
+                hasMore={events.length > listDisplayCount || hasMore}
                 loading={loading}
                 showCost={showCost}
               />
@@ -790,7 +773,7 @@ export default function UNBCCalendar({
                 categoryMappings={categoryMappings}
                 onEventClick={handleEventClick}
                 onLoadMore={handleLoadMore}
-                hasMore={events.length > listDisplayCount}
+                hasMore={events.length > listDisplayCount || hasMore}
                 loading={loading}
                 showCost={showCost}
               />

@@ -13,6 +13,6 @@
     "sections": {
         "description": "Comprehensive management system for campus events and organizations at the University of Northern British Columbia.",
         "installation": "Upload the plugin zip through Plugins > Add New or copy the campus-manager directory into wp-content/plugins, then activate Campus Manager.",
-        "changelog": "<h4>2.3.0</h4><ul><li>Fix event import to assign the correct event_category term IDs instead of creating numeric junk categories.</li></ul>"
+        "changelog": "<h4>2.3.1</h4><ul><li>Enforce event and organization write permissions across REST and imports.</li><li>Preserve recurring schedules with validated transactional imports and lossless exports.</li><li>Fix calendar caching, pagination, date navigation, timezones and keyboard access.</li><li>Report image-import warnings and preserve EventScrape compatibility.</li><li>Share frontend assets and add checked builds with separate stable and beta release channels.</li></ul><h4>2.3.0</h4><ul><li>Fix event import to assign the correct event_category term IDs instead of creating numeric junk categories.</li></ul>"
     }
 }

@@ -65,7 +65,7 @@ class UNBC_Events_REST_Organizations_Controller {
             'hide_empty' => false,
         ));
 
-        $config = array();
+        $config = array(); $auto_assign = null; $with_orgs = array();
         foreach ($categories as $category) {
             $variant = get_term_meta($category->term_id, 'category_variant', true);
 
@@ -77,13 +77,20 @@ class UNBC_Events_REST_Organizations_Controller {
                 $variant = 'default';
             }
 
+            if (get_term_meta($category->term_id, 'auto_assign_organizations', true) === '1') { $auto_assign = $category->slug; $with_orgs[] = $category->slug; }
             $config[$category->slug] = array(
                 'name' => $category->name,
                 'variant' => $variant,
             );
         }
 
-        return rest_ensure_response($config);
+        return rest_ensure_response(array(
+            'version' => 1,
+            'colors' => $config,
+            'categoriesWithOrganizations' => array_values(array_unique(array_merge($with_orgs, (array) get_option('unbc_categories_with_organizations', array('unbc', 'organizations', 'community'))))),
+            'categoryRelationships' => (object) get_option('unbc_category_relationships', array('unbc' => array('unbc', 'organizations'))),
+            'autoAssignCategory' => $auto_assign,
+        ));
     }
 
     public function get_category_colors($request) {

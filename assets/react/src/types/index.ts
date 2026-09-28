@@ -2,6 +2,8 @@ export interface Event {
   id: string;
   title: string;
   description?: string;
+  isAllDay?: boolean;
+  status?: string;
   content?: string; // WordPress post content
   startDate: Date;
   endDate: Date;
@@ -32,3 +34,10 @@ export interface EventMetadata {
 // EventCategory is now just a string - determined by WordPress categories
 
 export type ViewType = 'month' | 'week' | 'day' | 'list';
+export interface CategoryConfiguration {
+  version: 1;
+  colors: Record<string, { name: string; variant: string }>;
+  categoriesWithOrganizations: string[];
+  categoryRelationships: Record<string, string[]>;
+  autoAssignCategory: string | null;
+}

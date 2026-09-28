@@ -146,7 +146,9 @@ export function OrganizationEventsList({
                 return (
                   <div
                     key={event.id}
-                    className={`bg-card dark:bg-card relative rounded-md p-3 pl-6 text-sm border border-gray-200 dark:border-border shadow-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-muted dark:hover:bg-muted transition-colors ${categoryColor}`}
+                  role="button" tabIndex={0} aria-label={`View ${event.title}`}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEventClick?.(event); } }}
+                    className={`bg-card dark:bg-card relative rounded-md p-3 pl-6 text-sm border border-gray-200 dark:border-border shadow-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary hover:bg-muted dark:hover:bg-muted transition-colors ${categoryColor}`}
                     onClick={() => onEventClick?.(event)}
                   >
                     <div className="flex items-start justify-between">

@@ -646,6 +646,7 @@ class UNBC_Events_Meta_Boxes {
 
         // Save event meta
         if (get_post_type($post_id) === 'event') {
+            if (empty($_POST['event_details_nonce'])) return;
             $meta_fields = array(
                 'event_date', 'start_time', 'end_time', 'location', 'building', 'room',
                 'cost', 'organization_id', 'registration_link', 'contact_email',
@@ -718,22 +719,7 @@ class UNBC_Events_Meta_Boxes {
                 }
             }
             
-            // Prevent organization managers from changing post title and slug
-            if ($is_org_manager) {
-                // Don't allow title changes
-                remove_action('save_post', 'wp_update_post');
-                
-                // Get original post data to preserve title and slug
-                $original_post = get_post($post_id);
-                if ($original_post) {
-                    wp_update_post(array(
-                        'ID' => $post_id,
-                        'post_title' => $original_post->post_title,
-                        'post_name' => $original_post->post_name,
-                        'post_status' => $original_post->post_status
-                    ));
-                }
-            }
+
         }
         
         

@@ -1,3 +1,4 @@
+import { occursOn, dayHours } from '@/utils/eventRange';
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, MapPin, Building } from "lucide-react";
@@ -9,54 +10,34 @@ interface DayViewProps {
   eventMetadata: Record<string, EventMetadata>;
   categoryMappings: { [slug: string]: CategoryVariant };
   initialDate?: Date;
+  currentDate: Date;
+  onDateChange: (date: Date) => void;
   onEventClick?: (event: Event) => void;
 }
 
-export function DayView({ events, eventMetadata, categoryMappings, initialDate, onEventClick }: DayViewProps) {
-  const [currentDate, setCurrentDate] = React.useState(initialDate || new Date());
-  
-  React.useEffect(() => {
-    if (initialDate) {
-      setCurrentDate(initialDate);
-    }
-  }, [initialDate]);
-  
+export function DayView({ events, eventMetadata, categoryMappings, currentDate, onDateChange, onEventClick }: DayViewProps) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
   
   const getEventsForDay = () => {
     return events.filter(event => {
-      return event.startDate.toDateString() === currentDate.toDateString();
+      return occursOn(event, currentDate);
     });
   };
 
   const navigateDay = (direction: 'prev' | 'next') => {
     const newDate = new Date(currentDate);
     newDate.setDate(currentDate.getDate() + (direction === 'next' ? 1 : -1));
-    setCurrentDate(newDate);
+    onDateChange(newDate);
   };
 
   const getEventPosition = (event: Event, dayEvents: Event[], eventIndex: number) => {
-    const startHour = event.startDate.getHours();
-    const startMinute = event.startDate.getMinutes();
-    const endHour = event.endDate ? event.endDate.getHours() : startHour + 1;
-    const endMinute = event.endDate ? event.endDate.getMinutes() : 0;
-    
-    const startPosition = startHour + startMinute / 60;
-    const endPosition = endHour + endMinute / 60;
+    const [startPosition, endPosition] = dayHours(event, currentDate);
     const duration = endPosition - startPosition;
-    
-    // Find overlapping events
     const overlappingEvents = dayEvents.filter(otherEvent => {
-      if (otherEvent.id === event.id) return true;
-      
-      const otherStartHour = otherEvent.startDate.getHours() + otherEvent.startDate.getMinutes() / 60;
-      const otherEndHour = (otherEvent.endDate ? otherEvent.endDate.getHours() : otherEvent.startDate.getHours() + 1) + 
-        (otherEvent.endDate ? otherEvent.endDate.getMinutes() / 60 : 0);
-      
-      // Check if events overlap
-      return (startPosition < otherEndHour) && (endPosition > otherStartHour);
+      const [otherStart, otherEnd] = dayHours(otherEvent, currentDate);
+      return startPosition < otherEnd && endPosition > otherStart;
     });
-    
+
     const overlapCount = overlappingEvents.length;
     const eventPosition = overlappingEvents.findIndex(e => e.id === event.id);
     const widthPercentage = overlapCount > 1 ? 100 / overlapCount : 100;
@@ -78,6 +59,7 @@ export function DayView({ events, eventMetadata, categoryMappings, initialDate, 
       {/* Day Navigation */}
       <div className="flex items-center justify-between">
         <button
+          aria-label="Previous day"
           onClick={() => navigateDay('prev')}
           className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300"
         >
@@ -92,6 +74,7 @@ export function DayView({ events, eventMetadata, categoryMappings, initialDate, 
           })}
         </h2>
         <button
+          aria-label="Next day"
           onClick={() => navigateDay('next')}
           className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300"
         >
@@ -128,7 +111,9 @@ export function DayView({ events, eventMetadata, categoryMappings, initialDate, 
               return (
                 <div
                   key={event.id}
-                  className={`absolute ${colorClass} border rounded-lg p-2 text-sm z-20 overflow-hidden flex flex-col cursor-pointer hover:shadow-md transition-shadow event-card`}
+                  role="button" tabIndex={0} aria-label={`View ${event.title}`}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEventClick?.(event); } }}
+                  className={`absolute ${colorClass} border rounded-lg p-2 text-sm z-20 overflow-hidden flex flex-col cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary hover:shadow-md transition-shadow event-card`}
                   style={{
                     ...position,
                     margin: '2px',

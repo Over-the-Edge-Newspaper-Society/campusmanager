@@ -1,3 +1,4 @@
+import { occursOn } from '@/utils/eventRange';
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
@@ -49,11 +50,7 @@ export function MonthView({
 
   const getEventsForDay = (day: number, currentDate: Date) => {
     const dayEvents = events.filter(event => {
-      const eventDate = new Date(event.startDate);
-      const matches = eventDate.getDate() === day && 
-             eventDate.getMonth() === currentDate.getMonth() && 
-             eventDate.getFullYear() === currentDate.getFullYear();
-      return matches;
+      return occursOn(event, new Date(currentDate.getFullYear(), currentDate.getMonth(), day));
     });
     
     
@@ -183,7 +180,9 @@ export function MonthView({
       return (
         <div
           key={event.id}
-          className={`bg-card dark:bg-card relative rounded-md p-2 pl-6 text-xs text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-muted dark:hover:bg-muted transition-colors border border-gray-200 dark:border-border shadow-sm ${categoryColor}`}
+                  role="button" tabIndex={0} aria-label={`View ${event.title}`}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEventClick?.(event); } }}
+          className={`bg-card dark:bg-card relative rounded-md p-2 pl-6 text-xs text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary hover:bg-muted dark:hover:bg-muted transition-colors border border-gray-200 dark:border-border shadow-sm ${categoryColor}`}
           onClick={(e) => {
             e.stopPropagation();
             onEventClick?.(event);
@@ -311,9 +310,13 @@ export function MonthView({
                 }}
               >
                 <Card
+                  role={dayEvents.length ? 'button' : undefined}
+                  tabIndex={dayEvents.length ? 0 : undefined}
+                  aria-label={`Events on ${new Date(currentDate.getFullYear(), currentDate.getMonth(), dayObj.day).toLocaleDateString()}`}
+                  onKeyDown={(e) => { if (e.target === e.currentTarget && dayEvents.length && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.currentTarget.click(); } }}
                   className={`bg-white dark:bg-card border border-gray-200 dark:border-border shadow-md overflow-hidden relative flex p-4 h-full transition-shadow day-card ${
                     dayEvents.length > 0
-                      ? "cursor-pointer hover:shadow-lg hover:bg-muted dark:hover:bg-muted"
+                      ? "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary hover:shadow-lg hover:bg-muted dark:hover:bg-muted"
                       : "cursor-default"
                   } ${isToday ? "!border-red-500 !border-2" : ""} ${isSidebarSelected && !isToday ? "ring-2 ring-blue-500 dark:ring-primary" : ""}`}
                   onClick={dayEvents.length > 0 ? () => {

@@ -1,3 +1,4 @@
+import { occursOn, dayHours } from '@/utils/eventRange';
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Event, EventMetadata } from "@/types";
@@ -7,12 +8,12 @@ interface WeekViewProps {
   events: Event[];
   eventMetadata: Record<string, EventMetadata>;
   categoryMappings: { [slug: string]: CategoryVariant };
+  currentDate: Date;
+  onDateChange: (date: Date) => void;
   onEventClick?: (event: Event) => void;
 }
 
-export function WeekView({ events, eventMetadata, categoryMappings, onEventClick }: WeekViewProps) {
-  const [currentDate, setCurrentDate] = React.useState(new Date());
-
+export function WeekView({ events, eventMetadata, categoryMappings, currentDate, onDateChange, onEventClick }: WeekViewProps) {
   const getWeekDates = (date: Date) => {
     const startOfWeek = new Date(date);
     startOfWeek.setDate(date.getDate() - date.getDay());
@@ -29,43 +30,24 @@ export function WeekView({ events, eventMetadata, categoryMappings, onEventClick
 
   const getEventsForDay = (date: Date) => {
     return events.filter(event => {
-      return event.startDate.toDateString() === date.toDateString();
+      return occursOn(event, date);
     });
   };
 
   const navigateWeek = (direction: 'prev' | 'next') => {
     const newDate = new Date(currentDate);
     newDate.setDate(currentDate.getDate() + (direction === 'next' ? 7 : -7));
-    setCurrentDate(newDate);
+    onDateChange(newDate);
   };
 
-  const getEventPosition = (event: Event, dayEvents: Event[], eventIndex: number) => {
-    const startHour = event.startDate.getHours();
-    const startMinute = event.startDate.getMinutes();
-    const endHour = event.endDate ? event.endDate.getHours() : startHour + 1;
-    const endMinute = event.endDate ? event.endDate.getMinutes() : 0;
-    
-    const startPosition = startHour + startMinute / 60;
-    const endPosition = endHour + endMinute / 60;
+  const getEventPosition = (event: Event, dayEvents: Event[], eventIndex: number, date: Date) => {
+    const [startPosition, endPosition] = dayHours(event, date);
     const duration = endPosition - startPosition;
-    
-    // Find overlapping events (only events on the same day that overlap in time)
     const overlappingEvents = dayEvents.filter(otherEvent => {
-      if (otherEvent.id === event.id) return true;
-      
-      // Only consider events that are actually on the same day
-      if (otherEvent.startDate.toDateString() !== event.startDate.toDateString()) {
-        return false;
-      }
-      
-      const otherStartHour = otherEvent.startDate.getHours() + otherEvent.startDate.getMinutes() / 60;
-      const otherEndHour = (otherEvent.endDate ? otherEvent.endDate.getHours() : otherEvent.startDate.getHours() + 1) + 
-        (otherEvent.endDate ? otherEvent.endDate.getMinutes() / 60 : 0);
-      
-      // Check if events overlap in time
-      return (startPosition < otherEndHour) && (endPosition > otherStartHour);
+      const [otherStart, otherEnd] = dayHours(otherEvent, date);
+      return startPosition < otherEnd && endPosition > otherStart;
     });
-    
+
     const overlapCount = overlappingEvents.length;
     const eventPosition = overlappingEvents.findIndex(e => e.id === event.id);
     const widthPercentage = overlapCount > 1 ? 100 / overlapCount : 100;
@@ -85,6 +67,7 @@ export function WeekView({ events, eventMetadata, categoryMappings, onEventClick
       {/* Week Navigation */}
       <div className="flex items-center justify-between">
         <button
+          aria-label="Previous week"
           onClick={() => navigateWeek('prev')}
           className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300"
         >
@@ -94,6 +77,7 @@ export function WeekView({ events, eventMetadata, categoryMappings, onEventClick
           {weekDates[0].toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - {weekDates[6].toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
         </h2>
         <button
+          aria-label="Next week"
           onClick={() => navigateWeek('next')}
           className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300"
         >
@@ -145,12 +129,14 @@ export function WeekView({ events, eventMetadata, categoryMappings, onEventClick
                   const metadata = eventMetadata[event.id];
                   const variant = getCategoryVariant(metadata?.category, categoryMappings);
                   const colorClass = getVariantEventBackgroundClass(variant);
-                  const position = getEventPosition(event, dayEvents, eventIndex);
+                  const position = getEventPosition(event, dayEvents, eventIndex, date);
                   
                   return (
                     <div
                       key={event.id}
-                      className={`absolute ${colorClass} border rounded p-2 text-sm z-20 overflow-hidden flex flex-col cursor-pointer hover:shadow-md transition-shadow event-card`}
+                  role="button" tabIndex={0} aria-label={`View ${event.title}`}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEventClick?.(event); } }}
+                      className={`absolute ${colorClass} border rounded p-2 text-sm z-20 overflow-hidden flex flex-col cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary hover:shadow-md transition-shadow event-card`}
                       style={{
                         ...position,
                         margin: '1px',

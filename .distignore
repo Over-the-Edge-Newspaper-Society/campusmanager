@@ -4,7 +4,7 @@
 .DS_Store
 .distignore
 README.md
-build
+/build/
 generate-clubs-summary.php
 plugin-manifest.json
 scripts
@@ -31,3 +31,15 @@ blocks/organization-field/webpack.config.js
 blocks/today-events-widget/package-lock.json
 blocks/today-events-widget/package.json
 blocks/today-events-widget/src
+
+tests
+
+node_modules
+REVIEW-*.md
+
+FIXES-*.md
+.nvmrc
+assets/react/.eslintrc.cjs
+assets/react/tsconfig.json
+plugin-manifest-beta.json
+docs/verification

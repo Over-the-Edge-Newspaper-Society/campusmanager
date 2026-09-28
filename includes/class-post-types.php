@@ -106,6 +106,7 @@ class UNBC_Events_Post_Types {
             'publicly_queryable' => true,
             'query_var' => true,
             'capability_type' => array('organization', 'organizations'),
+            'capabilities' => array('create_posts' => 'create_organizations'),
             'map_meta_cap' => true
         ));
         }
@@ -323,22 +324,14 @@ class UNBC_Events_Post_Types {
             return $prepared_post;
         }
 
-        // Check if an event with this external_id already exists
-        global $wpdb;
-        $existing_post_id = $wpdb->get_var($wpdb->prepare(
-            "SELECT post_id FROM {$wpdb->postmeta}
-            WHERE meta_key = 'external_id'
-            AND meta_value = %s
-            LIMIT 1",
-            $external_id
-        ));
-
-        if ($existing_post_id) {
-            // Event exists - modify the prepared post to update instead of insert
-            $prepared_post->ID = $existing_post_id;
-            error_log("EventScrape: Found existing event with external_id={$external_id}, updating post_id={$existing_post_id}");
-        } else {
-            error_log("EventScrape: No existing event with external_id={$external_id}, creating new");
+        if (is_wp_error($prepared_post)) return $prepared_post;
+        $existing = get_posts(array('post_type' => 'event', 'post_status' => 'any',
+            'meta_key' => 'external_id', 'meta_value' => $external_id, 'posts_per_page' => 2, 'fields' => 'ids'));
+        $target = absint($request->get_param('id'));
+        foreach ($existing as $id) {
+            if ((int) $id !== $target) {
+                return new WP_Error('duplicate_external_id', 'An event already uses this external ID. Use the authorized import endpoint to update it.', array('status' => 409));
+            }
         }
 
         return $prepared_post;
@@ -430,6 +423,7 @@ class UNBC_Events_Post_Types {
         // Get user's assigned organization
         $assigned_org = get_user_meta($current_user->ID, 'assigned_organization', true);
         if (!$assigned_org) {
+            $query->set('post__in', array(0));
             return;
         }
         
@@ -442,26 +436,9 @@ class UNBC_Events_Post_Types {
         if (($pagenow === 'edit.php' && isset($_GET['post_type']) && $_GET['post_type'] === 'event') ||
             ($pagenow === 'edit.php' && !isset($_GET['post_type']))) {
             
-            // Find events that belong to this organization
-            $organization_events = get_posts(array(
-                'post_type' => 'event',
-                'numberposts' => -1,
-                'meta_query' => array(
-                    array(
-                        'key' => 'organization_id',
-                        'value' => $assigned_org,
-                        'compare' => '='
-                    )
-                ),
-                'fields' => 'ids'
-            ));
-            
-            if (!empty($organization_events)) {
-                $query->set('post__in', $organization_events);
-            } else {
-                // If no events found, return empty result
-                $query->set('post__in', array(0));
-            }
+            $meta = $query->get('meta_query') ?: array();
+            $meta[] = array('key' => 'organization_id', 'value' => $assigned_org, 'compare' => '=');
+            $query->set('meta_query', $meta);
         }
         
         // Restrict club posts to only posts associated with their organization

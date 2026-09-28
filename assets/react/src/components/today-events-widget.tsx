@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { localDate } from "@/utils/eventRange";
 import { Loader2 } from "lucide-react";
 import type { Event, EventMetadata } from "@/types";
 import { useEventsDev } from "@/hooks/useEventsDev";
@@ -24,7 +25,7 @@ export function TodayEventsWidget({
 
   // Detect dark mode
   React.useEffect(() => {
-    let observer: MutationObserver;
+
 
     const detectTheme = () => {
       const isDark =
@@ -44,9 +45,9 @@ export function TodayEventsWidget({
       }
 
       if (isDark) {
-        document.documentElement.classList.add('dark');
+        document.querySelectorAll('.unbc-calendar-container, .unbc-today-events-widget').forEach(node => node.classList.add('dark'));
       } else {
-        document.documentElement.classList.remove('dark');
+        document.querySelectorAll('.unbc-calendar-container, .unbc-today-events-widget').forEach(node => node.classList.remove('dark'));
       }
 
       if (observer) {
@@ -55,8 +56,8 @@ export function TodayEventsWidget({
       }
     };
 
+    const observer = new MutationObserver(detectTheme);
     detectTheme();
-    observer = new MutationObserver(detectTheme);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-color-scheme'] });
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
@@ -81,8 +82,8 @@ export function TodayEventsWidget({
 
   const dateFilters = React.useMemo(() => ({
     per_page: 100,
-    start_date: today.toISOString().split('T')[0],
-    end_date: tomorrow.toISOString().split('T')[0],
+    start_date: localDate(today),
+    end_date: localDate(today),
     year: today.getFullYear(),
     month: today.getMonth() + 1,
     category: "",
@@ -168,7 +169,9 @@ export function TodayEventsWidget({
     return (
       <div
         key={event.id}
-        className={`bg-card dark:bg-card relative rounded-md p-2 pl-6 text-xs text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-muted dark:hover:bg-muted transition-colors border border-gray-200 dark:border-border shadow-sm ${categoryColor}`}
+                      role="button" tabIndex={0} aria-label={`View ${event.title}`}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); handleEventClick(event); } }}
+        className={`bg-card dark:bg-card relative rounded-md p-2 pl-6 text-xs text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary hover:bg-muted dark:hover:bg-muted transition-colors border border-gray-200 dark:border-border shadow-sm ${categoryColor}`}
         onClick={(e) => {
           e.stopPropagation();
           handleEventClick(event);

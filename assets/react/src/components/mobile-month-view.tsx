@@ -181,7 +181,9 @@ export function MobileMonthView({ events, eventMetadata, categoryMappings, onEve
               return (
                 <button
                   key={event.id}
-                  className={`bg-card dark:bg-card relative rounded-md p-2 pl-6 text-sm text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer hover:bg-muted dark:hover:bg-muted transition-colors focus:outline-none border border-gray-200 dark:border-border ${categoryColor}`}
+                      role="button" tabIndex={0} aria-label={`View ${event.title}`}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEventClick?.(event); } }}
+                  className={`bg-card dark:bg-card relative rounded-md p-2 pl-6 text-sm text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary hover:bg-muted dark:hover:bg-muted transition-colors focus:outline-none border border-gray-200 dark:border-border ${categoryColor}`}
                   onClick={() => onEventClick?.(event)}
                 >
                   <div className="font-medium text-gray-900 dark:text-foreground">{event.title}</div>

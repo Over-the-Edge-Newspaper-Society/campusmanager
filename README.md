@@ -1,5 +1,7 @@
 # UNBC Campus Manager
 
+Release version: **2.3.1**. Promotes the tested 2.3.1-beta.2 fixes to the stable update channel; see [review fixes and verification](FIXES-2026-09-28.md).
+
 A comprehensive WordPress plugin for managing campus events and organizations at the University of Northern British Columbia (UNBC).
 
 ## Features
@@ -221,7 +223,7 @@ POST /wp-json/unbc-events/v1/import-event
 
 This endpoint is intentionally not public. Requests must use one of these paths:
 
-1. A logged-in WordPress user with `edit_posts`.
+1. A logged-in WordPress user with the event capabilities required for the requested create/update/status change.
 2. An `X-API-Key` header that matches the stored `unbc_eventscrape_api_key` option.
 
 Example API key setup with WP-CLI:
@@ -247,7 +249,7 @@ add_filter('unbc_events_allowed_remote_media_hosts', function ($hosts) {
 
 #### Organizations Endpoint
 ```
-GET /wp-json/wp/v2/organizations
+GET /wp-json/wp/v2/organization
 ```
 
 ## Plugin Architecture
@@ -268,7 +270,7 @@ unbc-events/
 ```
 
 ### Post Types
-- **unbc_event**: Campus events with scheduling and location data
+- **event**: Campus events with scheduling and location data
 - **organization**: Campus clubs, departments, and organizations
 
 ### Taxonomies
@@ -351,7 +353,7 @@ The plugin respects WordPress standards and provides hooks for customization:
 - Check that REST API is enabled
 
 ### System Requirements
-- WordPress 5.0+
+- WordPress 5.8+
 - PHP 7.4+
 - MySQL 5.6+
 
@@ -385,3 +387,69 @@ This plugin is licensed under the GPL v2 or later.
 **Developed for UNBC Campus Community** 🐾
 
 For questions or support, please open an issue in this repository.
+
+## Event import image results (2.3.1-beta.1)
+
+`POST /wp-json/unbc-events/v1/import-event` now reports featured-image outcomes independently of saving the event. `success: true` means the event was saved (or a duplicate was skipped); callers must also inspect `warnings` and `media` before describing an import as fully successful.
+
+| `media.status` | Meaning |
+| --- | --- |
+| `not_requested` | No image URL was supplied. |
+| `not_attempted` | An existing event was skipped. |
+| `imported` | Image attached successfully; `attachment_id` is included. |
+| `failed` | Download, sideload, validation, or attachment failed; `error_code` is included. |
+| `skipped` | Request was not permitted to import remote media. |
+
+For example, a Zoer local copy can save the event while blocking the outbound image download:
+
+```json
+{
+  "success": true,
+  "action": "updated",
+  "post_id": 22384,
+  "warnings": ["The event was saved, but its featured image was not imported because outbound requests are disabled in this local copy."],
+  "media": {"status": "failed", "error_code": "local_copy"}
+}
+```
+
+Warnings from the latest performed import are retained privately on the event and shown to authorized editors on its edit screen. A successful subsequent import clears them; a skipped duplicate leaves the stored warning unchanged. Provider errors are replaced with safe messages so signed URLs and server paths are not exposed. Failed downloads and invalid images preserve any existing featured image. Authentication and Zoer's outbound protection remain enforced.
+
+The endpoint honors `event.status`. EventScrape's manual upload defaults to `draft`; publishing requires sending `publish`. This image-reporting change does not alter that behavior.
+
+Run the standalone regression suite with PHP 7.4 or later:
+
+```sh
+php tests/event-import-media.php
+```
+
+This beta is a local test candidate. The stable release manifest remains at 2.3.0 until a release is published. Build the candidate ZIP using `.distignore`, excluding local `node_modules` directories. The September 28, 2026 local DDEV verification passed all 11 regression tests and PHP lint. Five real image-bearing events were retried with the existing application password: all returned the expected `local_copy` warning, retained their IDs, status, content, categories, metadata, and featured-image values. Invalid credentials returned HTTP 401. The warning was also verified in the event editor. EventScrape still needs to consume these response fields in its upload summary.
+
+### 2.3.1-beta.2 — review fixes
+
+All 21 findings from `REVIEW-2026-09-28.md` are addressed in this candidate. See
+`FIXES-2026-09-28.md` for the finding-by-finding changes and validation evidence.
+
+- Application-password imports require `edit_events` for creation, permission to edit the actual target for updates, and `publish_events` for published/private/future events. Organization managers are restricted to their assigned organization. The administrator-configured legacy `X-API-Key` remains an explicit trusted integration policy. Remote-media restrictions still apply independently.
+- Omitted `occurrences` preserves the schedule; `occurrences: []` removes it. All replacements are validated before a checked transaction changes the parent, metadata, categories, series or occurrences. Transactional WordPress/custom tables are required. Exact UTC instants accompany site-local range columns for new occurrence writes; older rows retain their established site-time interpretation.
+- Export schema 2 includes recurrence and source identities. Organization references resolve to destination IDs; unresolved references are reported as failed records rather than copied as stale IDs. Keep content/meta/image options enabled for a complete backup. Legacy exports cannot recover recurrence they never contained.
+- Calendar API pages are capped at 100 occurrences/events. Two-sided date ranges are capped at 366 days. Upcoming lists accept an independent start bound; calendar views retrieve every page of their visible range.
+- Beta tags publish `plugin-manifest-beta.json` and are marked prereleases. Stable tags alone update `plugin-manifest.json`. Stable installations keep their default manifest; beta opt-in uses `UNBC_EVENTS_UPDATE_MANIFEST_URL` with the beta manifest URL. No release/tag is created by local packaging.
+
+Build with Node 22.14.0 and npm 10.9.4. Install dependencies in `assets/react`
+and each of `blocks/{calendar-view,events-list,today-events-widget,organization-field}`
+with `npm ci`, then run:
+
+```sh
+npm --prefix assets/react run lint
+npm --prefix assets/react run typecheck
+npm --prefix assets/react test
+npm --prefix assets/react run build:all
+php tests/event-import-media.php
+```
+
+`wp eval-file tests/wordpress-integration.php` runs the WordPress regressions on an
+explicitly selected disposable/local test site. It creates and cleans up fixture
+posts/users and temporarily substitutes the test site's API-key option; do not run
+it on production. `bash scripts/test-wordpress.sh` creates disposable Docker
+WordPress/MariaDB containers for CI. GitHub packaging runs these gates, rebuilds
+all five frontend packages, lints PHP and inspects ZIP contents.

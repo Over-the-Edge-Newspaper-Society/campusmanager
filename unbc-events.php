@@ -3,7 +3,7 @@
  * Plugin Name: Campus Manager
  * Plugin URI:  https://github.com/Over-the-Edge-Newspaper-Society/campusmanager
  * Description: Comprehensive management system for campus events and organizations.
- * Version:     2.3.0
+ * Version:     2.3.1
  * Requires at least: 5.8
  * Requires PHP: 7.4
  * Author:      Over the Edge Newspaper Society
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('UNBC_EVENTS_PLUGIN_VERSION')) {
-    define('UNBC_EVENTS_PLUGIN_VERSION', '2.3.0');
+    define('UNBC_EVENTS_PLUGIN_VERSION', '2.3.1');
 }
 
 if (!defined('UNBC_EVENTS_GITHUB_REPOSITORY')) {
@@ -50,6 +50,7 @@ class UNBC_Events_Plugin {
         new UNBC_Events_Post_Types();
         new UNBC_Events_Meta_Boxes();
         new UNBC_Events_User_Roles();
+        new UNBC_Write_Policy();
         new UNBC_Event_Series(); // NEW: Initialize event series manager
 
         // Use refactored organization manager classes
@@ -105,6 +106,9 @@ class UNBC_Events_Plugin {
         $files_to_include = array(
             'includes/class-organization-fields.php',
             'includes/class-organization-context.php',
+            'includes/class-write-policy.php',
+            'includes/class-event-store.php',
+            'includes/class-event-query.php',
             'includes/class-event-import-service.php',
             'includes/class-rest-organizations-controller.php',
             'includes/class-post-types.php',

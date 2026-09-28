@@ -7,9 +7,8 @@ if (!defined('ABSPATH')) {
 class UNBC_Calendar_Blocks {
     
     public function __construct() {
-        error_log('Campus Manager: Calendar Blocks class constructor called');
+        if (defined('WP_DEBUG') && WP_DEBUG) error_log('Campus Manager: Calendar Blocks class constructor called');
         add_action('init', array($this, 'register_blocks'), 10);
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
         add_action('enqueue_block_editor_assets', array($this, 'enqueue_block_editor_assets'));
         add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
         add_shortcode('unbc_calendar', array($this, 'calendar_shortcode'));
@@ -18,14 +17,14 @@ class UNBC_Calendar_Blocks {
         
         // Also try registering immediately if init has already passed
         if (did_action('init')) {
-            error_log('Campus Manager: init already fired, calling register_blocks immediately');
+        if (defined('WP_DEBUG') && WP_DEBUG) error_log('Campus Manager: init already fired, calling register_blocks immediately');
             $this->register_blocks();
         }
     }
     
     
     public function register_blocks() {
-        error_log('Campus Manager: register_blocks method called');
+        if (defined('WP_DEBUG') && WP_DEBUG) error_log('Campus Manager: register_blocks method called');
         // Register scripts and styles first
         $script_file = plugin_dir_path(dirname(__FILE__)) . 'assets/react/dist/unbc-calendar.umd.js';
         $style_file = plugin_dir_path(dirname(__FILE__)) . 'assets/react/dist/style.css';
@@ -40,7 +39,7 @@ class UNBC_Calendar_Blocks {
         wp_register_script(
             'unbc-calendar-app',
             plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/unbc-calendar.umd.js',
-            array(),
+            array('wp-element'),
             $script_version,
             true
         );
@@ -48,7 +47,7 @@ class UNBC_Calendar_Blocks {
         wp_register_script(
             'unbc-today-events-widget',
             plugin_dir_url(dirname(__FILE__)) . 'assets/react/dist/unbc-today-events-widget.umd.js',
-            array(),
+            array('wp-element'),
             $widget_script_version,
             true
         );
@@ -96,19 +95,20 @@ class UNBC_Calendar_Blocks {
                 )
             );
             
-            error_log('Campus Manager: Calendar, Events List, and Today Events Widget blocks registered from block.json');
+        if (defined('WP_DEBUG') && WP_DEBUG) error_log('Campus Manager: Calendar, Events List, and Today Events Widget blocks registered from block.json');
         }
     }
     
     public function enqueue_block_editor_assets() {
-        error_log('Campus Manager: enqueue_block_editor_assets called');
+        if (defined('WP_DEBUG') && WP_DEBUG) error_log('Campus Manager: enqueue_block_editor_assets called');
         // Individual blocks now handle their own editor scripts via block.json
         // Just ensure React app is available for preview
         $this->enqueue_scripts();
+        $this->enqueue_scripts(true);
     }
     
     public function admin_enqueue_scripts($hook) {
-        error_log('Campus Manager: admin_enqueue_scripts called on hook: ' . $hook);
+        if (defined('WP_DEBUG') && WP_DEBUG) error_log('Campus Manager: admin_enqueue_scripts called on hook: ' . $hook);
         // Individual blocks now handle their own editor scripts via block.json
         // Just ensure React app is available for admin previews
         if (in_array($hook, ['post.php', 'post-new.php', 'site-editor.php', 'widgets.php'])) {
@@ -116,25 +116,15 @@ class UNBC_Calendar_Blocks {
         }
     }
     
-    public function enqueue_scripts() {
-        // Always enqueue scripts/styles for blocks/shortcodes (admin and frontend)
-        if (wp_script_is('unbc-calendar-app', 'registered')) {
-            wp_enqueue_script('unbc-calendar-app');
-        }
-
-        if (wp_style_is('unbc-calendar-styles', 'registered')) {
-            wp_enqueue_style('unbc-calendar-styles');
-        }
-
-        if (wp_script_is('unbc-today-events-widget', 'registered')) {
-            wp_enqueue_script('unbc-today-events-widget');
-        }
-
-        if (wp_style_is('unbc-today-events-widget-styles', 'registered')) {
-            wp_enqueue_style('unbc-today-events-widget-styles');
+    public function enqueue_scripts($widget = false) {
+        wp_enqueue_script($widget ? 'unbc-today-events-widget' : 'unbc-calendar-app');
+        wp_enqueue_style('unbc-calendar-styles');
+        // Shortcodes can render after wp_head on classic themes.
+        if (did_action('wp_head') && !wp_style_is('unbc-calendar-styles', 'done')) {
+            wp_print_styles('unbc-calendar-styles');
         }
     }
-    
+
     private function has_calendar_content() {
         global $post;
         
@@ -163,7 +153,7 @@ class UNBC_Calendar_Blocks {
             'nonce' => wp_create_nonce('wp_rest'),
             'eventPostType' => 'event',
             'organizationPostType' => 'organization',
-            'categoriesEndpoint' => rest_url('wp/v2/event-category/'),
+            'categoriesEndpoint' => rest_url('wp/v2/event_category/'),
             'eventsEndpoint' => rest_url('unbc-events/v1/events/'),
             'organizationsEndpoint' => rest_url('wp/v2/organization/')
         );
@@ -232,7 +222,7 @@ class UNBC_Calendar_Blocks {
     }
 
     public function render_today_events_widget_block($attributes) {
-        $this->enqueue_scripts();
+        $this->enqueue_scripts(true);
 
         $title = isset($attributes['title']) && $attributes['title'] !== '' ? sanitize_text_field($attributes['title']) : __("Today's Events", 'unbc-events');
         $max_events = isset($attributes['maxEvents']) ? intval($attributes['maxEvents']) : 10;
@@ -331,6 +321,7 @@ class UNBC_Calendar_Blocks {
     }
     
     private function render_calendar_component($view = 'month', $category_filter = 'all', $organization_filter = 'all', $list_initial_items = 30, $list_load_more_count = 15, $show_week_view = true, $show_day_view = true, $show_cost = true, $event_sort_order = 'asc', $month_display_mode = 'popover', $month_sidebar_position = 'right') {
+        $this->enqueue_scripts();
         $unique_id = 'unbc-calendar-' . uniqid();
 
         $allowed_modes = array('popover', 'dropdown', 'sidebar');
@@ -398,6 +389,7 @@ class UNBC_Calendar_Blocks {
     }
     
     private function render_events_list_component($organization_id = '', $organization_name = '', $limit = 5, $show_past = false) {
+        $this->enqueue_scripts();
         $unique_id = 'unbc-events-list-' . uniqid();
         
         ob_start();
@@ -447,6 +439,7 @@ class UNBC_Calendar_Blocks {
     }
     
     private function render_organization_events_react_component($organization_id = '', $organization_name = '', $limit = 5, $show_past = false) {
+        $this->enqueue_scripts();
         $unique_id = 'unbc-organization-events-' . uniqid();
         
         ob_start();

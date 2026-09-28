@@ -1,13 +1,9 @@
 import { useState, useEffect } from 'react';
 
-interface CategoryConfig {
-  categoriesWithOrganizations: string[];
-  categoryRelationships: Record<string, string[]>;
-  autoAssignCategory: string | null;
-}
+import type { CategoryConfiguration } from '@/types';
 
 export function useCategoryConfig() {
-  const [config, setConfig] = useState<CategoryConfig | null>(null);
+  const [config, setConfig] = useState<CategoryConfiguration | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,6 +12,7 @@ export function useCategoryConfig() {
       // Skip API calls in dev mode and use dev configuration
       if (import.meta.env.DEV) {
         setConfig({
+          version: 1, colors: {},
           categoriesWithOrganizations: ["academic", "social", "cultural"],
           categoryRelationships: {
             // No relationships in dev mode - direct matching only
@@ -30,13 +27,14 @@ export function useCategoryConfig() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch('/wp-json/unbc-events/v1/category-config');
+        const response = await fetch(`${(window as any).unbcCalendarData?.apiUrl || '/wp-json/unbc-events/v1/'}category-config`);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
+        if (data.version !== 1 || !data.colors || !data.categoryRelationships || !Array.isArray(data.categoriesWithOrganizations)) throw new Error('Unsupported category configuration');
         setConfig(data);
       } catch (err) {
         console.error('Error fetching category config:', err);
@@ -44,6 +42,7 @@ export function useCategoryConfig() {
         
         // Fallback to default configuration
         setConfig({
+          version: 1, colors: {},
           categoriesWithOrganizations: ["unbc", "organizations", "community"],
           categoryRelationships: {
             "unbc": ["unbc", "organizations"],

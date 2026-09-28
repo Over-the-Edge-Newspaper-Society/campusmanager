@@ -3,6 +3,9 @@
  * Handles import/export functionality for organizations, clubs, and events.
  */
 class UNBC_Organization_Import_Export {
+    private $source_site = '';
+    private $organization_map = array();
+
     public function __construct() {
         add_action('wp_ajax_export_clubs_data', array($this, 'ajax_export_clubs_data'));
         add_action('wp_ajax_import_clubs_data', array($this, 'ajax_import_clubs_data'));
@@ -397,7 +400,7 @@ class UNBC_Organization_Import_Export {
         ));
 
         $payload = array(
-            'version' => '1.0',
+            'version' => '2.0',
             'export_date' => current_time('mysql'),
             'site_url' => get_site_url(),
             'clubs' => array(),
@@ -432,7 +435,9 @@ class UNBC_Organization_Import_Export {
     }
 
     private function build_export_record($post, $options, $temp_dir = null) {
+        global $wpdb;
         $record = array(
+            'source_key' => get_post_meta($post->ID, '_campus_source_key', true) ?: untrailingslashit(get_site_url()) . '/' . $post->post_type . '/' . $post->ID,
             'ID' => $post->ID,
             'post_title' => $post->post_title,
             'post_name' => $post->post_name,
@@ -458,6 +463,10 @@ class UNBC_Organization_Import_Export {
         }
 
         if ($post->post_type === 'event') {
+            $record['series'] = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}event_series WHERE post_id=%d", $post->ID), ARRAY_A);
+            $record['occurrences'] = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}event_occurrences WHERE post_id=%d ORDER BY sequence", $post->ID), ARRAY_A);
+            $record['occurrence_timezone'] = wp_timezone_string();
+            $record['organization_source_id'] = absint(get_post_meta($post->ID, 'organization_id', true));
             $organization_id = get_post_meta($post->ID, 'organization_id', true);
             if ($organization_id) {
                 $organization = get_post($organization_id);
@@ -616,7 +625,10 @@ class UNBC_Organization_Import_Export {
             return $import_data;
         }
 
+        $this->source_site = untrailingslashit($import_data['site_url'] ?? '');
+        $this->organization_map = array();
         $result = array(
+            'clubs_failed' => 0, 'events_failed' => 0, 'errors' => array(),
             'clubs_imported' => 0,
             'clubs_skipped' => 0,
             'events_imported' => 0,
@@ -646,96 +658,93 @@ class UNBC_Organization_Import_Export {
         return $result;
     }
 
-    private function import_organization_record($club_data, &$result, $images_dir = null) {
-        if (empty($club_data['post_title'])) {
-            $result['clubs_skipped']++;
-            return;
-        }
-
-        $existing = get_page_by_title($club_data['post_title'], OBJECT, 'organization');
-        if ($existing) {
-            $result['clubs_skipped']++;
-            return;
-        }
-
-        $org_id = wp_insert_post(array(
-            'post_type' => 'organization',
-            'post_title' => $club_data['post_title'],
-            'post_content' => isset($club_data['post_content']) ? $club_data['post_content'] : '',
-            'post_excerpt' => isset($club_data['post_excerpt']) ? $club_data['post_excerpt'] : '',
-            'post_status' => isset($club_data['post_status']) ? $club_data['post_status'] : 'draft',
-            'post_name' => isset($club_data['post_name']) ? $club_data['post_name'] : '',
-        ));
-
-        if (!$org_id || is_wp_error($org_id)) {
-            $result['clubs_skipped']++;
-            return;
-        }
-
-        $this->import_post_meta($org_id, isset($club_data['meta']) ? $club_data['meta'] : array(), 'organization');
-        $this->import_taxonomy_terms($org_id, isset($club_data['taxonomies']) ? $club_data['taxonomies'] : array());
-        $this->import_featured_image_for_record($org_id, $club_data, $images_dir);
-
-        $result['clubs_imported']++;
+    private function record_key($record, $type) {
+        if (!empty($record['source_key'])) return sanitize_text_field($record['source_key']);
+        if (!empty($record['ID']) && $this->source_site) return $this->source_site . '/' . $type . '/' . absint($record['ID']);
+        // Legacy exports without source IDs use title + date/time, never title alone.
+        return 'legacy:' . hash('sha256', wp_json_encode(array($type, $record['post_title'] ?? '', $record['meta']['event_date'] ?? '', $record['meta']['start_time'] ?? '', $record['post_name'] ?? '')));
     }
 
-    private function import_event_record($event_data, &$result, $images_dir = null) {
-        if (empty($event_data['post_title'])) {
-            $result['events_skipped']++;
-            return;
+    private function existing_record($record, $type) {
+        $key = $this->record_key($record, $type);
+        $ids = get_posts(array('post_type'=>$type, 'post_status'=>'any', 'numberposts'=>1, 'fields'=>'ids', 'meta_key'=>'_campus_source_key', 'meta_value'=>$key));
+        if (!$ids && $type === 'event' && !empty($record['meta']['external_id'][0])) {
+            $ids = get_posts(array('post_type'=>$type, 'post_status'=>'any', 'numberposts'=>1, 'fields'=>'ids', 'meta_key'=>'external_id', 'meta_value'=>$record['meta']['external_id'][0]));
         }
+        // Same-site exports can safely identify their original record by source ID.
+        if (!$ids && $this->source_site === untrailingslashit(get_site_url()) && !empty($record['ID']) && get_post_type($record['ID']) === $type) $ids = array(absint($record['ID']));
+        return $ids ? (int) $ids[0] : 0;
+    }
 
-        $existing = get_page_by_title($event_data['post_title'], OBJECT, 'event');
-        if ($existing) {
-            $result['events_skipped']++;
-            return;
-        }
+    private function import_organization_record($record, &$result, $images_dir = null) {
+        $id = $this->import_record($record, 'organization', $result, $images_dir);
+        if ($id && !empty($record['ID'])) $this->organization_map[absint($record['ID'])] = $id;
+    }
 
-        $event_id = wp_insert_post(array(
-            'post_type' => 'event',
-            'post_title' => $event_data['post_title'],
-            'post_content' => isset($event_data['post_content']) ? $event_data['post_content'] : '',
-            'post_excerpt' => isset($event_data['post_excerpt']) ? $event_data['post_excerpt'] : '',
-            'post_status' => isset($event_data['post_status']) ? $event_data['post_status'] : 'draft',
-            'post_name' => isset($event_data['post_name']) ? $event_data['post_name'] : '',
-        ));
+    private function import_event_record($record, &$result, $images_dir = null) {
+        $this->import_record($record, 'event', $result, $images_dir);
+    }
 
-        if (!$event_id || is_wp_error($event_id)) {
-            $result['events_skipped']++;
-            return;
-        }
-
-        $this->import_post_meta($event_id, isset($event_data['meta']) ? $event_data['meta'] : array(), 'event');
-        $this->import_taxonomy_terms($event_id, isset($event_data['taxonomies']) ? $event_data['taxonomies'] : array());
-        $this->import_featured_image_for_record($event_id, $event_data, $images_dir);
-
-        if (!empty($event_data['organization'])) {
-            $organization = get_page_by_title($event_data['organization'], OBJECT, 'organization');
-            if ($organization) {
-                update_post_meta($event_id, 'organization_id', $organization->ID);
+    private function import_record($record, $type, &$result, $images_dir) {
+        global $wpdb;
+        $scope = $type === 'event' ? 'events' : 'clubs'; $id = 0; $transaction = false;
+        try {
+            if (empty($record['post_title'])) throw new InvalidArgumentException('Missing record title.');
+            $existing = $this->existing_record($record, $type);
+            if ($existing) { $result[$scope . '_skipped']++; return $existing; }
+            $org = 0;
+            if ($type === 'event') {
+                $source_org = absint($record['organization_source_id'] ?? $record['meta']['organization_id'][0] ?? 0);
+                if ($source_org) {
+                    $org = $this->organization_map[$source_org] ?? 0;
+                    if (!$org) {
+                        $org = $this->existing_record(array('ID'=>$source_org), 'organization');
+                        if (!$org) throw new InvalidArgumentException('Import the referenced organization first; no destination relation was found.');
+                    }
+                }
+                $policy = UNBC_Write_Policy::event(0, $record['post_status'] ?? 'draft', $org ?: null);
+                if (is_wp_error($policy)) throw new RuntimeException($policy->get_error_message());
+                if ($policy !== null) $org = $policy;
             }
+            $series = UNBC_Event_Store::normalize_series($record['series'] ?? array());
+            $occurrences = $record['occurrences'] ?? null;
+            if ($occurrences !== null) {
+                $zone = new DateTimeZone($record['occurrence_timezone'] ?? wp_timezone_string());
+                foreach ($occurrences as &$row) foreach (array('start_datetime','end_datetime') as $field) if (!empty($row[$field])) $row[$field] = (new DateTimeImmutable($row[$field], $zone))->format(DATE_ATOM);
+                unset($row);
+                $occurrences = UNBC_Event_Store::normalize_occurrences($occurrences);
+            }
+            UNBC_Event_Store::checked($wpdb->query('START TRANSACTION')); $transaction = true;
+            $data = array_intersect_key($record, array_flip(array('post_title','post_content','post_excerpt','post_status','post_name','post_date')));
+            $data['post_type'] = $type; $data['post_status'] = $data['post_status'] ?? 'draft';
+            $id = wp_insert_post($data, true);
+            if (is_wp_error($id) || !$id) { $id = 0; throw new RuntimeException('Record could not be saved.'); }
+            $this->import_post_meta($id, $record['meta'] ?? array(), $type);
+            UNBC_Event_Store::meta($id, '_campus_source_key', $this->record_key($record, $type));
+            if ($type === 'event') {
+                UNBC_Event_Store::meta($id, 'organization_id', $org);
+                if ($series || $occurrences !== null) UNBC_Event_Store::write($id, $series, $occurrences);
+            }
+            $this->import_taxonomy_terms($id, $record['taxonomies'] ?? array());
+            UNBC_Event_Store::checked($wpdb->query('COMMIT')); $transaction = false;
+            $this->import_featured_image_for_record($id, $record, $images_dir);
+            $result[$scope . '_imported']++; return $id;
+        } catch (Exception $e) {
+            if ($transaction) { $wpdb->query('ROLLBACK'); if ($id) clean_post_cache($id); }
+            $result[$scope . '_failed']++;
+            $result['errors'][] = array('source_id'=>$record['ID'] ?? null, 'message'=>$e->getMessage());
+            return 0;
         }
-
-        $result['events_imported']++;
     }
 
     private function import_post_meta($post_id, $meta_values, $post_type) {
-        foreach ((array) $meta_values as $key => $value) {
-            if (is_array($value) && count($value) === 1) {
-                $value = reset($value);
+        foreach ((array) $meta_values as $key => $values) {
+            if (in_array($key, array('organization_id','_thumbnail_id','_edit_lock','_edit_last','_campus_source_key'), true)) continue;
+            foreach ((array) $values as $value) {
+                $value = maybe_unserialize($value);
+                if ($post_type === 'organization' && in_array($key, UNBC_Organization_Fields::get_meta_keys(), true) && is_scalar($value)) $value = UNBC_Organization_Fields::sanitize_value($key, (string) $value);
+                if (!add_post_meta($post_id, $key, wp_slash($value))) throw new RuntimeException('Record metadata could not be saved.');
             }
-
-            $value = maybe_unserialize($value);
-
-            if (
-                $post_type === 'organization' &&
-                in_array($key, UNBC_Organization_Fields::get_meta_keys(), true) &&
-                is_scalar($value)
-            ) {
-                $value = UNBC_Organization_Fields::sanitize_value($key, (string) $value);
-            }
-
-            update_post_meta($post_id, $key, $value);
         }
     }
 
@@ -765,7 +774,8 @@ class UNBC_Organization_Import_Export {
             }
 
             if (!empty($term_slugs)) {
-                wp_set_post_terms($post_id, $term_slugs, $taxonomy);
+                $saved = wp_set_post_terms($post_id, $term_slugs, $taxonomy);
+                if (is_wp_error($saved)) throw new RuntimeException($saved->get_error_message());
             }
         }
     }

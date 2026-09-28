@@ -58,20 +58,20 @@ export function useEventCategories(): EventCategoriesHook {
         setError(null);
 
         // Fetch categories
-        const categoriesResponse = await fetch('/wp-json/wp/v2/event_category?per_page=100&orderby=name&order=asc');
+        const categoriesResponse = await fetch(`${(window as any).unbcCalendarData?.categoriesEndpoint || '/wp-json/wp/v2/event_category'}?per_page=100&orderby=name&order=asc`);
         
         if (!categoriesResponse.ok) {
           throw new Error(`HTTP error! status: ${categoriesResponse.status}`);
         }
 
         const wpCategories = await categoriesResponse.json();
-        let customVariants: Record<string, string> = {};
+        const customVariants: Record<string, string> = {};
 
         try {
-          const configResponse = await fetch('/wp-json/unbc-events/v1/category-config');
+          const configResponse = await fetch(`${(window as any).unbcCalendarData?.apiUrl || '/wp-json/unbc-events/v1/'}category-config`);
           if (configResponse.ok) {
             const configData = await configResponse.json();
-            Object.entries(configData).forEach(([slug, value]) => {
+            Object.entries(configData.colors || {}).forEach(([slug, value]) => {
               if (typeof value === 'string') {
                 customVariants[slug] = value;
               } else if (value && typeof value === 'object' && 'variant' in value && value.variant) {
