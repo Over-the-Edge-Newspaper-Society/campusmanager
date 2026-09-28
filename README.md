@@ -1,6 +1,6 @@
 # UNBC Campus Manager
 
-Release version: **2.3.1**. Promotes the tested 2.3.1-beta.2 fixes to the stable update channel; see [review fixes and verification](FIXES-2026-09-28.md).
+Current stable release: [**Campus Manager 2.3.1**](https://github.com/Over-the-Edge-Newspaper-Society/campusmanager/releases/tag/v2.3.1), published September 28, 2026. [Download the installable ZIP](https://github.com/Over-the-Edge-Newspaper-Society/campusmanager/releases/download/v2.3.1/campus-manager.zip) or use the stable WordPress updater. See [review fixes and verification](FIXES-2026-09-28.md) for all 21 resolved findings and test evidence.
 
 A comprehensive WordPress plugin for managing campus events and organizations at the University of Northern British Columbia (UNBC).
 
@@ -45,19 +45,13 @@ A comprehensive WordPress plugin for managing campus events and organizations at
 
 ### Installation Steps
 
-1. **Download the Plugin**
-   ```bash
-   git clone https://github.com/Over-the-Edge-Newspaper-Society/campusmanager.git
-   ```
+1. Download [`campus-manager.zip`](https://github.com/Over-the-Edge-Newspaper-Society/campusmanager/releases/download/v2.3.1/campus-manager.zip) from the stable release. Use the release asset, which contains the built frontend files.
+2. In WordPress, go to **Plugins > Add New > Upload Plugin**, select the ZIP, and install or replace the existing Campus Manager plugin.
+3. Activate **Campus Manager**. Activation creates the Organization Manager role; version upgrades apply the plugin's schema changes.
 
-2. **Upload to WordPress**
-   - Copy the `campus-manager` folder to your WordPress `wp-content/plugins/` directory
-   - Or upload the zip file through WordPress Admin > Plugins > Add New
+Existing installations using the default updater receive version 2.3.1 from `plugin-manifest.json`. A site configured with a custom manifest URL must select the stable manifest to receive stable updates. Publishing a release does not automatically install it on every site; check the installed version in WordPress after updating.
 
-3. **Activate the Plugin**
-   - Go to WordPress Admin > Plugins
-   - Find "UNBC Campus Manager" and click "Activate"
-   - Plugin automatically creates the Organization Manager role
+Developers working from a Git checkout must install and build the frontend dependencies using the commands under [build and verification](#build-and-verification).
 
 ### Quick Start: Organization Manager Setup
 
@@ -207,7 +201,7 @@ GET /wp-json/unbc-events/v1/events
 ```
 
 **Parameters:**
-- `per_page`: Number of events per page (default: 10)
+- `per_page`: Number of projected events/occurrences per page (default: 10; maximum: 100)
 - `page`: Page number (default: 1)
 - `start_date`: Filter events from this date (YYYY-MM-DD)
 - `end_date`: Filter events until this date (YYYY-MM-DD)
@@ -223,7 +217,7 @@ POST /wp-json/unbc-events/v1/import-event
 
 This endpoint is intentionally not public. Requests must use one of these paths:
 
-1. A logged-in WordPress user with the event capabilities required for the requested create/update/status change.
+1. A WordPress user authenticated through an application password over HTTPS, or an authenticated WordPress session, with the event capabilities required for the requested create/update/status change.
 2. An `X-API-Key` header that matches the stored `unbc_eventscrape_api_key` option.
 
 Example API key setup with WP-CLI:
@@ -363,7 +357,19 @@ This plugin is licensed under the GPL v2 or later.
 
 ## Changelog
 
-### Version 2.1.0 (Latest)
+### Version 2.3.1 — stable, September 28, 2026
+
+- Enforce event ownership, organization-manager restrictions, and publishing permissions across imports and REST writes.
+- Validate and transactionally replace recurring schedules; preserve recurrence and organization relationships in exports.
+- Correct calendar caching, pagination, date navigation, timezone handling, and keyboard access.
+- Report image-import warnings and preserve EventScrape compatibility.
+- Add checked builds, disposable WordPress integration tests, package inspection, and separate stable/beta manifests.
+
+### Version 2.3.0
+
+- Assign event categories by their correct term IDs during imports.
+
+### Version 2.1.0
 - **NEW**: Organization Manager role system
 - **NEW**: Delegated organization management with field restrictions
 - **NEW**: Organization manager admin interface (Organizations > Managers)
@@ -388,7 +394,7 @@ This plugin is licensed under the GPL v2 or later.
 
 For questions or support, please open an issue in this repository.
 
-## Event import image results (2.3.1-beta.1)
+## Event import image results
 
 `POST /wp-json/unbc-events/v1/import-event` now reports featured-image outcomes independently of saving the event. `success: true` means the event was saved (or a duplicate was skipped); callers must also inspect `warnings` and `media` before describing an import as fully successful.
 
@@ -414,7 +420,7 @@ For example, a Zoer local copy can save the event while blocking the outbound im
 
 Warnings from the latest performed import are retained privately on the event and shown to authorized editors on its edit screen. A successful subsequent import clears them; a skipped duplicate leaves the stored warning unchanged. Provider errors are replaced with safe messages so signed URLs and server paths are not exposed. Failed downloads and invalid images preserve any existing featured image. Authentication and Zoer's outbound protection remain enforced.
 
-The endpoint honors `event.status`. EventScrape's manual upload defaults to `draft`; publishing requires sending `publish`. This image-reporting change does not alter that behavior.
+The endpoint honors `event.status`. EventScrape's manual upload defaults to `draft`. Publishing requires both sending `publish` and an application-password account with `publish_events`; valid authentication alone does not grant publishing permission. The tested local integration account remains draft-only.
 
 Run the standalone regression suite with PHP 7.4 or later:
 
@@ -422,18 +428,25 @@ Run the standalone regression suite with PHP 7.4 or later:
 php tests/event-import-media.php
 ```
 
-This beta is a local test candidate. The stable release manifest remains at 2.3.0 until a release is published. Build the candidate ZIP using `.distignore`, excluding local `node_modules` directories. The September 28, 2026 local DDEV verification passed all 11 regression tests and PHP lint. Five real image-bearing events were retried with the existing application password: all returned the expected `local_copy` warning, retained their IDs, status, content, categories, metadata, and featured-image values. Invalid credentials returned HTTP 401. The warning was also verified in the event editor. EventScrape still needs to consume these response fields in its upload summary.
+### EventScrape compatibility and authentication
 
-### 2.3.1-beta.2 — review fixes
+The tested beta.2 code was promoted to [stable 2.3.1](https://github.com/Over-the-Edge-Newspaper-Society/campusmanager/releases/tag/v2.3.1). The local-clone replay updated **14 events, with 0 failures, 0 skips, and 5 image warnings**, preserving all 18 occurrences and the existing post IDs, content, categories, images, and draft status. EventScrape now displays returned warnings and per-event failures in its upload summary; see its [verification report](https://github.com/Over-the-Edge-Newspaper-Society/EventScrape/blob/main/docs/wordpress-upload-warnings-2026-09-28.md).
 
-All 21 findings from `REVIEW-2026-09-28.md` are addressed in this candidate. See
-`FIXES-2026-09-28.md` for the finding-by-finding changes and validation evidence.
+**Incorrect credentials returning HTTP 401 is expected and needs no fix.** The same existing application password succeeded in the positive test. HTTP 403 for an authenticated account indicates a permission issue, such as missing publishing rights or access to another organization's event. Image warnings with `media.error_code: local_copy` indicate the local clone blocked outbound image requests; the event can still be saved. These are separate outcomes.
+
+The live compatibility replay used the beta.2 candidate on the local clone. The stable artifact then passed clean CI and archive verification; release publication is not a production-site deployment.
+
+### 2.3.1 compatibility changes
+
+All 21 numbered findings in [the original review](REVIEW-2026-09-28.md) are addressed. See [fixes and verification](FIXES-2026-09-28.md) for evidence and validation limits.
 
 - Application-password imports require `edit_events` for creation, permission to edit the actual target for updates, and `publish_events` for published/private/future events. Organization managers are restricted to their assigned organization. The administrator-configured legacy `X-API-Key` remains an explicit trusted integration policy. Remote-media restrictions still apply independently.
 - Omitted `occurrences` preserves the schedule; `occurrences: []` removes it. All replacements are validated before a checked transaction changes the parent, metadata, categories, series or occurrences. Transactional WordPress/custom tables are required. Exact UTC instants accompany site-local range columns for new occurrence writes; older rows retain their established site-time interpretation.
 - Export schema 2 includes recurrence and source identities. Organization references resolve to destination IDs; unresolved references are reported as failed records rather than copied as stale IDs. Keep content/meta/image options enabled for a complete backup. Legacy exports cannot recover recurrence they never contained.
 - Calendar API pages are capped at 100 occurrences/events. Two-sided date ranges are capped at 366 days. Upcoming lists accept an independent start bound; calendar views retrieve every page of their visible range.
 - Beta tags publish `plugin-manifest-beta.json` and are marked prereleases. Stable tags alone update `plugin-manifest.json`. Stable installations keep their default manifest; beta opt-in uses `UNBC_EVENTS_UPDATE_MANIFEST_URL` with the beta manifest URL. No release/tag is created by local packaging.
+
+### Build and verification
 
 Build with Node 22.14.0 and npm 10.9.4. Install dependencies in `assets/react`
 and each of `blocks/{calendar-view,events-list,today-events-widget,organization-field}`
@@ -453,3 +466,5 @@ posts/users and temporarily substitutes the test site's API-key option; do not r
 it on production. `bash scripts/test-wordpress.sh` creates disposable Docker
 WordPress/MariaDB containers for CI. GitHub packaging runs these gates, rebuilds
 all five frontend packages, lints PHP and inspects ZIP contents.
+
+The [v2.3.1 release workflow](https://github.com/Over-the-Edge-Newspaper-Society/campusmanager/actions/runs/36456035565) passed all gates and published both the ZIP and `plugin-manifest.json`. CI used WordPress 6.9 and PHP 8.4; the declared minimum versions above were not separately exercised in this release run.
