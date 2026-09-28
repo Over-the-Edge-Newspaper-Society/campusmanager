@@ -48,7 +48,22 @@ class UNBC_Event_Import_Service {
         global $wpdb;
         $transaction = false;
         $post_id = 0;
+        $lock_name = 'unbc-import-' . md5(DB_NAME . ':' . $wpdb->prefix);
+        $locked = false;
+        // WordPress hooks sometimes ignore failed SQL writes. Inspect the error
+        // before the next query clears it, so an aborted transaction cannot be
+        // reported as a successful import.
+        $database_guard = function ($sql) use ($wpdb) {
+            if ($wpdb->last_error !== '') {
+                throw new RuntimeException('A database write failed. The import was rolled back; please retry.');
+            }
+            return $sql;
+        };
         try {
+            // Serializing this endpoint also makes duplicate lookup + creation
+            // atomic across simultaneous EventScrape batches for this site.
+            $locked = (string) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 15)', $lock_name)) === '1';
+            if (!$locked) throw new RuntimeException('Another event import is busy. Please retry.');
             $title = sanitize_text_field($event_data['title'] ?? '');
             $content = wp_kses_post($event_data['description'] ?? '');
             $external_id = sanitize_text_field($event_data['external_id'] ?? '');
@@ -79,6 +94,7 @@ class UNBC_Event_Import_Service {
                 ? UNBC_Event_Store::normalize_occurrences($event_data['occurrences']) : null;
             UNBC_Event_Store::checked($wpdb->query('START TRANSACTION'));
             $transaction = true;
+            add_filter('query', $database_guard, PHP_INT_MAX);
 
             $post_data = array(
                 'post_title' => $title,
@@ -141,6 +157,9 @@ class UNBC_Event_Import_Service {
 
             UNBC_Event_Store::checked($wpdb->query('COMMIT'));
             $transaction = false;
+            remove_filter('query', $database_guard, PHP_INT_MAX);
+            $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock_name));
+            $locked = false;
             UNBC_Events_REST_API::bump_cache_generation();
 
             if (!empty($event_data['featured_media_url'])) {
@@ -175,8 +194,16 @@ class UNBC_Event_Import_Service {
                 'media' => $media,
             ));
         } catch (Exception $e) {
-            if ($transaction) { $wpdb->query('ROLLBACK'); if ($post_id) clean_post_cache($post_id); }
+            remove_filter('query', $database_guard, PHP_INT_MAX);
+            if ($transaction) {
+                $wpdb->query('ROLLBACK');
+                $rollback_post_id = $post_id ?: ($existing_post->ID ?? 0);
+                if ($rollback_post_id) clean_post_cache($rollback_post_id);
+            }
             return new WP_Error('import_failed', $e->getMessage(), array('status' => $e instanceof InvalidArgumentException ? 400 : 500));
+        } finally {
+            remove_filter('query', $database_guard, PHP_INT_MAX);
+            if ($locked) $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock_name));
         }
     }
 

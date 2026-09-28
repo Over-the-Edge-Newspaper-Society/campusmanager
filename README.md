@@ -472,3 +472,5 @@ WordPress/MariaDB containers for CI. GitHub packaging runs these gates, rebuilds
 all five frontend packages, lints PHP and inspects ZIP contents.
 
 The [v2.3.1 release workflow](https://github.com/Over-the-Edge-Newspaper-Society/campusmanager/actions/runs/36456035565) passed all gates and published both the ZIP and `plugin-manifest.json`. CI used WordPress 6.9 and PHP 8.4; the declared minimum versions above were not separately exercised in this release run.
+
+The [local import concurrency follow-up](docs/import-concurrency-2026-09-28.md) documents safeguards and live catalogue recovery added after stable 2.3.1. They are deployed on the local DDEV test site and included in the local recovery package; the existing stable release ZIP is unchanged.

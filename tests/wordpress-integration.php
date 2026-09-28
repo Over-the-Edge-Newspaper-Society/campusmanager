@@ -69,6 +69,14 @@ try {
     $bad=$event;$bad['title']='Rollback me';$r=cm_import($bad);
     remove_filter('query',$fail);$wpdb->suppress_errors($old_suppress);
     cm_check($r->get_status()===500 && $getrows()===$before && get_the_title($id)===$before_title,'database failure rolls back parent, series and occurrences');
+    // Simulate a hook ignoring a failed query after the parent write. A later
+    // successful query must not erase that error and turn it into false success.
+    $ignored_failure=function($pid)use($wpdb){$wpdb->query('INSERT INTO cm_nonexistent_hook_table VALUES (1)');};
+    $old_suppress=$wpdb->suppress_errors(true);add_action('save_post_event',$ignored_failure,1);
+    $bad=$event;$bad['title']='Ignored hook failure';$r=cm_import($bad);
+    remove_action('save_post_event',$ignored_failure,1);$wpdb->suppress_errors($old_suppress);
+    cm_check($r->get_status()===500 && $getrows()===$before && get_the_title($id)===$before_title,'ignored hook SQL failure returns failure and preserves existing event');
+    // A retry also proves that exception cleanup released the site import lock.
     $omit=$event;unset($omit['occurrences']);
     cm_check(cm_import($omit)->get_status()===200 && $getrows()===$before,'omitted occurrences preserve existing schedule');
     $empty=$event;$empty['occurrences']=array();

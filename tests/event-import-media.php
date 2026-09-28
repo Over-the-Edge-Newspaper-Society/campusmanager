@@ -7,6 +7,7 @@ foreach (array('media', 'file', 'image') as $file) {
     file_put_contents($fixture_root . '/wp-admin/includes/' . $file . '.php', '<?php');
 }
 define('ABSPATH', $fixture_root . '/');
+define('DB_NAME', 'fixture');
 class WP_Error {
     private $code; private $message;
     public function __construct($code, $message, $data = null) { $this->code = $code; $this->message = $message; }
@@ -15,6 +16,8 @@ class WP_Error {
 }
 function is_wp_error($value) { return $value instanceof WP_Error; }
 function add_action(...$args) {}
+function add_filter(...$args) {}
+function remove_filter(...$args) {}
 function current_user_can(...$args) { return $GLOBALS['state']['allowed']; }
 function sanitize_text_field($v) { return strip_tags((string) $v); }
 function wp_kses_post($v) { return $v; }
@@ -50,9 +53,11 @@ class UNBC_Events_REST_API { public static function bump_cache_generation() {} }
 class FakeDB {
     public function query($q) { return 1; }
     public $posts = 'posts';
+    public $prefix = 'wp_';
+    public $last_error = '';
     public function prepare($sql, ...$args) { return $sql; }
     public function esc_like($value) { return $value; }
-    public function get_var($sql) { return $GLOBALS['state']['cached']; }
+    public function get_var($sql) { return str_contains($sql, 'GET_LOCK') || str_contains($sql, 'RELEASE_LOCK') ? 1 : $GLOBALS['state']['cached']; }
 }
 class RequestFixture {
     private $event; private $update;
