@@ -58,4 +58,4 @@ PASS manager admin pending list retains assigned event
 PASS manager admin trash list retains assigned event
 ALL WORDPRESS REGRESSIONS PASSED
 Fixture cleanup complete
-zoer$ 
+zoer$
