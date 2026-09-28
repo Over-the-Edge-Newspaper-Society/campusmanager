@@ -1,0 +1,17 @@
+[
+  {
+    "path": "unbc-events.php",
+    "before": "5393864b05bf194963a187219728d2034780975e9e13523b062eb3891e2a4f9e",
+    "after": "5b6f6a6040c8d24e331e1daac72f31f7f24ed9d067192fcdb604ea9a46b03568"
+  },
+  {
+    "path": "assets/react/dist/style.css",
+    "before": "eb37543002eb7c6e959eae3f9911155d246a967253f1804e7ca7a7ed38b93265",
+    "after": "7dbed13f6973fa217dd3ce5b623cb67aa4aced143c9e41dd17285b360abc2fb0"
+  },
+  {
+    "path": "assets/react/dist/widget-style.css",
+    "before": "eb37543002eb7c6e959eae3f9911155d246a967253f1804e7ca7a7ed38b93265",
+    "after": "7dbed13f6973fa217dd3ce5b623cb67aa4aced143c9e41dd17285b360abc2fb0"
+  }
+]

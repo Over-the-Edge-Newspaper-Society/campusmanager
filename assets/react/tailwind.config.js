@@ -73,6 +73,16 @@ export default {
           "5": "var(--chart-5)",
         },
       },
+      // Text needs a foreground token even when gray utilities are used for
+      // theme surfaces elsewhere (for example bg-gray-800 uses --card).
+      textColor: {
+        gray: {
+          600: "var(--foreground)",
+          700: "var(--foreground)",
+          800: "var(--foreground)",
+          900: "var(--foreground)",
+        },
+      },
       fontFamily: {
         sans: "var(--font-sans)",
         serif: "var(--font-serif)",

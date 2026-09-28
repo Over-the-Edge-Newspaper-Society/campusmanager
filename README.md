@@ -428,6 +428,10 @@ Run the standalone regression suite with PHP 7.4 or later:
 php tests/event-import-media.php
 ```
 
+### Calendar contrast follow-up
+
+The September 28 [calendar contrast fix](docs/calendar-contrast-2026-09-28.md) is on `main` and applied to the local development site. It corrects gray text utilities that used pale background colors. It is a later patch and is not included in the published v2.3.1 ZIP.
+
 ### EventScrape compatibility and authentication
 
 The tested beta.2 code was promoted to [stable 2.3.1](https://github.com/Over-the-Edge-Newspaper-Society/campusmanager/releases/tag/v2.3.1). The local-clone replay updated **14 events, with 0 failures, 0 skips, and 5 image warnings**, preserving all 18 occurrences and the existing post IDs, content, categories, images, and draft status. EventScrape now displays returned warnings and per-event failures in its upload summary; see its [verification report](https://github.com/Over-the-Edge-Newspaper-Society/EventScrape/blob/main/docs/wordpress-upload-warnings-2026-09-28.md).
