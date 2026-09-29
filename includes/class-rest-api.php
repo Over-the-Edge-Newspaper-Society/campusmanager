@@ -54,7 +54,6 @@ class UNBC_Events_REST_API {
                     'sanitize_callback' => 'sanitize_text_field'
                 ),
                 'view' => array(
-                    'default' => 'month',
                     'sanitize_callback' => 'sanitize_text_field'
                 ),
                 'date' => array(
@@ -121,7 +120,13 @@ class UNBC_Events_REST_API {
         try {
             global $wpdb;
             $params = $request->get_params();
-            if (empty($params['start_date']) && empty($params['end_date'])) $this->apply_view_based_strategy($params);
+            if (empty($params['start_date']) && empty($params['end_date'])) {
+                // A bare feed request (signage widgets, third-party consumers) gets
+                // upcoming events; month pages would begin with occurrences already
+                // past. The calendar UI always sends explicit bounds.
+                if (empty($params['view']) && empty($params['date'])) $params['start_date'] = current_time('Y-m-d');
+                else $this->apply_view_based_strategy($params);
+            }
             $params['per_page'] = max(1, min(100, absint($params['per_page'] ?? 100)));
             $params['page'] = max(1, absint($params['page'] ?? 1));
             ksort($params);
@@ -174,7 +179,7 @@ class UNBC_Events_REST_API {
                 'total'=>$total, 'pages'=>(int) ceil($total/$params['per_page']),
                 'performance'=>array('server_processed'=>true, 'cache_hit'=>false),
                 'pagination'=>array('hasMore'=>$has_more, 'nextPage'=>$has_more ? $params['page']+1 : null,
-                    'currentPage'=>$params['page'], 'perPage'=>$params['per_page'], 'view'=>$params['view'] ?? 'month',
+                    'currentPage'=>$params['page'], 'perPage'=>$params['per_page'], 'view'=>$params['view'] ?? 'upcoming',
                     'loadedRange'=>array('start'=>$params['start_date'] ?? null, 'end'=>$params['end_date'] ?? null)));
             set_transient($cache_key, $response, 15 * MINUTE_IN_SECONDS);
             return rest_ensure_response($response);
