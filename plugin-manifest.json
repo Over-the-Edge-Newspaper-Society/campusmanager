@@ -3,8 +3,8 @@
     "slug": "campus-manager",
     "author": "Over the Edge Newspaper Society",
     "author_profile": "https://github.com/Over-the-Edge-Newspaper-Society",
-    "version": "2.3.1",
-    "download_url": "https://github.com/Over-the-Edge-Newspaper-Society/campusmanager/releases/download/v2.3.1/campus-manager.zip",
+    "version": "2.3.2",
+    "download_url": "https://github.com/Over-the-Edge-Newspaper-Society/campusmanager/releases/download/v2.3.2/campus-manager.zip",
     "requires": "5.8",
     "tested": "6.9",
     "requires_php": "7.4",
@@ -13,6 +13,6 @@
     "sections": {
         "description": "Comprehensive management system for campus events and organizations at the University of Northern British Columbia.",
         "installation": "Upload the plugin zip through Plugins > Add New or copy the campus-manager directory into wp-content/plugins, then activate Campus Manager.",
-        "changelog": "<h4>2.3.1</h4><ul><li>Enforce event and organization write permissions across REST and imports.</li><li>Preserve recurring schedules with validated transactional imports and lossless exports.</li><li>Fix calendar caching, pagination, date navigation, timezones and keyboard access.</li><li>Report image-import warnings and preserve EventScrape compatibility.</li><li>Share frontend assets and add checked builds with separate stable and beta release channels.</li></ul><h4>2.3.0</h4><ul><li>Fix event import to assign the correct event_category term IDs instead of creating numeric junk categories.</li></ul>"
+        "changelog": "<h4>2.3.2</h4><ul><li>The public events feed returns upcoming events when no view or date range is requested, so signage widgets no longer show an empty list late in the month.</li></ul><h4>2.3.1</h4><ul><li>Enforce event and organization write permissions across REST and imports.</li><li>Preserve recurring schedules with validated transactional imports and lossless exports.</li><li>Fix calendar caching, pagination, date navigation, timezones and keyboard access.</li><li>Report image-import warnings and preserve EventScrape compatibility.</li><li>Share frontend assets and add checked builds with separate stable and beta release channels.</li></ul><h4>2.3.0</h4><ul><li>Fix event import to assign the correct event_category term IDs instead of creating numeric junk categories.</li></ul>"
     }
 }
