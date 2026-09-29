@@ -129,6 +129,13 @@ try {
     cm_check($list['total']===0 && !$list['pagination']['hasMore'],'independent upcoming start bound excludes past occurrences');
     $list=cm_request('/unbc-events/v1/events',array('organization'=>$orgb,'view'=>'list','start_date'=>'2026-11-01','per_page'=>1),'GET')->get_data();
     cm_check($list['total']===1 && !$list['pagination']['hasMore'],'exactly full last page does not report another page');
+    // A bare feed request (no view or bounds) starts at today, not the first of the month.
+    $feed_org=$newpost('organization','publish');$feed=$newpost('event','publish',$feed_org);$today=new DateTimeImmutable(current_time('Y-m-d').' 12:00:00',wp_timezone());
+    UNBC_Event_Store::replace($feed,array(),array(array('start_datetime'=>$today->modify('-2 days')->format(DATE_ATOM),'end_datetime'=>$today->modify('-2 days +1 hour')->format(DATE_ATOM)),array('start_datetime'=>$today->modify('+2 days')->format(DATE_ATOM),'end_datetime'=>$today->modify('+2 days +1 hour')->format(DATE_ATOM))));
+    $bare=cm_request('/unbc-events/v1/events',array('organization'=>$feed_org),'GET')->get_data();
+    cm_check($bare['total']===1 && $bare['pagination']['view']==='upcoming' && $bare['pagination']['loadedRange']['start']===current_time('Y-m-d'),'bare feed request returns only upcoming occurrences');
+    $week=cm_request('/unbc-events/v1/events',array('organization'=>$feed_org,'view'=>'week','date'=>$today->format('Y-m-d')),'GET')->get_data();
+    cm_check($week['pagination']['view']==='week' && $week['pagination']['loadedRange']['start']!==null,'explicit view keeps its calendar window');
     $ambiguous=UNBC_Event_Store::normalize_occurrences(array(array('start_datetime'=>'2026-11-01T01:30:00-07:00','end_datetime'=>'2026-11-01T01:15:00-08:00')));
     cm_check($ambiguous[0]['duration_seconds']===2700 && $ambiguous[0]['start_utc']==='2026-11-01 08:30:00' && $ambiguous[0]['end_utc']==='2026-11-01 09:15:00','repeated DST hour preserves exact instants');
     // Export into a fresh fixture graph with distinct destination IDs.
