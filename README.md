@@ -1,6 +1,6 @@
 # UNBC Campus Manager
 
-Current stable release: [**Campus Manager 2.3.1**](https://github.com/Over-the-Edge-Newspaper-Society/campusmanager/releases/tag/v2.3.1), published September 28, 2026. [Download the installable ZIP](https://github.com/Over-the-Edge-Newspaper-Society/campusmanager/releases/download/v2.3.1/campus-manager.zip) or use the stable WordPress updater. See [review fixes and verification](FIXES-2026-09-28.md) for all 21 resolved findings and test evidence.
+Current stable release: [**Campus Manager 2.4.0**](https://github.com/Over-the-Edge-Newspaper-Society/campusmanager/releases/tag/v2.4.0), published November 6, 2026. [Download the installable ZIP](https://github.com/Over-the-Edge-Newspaper-Society/campusmanager/releases/download/v2.4.0/campus-manager.zip) or use the stable WordPress updater. See the [changelog](#changelog) for what changed since 2.3.1.
 
 A comprehensive WordPress plugin for managing campus events and organizations at the University of Northern British Columbia (UNBC).
 
@@ -357,13 +357,14 @@ This plugin is licensed under the GPL v2 or later.
 
 ## Changelog
 
-### Unreleased
+### Version 2.4.0 — stable, November 6, 2026
 
 - **Schedule box:** event dates are edited in one place. Each date has its own start, end and optional status; *Repeat the first date* adds weekly, two-weekly, daily or monthly dates up to an end date. Dates are saved as occurrences (the calendar's source) in one validated transaction, so editing an imported event's date now changes the calendar. The old Event Details date fields were removed; their metadata mirrors the first date.
 - **Cancelled and postponed events** show a badge (and cancelled titles are struck through) in every calendar view, the list, the today widget and the event dialog, with the reason.
 - **Subscribe feed:** `GET /wp-json/unbc-events/v1/calendar.ics` (optional `category`, `organization`, or `event`) for Google, Apple and Outlook Calendar. The calendar's **Subscribe** button includes the current filters. The PHP fallback's “Apple/ICS” download uses the same feed instead of building unescaped iCalendar text in the browser.
 - **Shareable calendar links:** view, date, category, organization and search are kept in the URL (`cm_view`, `cm_date`, `cm_category`, `cm_org`, `cm_q`), and Back/Forward step through view and date changes.
 - **Events → Settings & Integrations:** integration health checks, the accounts that can import (with publishing rights and when their application passwords were last used), generate/replace/remove the legacy API key without WP-CLI, a log of the last 50 import requests (including refused ones), the subscribe address and links to the import/deduplicate/export tools.
+- The public events feed returns upcoming events when no view or date range is requested (prepared as 2.3.2, which was not released separately).
 - `import-event` no longer publishes when `status` is omitted: new events become drafts and updates keep the existing status.
 - Removed the unimplemented `create-calendar-event` route. Fixed the organization-manager restriction script path (it returned 404).
 
