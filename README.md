@@ -220,7 +220,7 @@ This endpoint is intentionally not public. Requests must use one of these paths:
 1. A WordPress user authenticated through an application password over HTTPS, or an authenticated WordPress session, with the event capabilities required for the requested create/update/status change.
 2. An `X-API-Key` header that matches the stored `unbc_eventscrape_api_key` option.
 
-Example API key setup with WP-CLI:
+Generate, replace or remove the key under **Events → Settings & Integrations**, or with WP-CLI:
 ```bash
 wp option update unbc_eventscrape_api_key 'replace-with-a-long-random-secret'
 ```
@@ -356,6 +356,17 @@ The plugin respects WordPress standards and provides hooks for customization:
 This plugin is licensed under the GPL v2 or later.
 
 ## Changelog
+
+### Unreleased
+
+- **Schedule box:** event dates are edited in one place. Each date has its own start, end and optional status; *Repeat the first date* adds weekly, two-weekly, daily or monthly dates up to an end date. Dates are saved as occurrences (the calendar's source) in one validated transaction, so editing an imported event's date now changes the calendar. The old Event Details date fields were removed; their metadata mirrors the first date.
+- **Cancelled and postponed events** show a badge (and cancelled titles are struck through) in every calendar view, the list, the today widget and the event dialog, with the reason.
+- **Subscribe feed:** `GET /wp-json/unbc-events/v1/calendar.ics` (optional `category`, `organization`, or `event`) for Google, Apple and Outlook Calendar. The calendar's **Subscribe** button includes the current filters. The PHP fallback's “Apple/ICS” download uses the same feed instead of building unescaped iCalendar text in the browser.
+- **Shareable calendar links:** view, date, category, organization and search are kept in the URL (`cm_view`, `cm_date`, `cm_category`, `cm_org`, `cm_q`), and Back/Forward step through view and date changes.
+- **Events → Settings & Integrations:** integration health checks, the accounts that can import (with publishing rights and when their application passwords were last used), generate/replace/remove the legacy API key without WP-CLI, a log of the last 50 import requests (including refused ones), the subscribe address and links to the import/deduplicate/export tools.
+- `import-event` no longer publishes when `status` is omitted: new events become drafts and updates keep the existing status.
+- Removed the unimplemented `create-calendar-event` route. Fixed the organization-manager restriction script path (it returned 404).
+
 
 ### Version 2.3.1 — stable, September 28, 2026
 

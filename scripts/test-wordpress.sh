@@ -15,6 +15,12 @@ for attempt in {1..60}; do
   if docker exec "$network-wp" test -f /var/www/html/wp-config.php; then break; fi
   sleep 1
 done
+# The database's own ping can succeed during its first-run initialisation, so
+# wait until WordPress's container can actually connect over the network.
+for attempt in {1..90}; do
+  if docker exec "$network-wp" php -r 'try { exit(mysqli_connect(getenv("WORDPRESS_DB_HOST"), "root", "test-only", "wordpress") ? 0 : 1); } catch (Throwable $e) { exit(1); }' 2>/dev/null; then break; fi
+  sleep 1
+done
 docker exec "$network-wp" sh -c 'curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp'
 docker exec "$network-wp" php /tmp/wp core install --allow-root --url=http://localhost --title=Test --admin_user=testadmin --admin_password=test-only --admin_email=test@example.test --skip-email
 package_dir="$(mktemp -d)"

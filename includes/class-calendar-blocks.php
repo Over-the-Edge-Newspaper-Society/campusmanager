@@ -1031,24 +1031,10 @@ class UNBC_Calendar_Blocks {
                                 break;
                                 
                             case "apple":
-                                const icsContent = [
-                                    "BEGIN:VCALENDAR",
-                                    "VERSION:2.0",
-                                    "BEGIN:VEVENT",
-                                    "DTSTART:" + formatDateForGoogle(startDate),
-                                    "DTEND:" + formatDateForGoogle(endDate),
-                                    "SUMMARY:" + event.title,
-                                    "DESCRIPTION:" + (event.description || ""),
-                                    event.location && event.location !== "TBD" ? "LOCATION:" + event.location : "",
-                                    "END:VEVENT",
-                                    "END:VCALENDAR"
-                                ].filter(line => line).join("\\n");
-                                
-                                const link = "data:text/calendar;charset=utf8," + encodeURIComponent(icsContent);
-                                const a = document.createElement("a");
-                                a.href = link;
-                                a.download = event.title.replace(/[^a-z0-9]/gi, "_") + ".ics";
-                                a.click();
+                                // Same escaped, timezone-correct feed the calendar app subscribes to.
+                                const feed = new URL("' . esc_js(UNBC_ICal_Feed::url()) . '", window.location.href);
+                                feed.searchParams.set("event", String(parseInt(eventId, 10)));
+                                window.location.href = feed.toString();
                                 return;
                         }
                         

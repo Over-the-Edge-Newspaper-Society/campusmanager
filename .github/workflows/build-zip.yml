@@ -52,6 +52,8 @@ jobs:
         run: |
           find . -name node_modules -prune -o -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/event-import-media.php
+          php tests/event-schedule-form.php
+          php tests/ical-feed.php
           npm --prefix assets/react run lint
           npm --prefix assets/react run typecheck
           npm --prefix assets/react test

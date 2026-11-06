@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Clock, MapPin, Building2 } from "lucide-react";
 import type { Event, EventMetadata } from "@/types";
 import { getCategoryVariant, getVariantColorClass, type CategoryVariant } from "@/utils/categoryColors";
+import { EventStatusBadge, eventTitleClass } from "@/components/event-status-badge";
+import { eventAriaLabel } from "@/utils/eventStatus";
 
 interface ListViewProps {
   events: Event[];
@@ -97,14 +99,14 @@ export function EventListView({ events, eventMetadata, categoryMappings, onEvent
                   return (
                     <div
                       key={event.id}
-                      role="button" tabIndex={0} aria-label={`View ${event.title}`}
+                      role="button" tabIndex={0} aria-label={eventAriaLabel(event.title, event.status)}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEventClick?.(event); } }}
                       className={`bg-card dark:bg-card relative rounded-md p-3 pl-6 text-sm border border-gray-200 dark:border-border shadow-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary hover:bg-muted dark:hover:bg-muted transition-colors ${categoryColor}`}
                       onClick={() => onEventClick?.(event)}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-grow min-w-0">
-                          <div className="font-medium text-gray-900 dark:text-foreground mb-2">{event.title}</div>
+                          <div className="font-medium text-gray-900 dark:text-foreground mb-2"><EventStatusBadge status={event.status} className="mr-2" /><span className={eventTitleClass(event.status)}>{event.title}</span></div>
                           <div className="space-y-1 text-xs text-gray-900 dark:text-foreground">
                             <div className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
@@ -242,14 +244,14 @@ export function MobileListView({ events, eventMetadata, categoryMappings, onEven
                   return (
                     <div
                       key={event.id}
-                      role="button" tabIndex={0} aria-label={`View ${event.title}`}
+                      role="button" tabIndex={0} aria-label={eventAriaLabel(event.title, event.status)}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEventClick?.(event); } }}
                       className={`bg-card dark:bg-card relative rounded-md p-3 pl-6 text-sm border border-gray-200 dark:border-border shadow-sm after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary hover:bg-muted dark:hover:bg-muted transition-colors ${categoryColor}`}
                       onClick={() => onEventClick?.(event)}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-grow min-w-0">
-                          <div className="font-medium text-gray-900 dark:text-foreground mb-2">{event.title}</div>
+                          <div className="font-medium text-gray-900 dark:text-foreground mb-2"><EventStatusBadge status={event.status} className="mr-2" /><span className={eventTitleClass(event.status)}>{event.title}</span></div>
                           <div className="space-y-1 text-xs text-gray-900 dark:text-foreground">
                             <div className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />

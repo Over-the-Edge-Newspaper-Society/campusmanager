@@ -13,10 +13,10 @@ class UNBC_Events_Meta_Boxes {
         
         global $post;
         if ($post && $post->post_type === 'organization') {
-            $script_file = plugin_dir_path(dirname(__FILE__)) . 'js/organization-restrictions.js';
+            $script_file = plugin_dir_path(dirname(__FILE__)) . 'assets/js/organization-restrictions.js';
             $script_version = file_exists($script_file) ? filemtime($script_file) : null;
 
-            wp_enqueue_script('unbc-org-restrictions', plugin_dir_url(dirname(__FILE__)) . 'js/organization-restrictions.js', array('jquery'), $script_version, true);
+            wp_enqueue_script('unbc-org-restrictions', plugin_dir_url(dirname(__FILE__)) . 'assets/js/organization-restrictions.js', array('jquery'), $script_version, true);
         }
     }
 
@@ -82,9 +82,6 @@ class UNBC_Events_Meta_Boxes {
     public function event_details_callback($post) {
         wp_nonce_field('event_details_nonce', 'event_details_nonce');
         
-        $event_date = get_post_meta($post->ID, 'event_date', true);
-        $start_time = get_post_meta($post->ID, 'start_time', true);
-        $end_time = get_post_meta($post->ID, 'end_time', true);
         $location = get_post_meta($post->ID, 'location', true);
         $building = get_post_meta($post->ID, 'building', true);
         $room = get_post_meta($post->ID, 'room', true);
@@ -103,16 +100,8 @@ class UNBC_Events_Meta_Boxes {
         ?>
         <table class="form-table">
             <tr>
-                <th><label for="event_date">Event Date</label></th>
-                <td><input type="date" id="event_date" name="event_date" value="<?php echo esc_attr($event_date); ?>" /></td>
-            </tr>
-            <tr>
-                <th><label for="start_time">Start Time</label></th>
-                <td><input type="time" id="start_time" name="start_time" value="<?php echo esc_attr($start_time); ?>" /></td>
-            </tr>
-            <tr>
-                <th><label for="end_time">End Time</label></th>
-                <td><input type="time" id="end_time" name="end_time" value="<?php echo esc_attr($end_time); ?>" /></td>
+                <th>Date &amp; Time</th>
+                <td><p class="description">Set dates and times in the <a href="#event_series_details">Schedule</a> box. It is the one place the calendar reads from.</p></td>
             </tr>
             <tr>
                 <th><label for="location">Location</label></th>
@@ -648,7 +637,9 @@ class UNBC_Events_Meta_Boxes {
         if (get_post_type($post_id) === 'event') {
             if (empty($_POST['event_details_nonce'])) return;
             $meta_fields = array(
-                'event_date', 'start_time', 'end_time', 'location', 'building', 'room',
+                // Dates are written by the Schedule box (UNBC_Event_Series), which
+                // keeps event_date/start_time/end_time in step with occurrences.
+                'location', 'building', 'room',
                 'cost', 'organization_id', 'registration_link', 'contact_email',
                 'virtual_link', 'website', 'capacity', 'flyer_id'
             );

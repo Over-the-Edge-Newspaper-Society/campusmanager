@@ -3,6 +3,8 @@ import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Event, EventMetadata } from "@/types";
 import { getCategoryVariant, getVariantEventBackgroundClass, type CategoryVariant } from "@/utils/categoryColors";
+import { EventStatusBadge, eventTitleClass } from "@/components/event-status-badge";
+import { eventAriaLabel } from "@/utils/eventStatus";
 
 interface WeekViewProps {
   events: Event[];
@@ -134,7 +136,7 @@ export function WeekView({ events, eventMetadata, categoryMappings, currentDate,
                   return (
                     <div
                       key={event.id}
-                  role="button" tabIndex={0} aria-label={`View ${event.title}`}
+                  role="button" tabIndex={0} aria-label={eventAriaLabel(event.title, event.status)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEventClick?.(event); } }}
                       className={`absolute ${colorClass} border rounded p-2 text-sm z-20 overflow-hidden flex flex-col cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary hover:shadow-md transition-shadow event-card`}
                       style={{
@@ -146,7 +148,7 @@ export function WeekView({ events, eventMetadata, categoryMappings, currentDate,
                         onEventClick?.(event);
                       }}
                     >
-                      <div className="font-medium leading-tight truncate text-sm">{event.title}</div>
+                      <div className="font-medium leading-tight truncate text-sm"><EventStatusBadge status={event.status} className="mr-1" /><span className={eventTitleClass(event.status)}>{event.title}</span></div>
                       <div className="text-xs opacity-75 leading-tight">
                         {event.startDate.toLocaleTimeString('en-US', { 
                           hour: 'numeric', 
