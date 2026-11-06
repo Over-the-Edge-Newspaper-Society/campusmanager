@@ -29,6 +29,8 @@ export interface EventMetadata {
   featured?: boolean;
   description?: string;
   categories?: Array<{ slug: string; name: string }>; // WordPress categories
+  status?: string; // scheduled | canceled | postponed
+  statusReason?: string;
 }
 
 // EventCategory is now just a string - determined by WordPress categories

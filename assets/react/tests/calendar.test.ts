@@ -32,3 +32,13 @@ test('API cache separates organizations, pages, sizes, bounds, and refresh', asy
   await api.fetchEvents(queries[0]); assert.equal(requests, queries.length);
   await api.fetchEvents(queries[0],{refresh:true}); assert.equal(requests,queries.length+1);
 });
+test('event schedule status labels cancelled and postponed events for every view', async () => {
+  const { eventScheduleStatus, eventStatusLabel, eventAriaLabel } = await import('../src/utils/eventStatus');
+  assert.equal(eventScheduleStatus('cancelled'), 'canceled');
+  assert.equal(eventScheduleStatus('Canceled'), 'canceled');
+  assert.equal(eventScheduleStatus(undefined), 'scheduled');
+  assert.equal(eventStatusLabel('postponed'), 'Postponed');
+  assert.equal(eventStatusLabel('scheduled'), null);
+  assert.equal(eventAriaLabel('Games Night', 'canceled'), 'View Games Night (Cancelled)');
+  assert.equal(eventAriaLabel('Games Night', 'scheduled'), 'View Games Night');
+});

@@ -74,19 +74,6 @@ class UNBC_Events_REST_API {
             'permission_callback' => '__return_true'
         ));
 
-        // New endpoint for calendar events creation
-        register_rest_route('unbc-events/v1', '/events/create-calendar-event', array(
-            'methods' => WP_REST_Server::CREATABLE,
-            'callback' => array($this, 'create_calendar_event'),
-            'permission_callback' => '__return_true',
-            'args' => array(
-                'event_data' => array(
-                    'required' => true,
-                    'type' => 'object'
-                )
-            )
-        ));
-
         // Category configuration endpoint
         register_rest_route('unbc-events/v1', '/category-config', array(
             'methods' => WP_REST_Server::READABLE,
@@ -508,10 +495,6 @@ class UNBC_Events_REST_API {
                 )
             )
         ));
-    }
-
-    public function create_calendar_event($request) {
-        return new WP_Error('not_implemented', 'Calendar creation is not implemented.', array('status' => 501));
     }
 
     /**

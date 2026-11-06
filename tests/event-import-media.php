@@ -29,6 +29,7 @@ function get_current_screen() { return (object) $GLOBALS['state']['screen']; }
 function get_posts($args) { return $GLOBALS['state']['existing'] ? array((object) array('ID' => 42)) : array(); }
 function wp_insert_post($data) { $GLOBALS['state']['post'] = $data; return 42; }
 function wp_update_post($data) { return wp_insert_post($data); }
+function get_post_status($id) { return $GLOBALS['state']['existing_status'] ?? 'publish'; }
 function get_permalink($id) { return 'https://wordpress.example/?p=' . $id; }
 function update_post_meta($id, $key, $value) { $GLOBALS['state']['meta'][$key] = $value; }
 function delete_post_meta($id, $key) { unset($GLOBALS['state']['meta'][$key]); }
@@ -61,8 +62,9 @@ class FakeDB {
 }
 class RequestFixture {
     private $event; private $update;
-    public function __construct($image = true, $update = false) {
-        $this->event = array('title' => 'Fixture event', 'status' => 'draft', 'external_id' => 'fixture');
+    public function __construct($image = true, $update = false, $status = 'draft') {
+        $this->event = array('title' => 'Fixture event', 'status' => $status, 'external_id' => 'fixture');
+        if ($status === null) { unset($this->event['status']); }
         if ($image) { $this->event['featured_media_url'] = 'https://images.example/event.jpg'; }
         $this->update = $update;
     }
@@ -134,6 +136,15 @@ $tests = array(
     'no requested image causes no warning' => function() use ($service) {
         reset_fixture(); $r = $service->import_event_with_occurrences(new RequestFixture(false));
         check($r['media']['status'] === 'not_requested' && !$r['warnings'] && $GLOBALS['state']['downloads'] === 0, 'Unrequested download');
+    },
+    'omitted status creates a draft, never a published event' => function() use ($service) {
+        reset_fixture(); $service->import_event_with_occurrences(new RequestFixture(false, false, null));
+        check($GLOBALS['state']['post']['post_status'] === 'draft', 'Omitted status did not default to draft');
+    },
+    'omitted status on update keeps the existing post status' => function() use ($service) {
+        reset_fixture(array('existing' => true, 'existing_status' => 'pending'));
+        $service->import_event_with_occurrences(new RequestFixture(false, true, null));
+        check($GLOBALS['state']['post']['post_status'] === 'pending', 'Update changed status without being asked');
     },
     'admin warning is escaped and restricted to authorized event editing' => function() use ($service) {
         reset_fixture(array('meta' => array(UNBC_Event_Import_Service::WARNINGS_META_KEY => array('<script>fixture</script>'))));

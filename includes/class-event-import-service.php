@@ -71,8 +71,13 @@ class UNBC_Event_Import_Service {
             $existing_post = $this->find_existing_event($title, $external_id, $event_data['meta'] ?? array());
 
             $meta = $event_data['meta'] ?? array();
+            // An omitted status never publishes: new events become drafts and
+            // updates keep the existing post's status.
+            if (!isset($event_data['status']) || $event_data['status'] === '') {
+                $event_data['status'] = $existing_post ? (get_post_status($existing_post->ID) ?: 'draft') : 'draft';
+            }
             $permission = UNBC_Write_Policy::event($existing_post ? $existing_post->ID : 0,
-                $event_data['status'] ?? 'publish', $meta['organization_id'] ?? null, $this->validate_api_key($request));
+                $event_data['status'], $meta['organization_id'] ?? null, $this->validate_api_key($request));
             if (is_wp_error($permission)) return $permission;
             if ($permission !== null) $event_data['meta']['organization_id'] = $permission;
 
@@ -100,7 +105,7 @@ class UNBC_Event_Import_Service {
                 'post_title' => $title,
                 'post_content' => $content,
                 'post_type' => 'event',
-                'post_status' => $event_data['status'] ?? 'publish',
+                'post_status' => $event_data['status'],
             );
 
             if ($existing_post) {

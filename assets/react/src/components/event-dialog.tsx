@@ -1,4 +1,6 @@
 import { serializeCalendar, calendarDates } from '@/utils/ical';
+import { EventStatusBadge, eventTitleClass } from '@/components/event-status-badge';
+import { eventStatusLabel } from '@/utils/eventStatus';
 import React from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -71,7 +73,16 @@ export function EventDialog({ event, eventMetadata, open, onOpenChange, showCost
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent onCloseAutoFocus={(e) => { e.preventDefault(); trigger.current?.focus(); }} className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto overflow-x-hidden bg-card border border-border sm:w-full p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-xl text-foreground">{event.title}</DialogTitle>
+          <DialogTitle className="text-xl text-foreground">
+            <EventStatusBadge status={event.status} className="mr-2" />
+            <span className={eventTitleClass(event.status)}>{event.title}</span>
+          </DialogTitle>
+          {eventStatusLabel(event.status) && (
+            <p role="status" className="mt-1 text-sm font-medium text-foreground">
+              This event has been {eventStatusLabel(event.status)?.toLowerCase()}.
+              {metadata?.statusReason ? ` ${metadata.statusReason}` : ''}
+            </p>
+          )}
           {event.description && (
             <div className="mt-2">
               <DialogDescription className={`text-muted-foreground leading-relaxed break-words ${isDescriptionExpanded ? 'max-h-[40vh] overflow-y-auto pr-2' : ''}`}>

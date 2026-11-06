@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { Event, EventMetadata } from "@/types";
 import { getCategoryVariant, getVariantColorClass, type CategoryVariant } from "@/utils/categoryColors";
+import { EventStatusBadge, eventTitleClass } from "@/components/event-status-badge";
+import { eventAriaLabel } from "@/utils/eventStatus";
 
 interface MobileMonthViewProps {
   events: Event[];
@@ -181,12 +183,12 @@ export function MobileMonthView({ events, eventMetadata, categoryMappings, onEve
               return (
                 <button
                   key={event.id}
-                      role="button" tabIndex={0} aria-label={`View ${event.title}`}
+                      role="button" tabIndex={0} aria-label={eventAriaLabel(event.title, event.status)}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEventClick?.(event); } }}
                   className={`bg-card dark:bg-card relative rounded-md p-2 pl-6 text-sm text-left w-full after:absolute after:inset-y-2 after:left-2 after:w-1 after:rounded-full cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary hover:bg-muted dark:hover:bg-muted transition-colors focus:outline-none border border-gray-200 dark:border-border ${categoryColor}`}
                   onClick={() => onEventClick?.(event)}
                 >
-                  <div className="font-medium text-gray-900 dark:text-foreground">{event.title}</div>
+                  <div className="font-medium text-gray-900 dark:text-foreground"><EventStatusBadge status={event.status} className="mr-1" /><span className={eventTitleClass(event.status)}>{event.title}</span></div>
                   <div className="text-muted-foreground dark:text-muted-foreground text-xs">
                     {formatTime(event.startDate)} - {formatTime(event.endDate)}
                     {metadata && ` • ${metadata.location}`}
