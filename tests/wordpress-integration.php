@@ -173,6 +173,35 @@ try {
     set_current_screen('edit-event');$GLOBALS['pagenow']='edit.php';$_GET['post_type']='event';wp_set_current_user($managera);
     foreach($statuses as $status=>$expected){$query=new WP_Query();$GLOBALS['wp_the_query']=$query;$query->query(array('post_type'=>'event','post_status'=>$status,'fields'=>'ids','posts_per_page'=>100));cm_check(in_array($expected,$query->posts),'manager admin '.$status.' list retains assigned event');}
     $GLOBALS['current_screen']=$old_screen;$GLOBALS['pagenow']=$old_page;$_GET=$old_get;$GLOBALS['wp_the_query']=$old_main;wp_set_current_user($admin);
+    // Schedule box: the admin editor is the one place dates are edited, and an
+    // edit to an imported event (which has occurrences) reaches the calendar.
+    $sched_org=$newpost('organization','publish');
+    $nostatus=array('title'=>$prefix.' no status','external_id'=>$prefix.'-nostatus','meta'=>array('date'=>'2026-12-01','organization_id'=>$sched_org),'occurrences'=>array(array('start_datetime'=>'2026-12-01T10:00:00','end_datetime'=>'2026-12-01T11:00:00')));
+    $r=cm_import($nostatus);$sched=$r->get_data()['post_id'];$posts[]=$sched;
+    cm_check($r->get_status()===200 && get_post_status($sched)==='draft','import without a status creates a draft');
+    wp_update_post(array('ID'=>$sched,'post_status'=>'publish'));
+    cm_check(cm_import($nostatus)->get_status()===200 && get_post_status($sched)==='publish','import update without a status keeps the published status');
+    $old_post=$_POST;
+    $_POST=array('event_series_nonce'=>wp_create_nonce('event_series_nonce'),'event_details_nonce'=>wp_create_nonce('event_details_nonce'),'unbc_schedule_submitted'=>'1','event_status'=>'canceled','status_reason'=>'Snow day','recurrence_type'=>'weekly',
+        'unbc_schedule'=>array(array('start_date'=>'2026-12-10','start_time'=>'18:00','end_date'=>'2026-12-10','end_time'=>'20:00','status'=>'','overrides'=>'{}'),array('start_date'=>'2026-12-03','start_time'=>'18:00','end_date'=>'','end_time'=>'20:00','status'=>'postponed','overrides'=>'{}')));
+    wp_update_post(array('ID'=>$sched,'post_title'=>$prefix.' scheduled'));
+    $rows=$wpdb->get_results($wpdb->prepare("SELECT start_datetime,end_datetime,sequence,event_status_override FROM {$wpdb->prefix}event_occurrences WHERE post_id=%d ORDER BY sequence",$sched),ARRAY_A);
+    cm_check(count($rows)===2 && $rows[0]['start_datetime']==='2026-12-03 18:00:00' && $rows[0]['event_status_override']==='postponed' && $rows[1]['end_datetime']==='2026-12-10 20:00:00','schedule box replaces imported occurrences in date order');
+    cm_check(get_post_meta($sched,'event_date',true)==='2026-12-03' && get_post_meta($sched,'start_time',true)==='18:00','schedule box mirrors the first date into legacy metadata');
+    $series=$wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}event_series WHERE post_id=%d",$sched),ARRAY_A);
+    cm_check($series['occurrence_type']==='recurring' && $series['recurrence_type']==='weekly' && $series['event_status']==='canceled' && $series['status_reason']==='Snow day','schedule box derives series shape and saves status');
+    $cal=cm_request('/unbc-events/v1/events',array('organization'=>$sched_org,'start_date'=>'2026-12-01','end_date'=>'2026-12-31'),'GET')->get_data();
+    $dates=array_map(function($e){return substr($e['startDate'],0,10);},$cal['events']);sort($dates);
+    cm_check(count($cal['events'])===2 && $cal['events'][0]['status']!=='scheduled','edited dates and status reach the public calendar API');
+    $_POST['unbc_schedule']=array(array('start_date'=>'2026-12-20','start_time'=>'10:00','end_date'=>'2026-12-19','end_time'=>'09:00'));
+    wp_update_post(array('ID'=>$sched,'post_title'=>$prefix.' invalid schedule'));
+    $after=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}event_occurrences WHERE post_id=%d",$sched));
+    cm_check($after===2 && strpos((string)get_transient('unbc_series_error_'.get_current_user_id()),'ends before it starts')!==false,'invalid schedule is rejected with a message and keeps existing dates');
+    delete_transient('unbc_series_error_'.get_current_user_id());
+    $_POST['unbc_schedule']=array();
+    wp_update_post(array('ID'=>$sched,'post_title'=>$prefix.' no dates'));
+    cm_check((int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}event_occurrences WHERE post_id=%d",$sched))===0 && get_post_meta($sched,'event_date',true)==='','removing every date clears occurrences and legacy date');
+    $_POST=$old_post;
     echo "ALL WORDPRESS REGRESSIONS PASSED\n";
 } finally {
     wp_set_current_user($admin);
