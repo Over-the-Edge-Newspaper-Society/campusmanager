@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarDays, List, Calendar, Clock } from "lucide-react";
+import { CalendarDays, List, Calendar, Clock, Rss } from "lucide-react";
+import { readCalendarUrlState, writeCalendarUrlState, isNavigation, calendarFeedUrl, webcalUrl, type CalendarUrlState, type CalendarView } from "@/utils/calendarUrlState";
 import type { Event } from "@/types";
 import { useEventsDev } from "@/hooks/useEventsDev";
 import { useEvents } from "@/hooks/useEvents";
@@ -55,9 +56,20 @@ export default function UNBCCalendar({
   initialMonthDisplayMode = "popover",
   initialMonthSidebarPosition = "right"
 }: UNBCCalendarProps = {}) {
-  const [activeTab, setActiveTab] = useState(initialView);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [calendarViewDate, setCalendarViewDate] = useState(new Date()); // Separate state for calendar navigation
+  // View, date, filters and search start from the page URL when present (shared links).
+  const allowedViews = React.useMemo<CalendarView[]>(() => ['month', 'list', ...(showWeekView ? ['week' as const] : []), ...(showDayView ? ['day' as const] : [])], [showWeekView, showDayView]);
+  const urlDefaults = React.useMemo<CalendarUrlState>(() => ({
+    view: (['month', 'week', 'day', 'list'].includes(initialView) ? initialView : 'month') as CalendarView,
+    date: new Date(),
+    category: initialCategoryFilter,
+    organization: initialOrganizationFilter,
+    search: '',
+  }), [initialView, initialCategoryFilter, initialOrganizationFilter]);
+  const [initialUrlState] = useState<CalendarUrlState>(() =>
+    typeof window === 'undefined' ? urlDefaults : readCalendarUrlState(window.location.search, urlDefaults, allowedViews));
+  const [activeTab, setActiveTab] = useState<string>(initialUrlState.view);
+  const [selectedDate, setSelectedDate] = useState(initialUrlState.date);
+  const [calendarViewDate, setCalendarViewDate] = useState(initialUrlState.date); // Separate state for calendar navigation
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showEventDialog, setShowEventDialog] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -239,10 +251,40 @@ export default function UNBCCalendar({
   const isDev = import.meta.env.DEV;
   
   // Filters
-  const [categoryFilter, setCategoryFilter] = useState(initialCategoryFilter);
-  const [organizationFilter, setOrganizationFilter] = useState(initialOrganizationFilter);
-  const [searchFilter, setSearchFilter] = useState("");
-  const [searchInput, setSearchInput] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState(initialUrlState.category);
+  const [organizationFilter, setOrganizationFilter] = useState(initialUrlState.organization);
+  const [searchFilter, setSearchFilter] = useState(initialUrlState.search);
+  const [searchInput, setSearchInput] = useState(initialUrlState.search);
+
+  // Mirror navigation into the URL: view/date changes add a history entry so
+  // Back/Forward step through them; filter and search changes replace it.
+  const lastUrlState = React.useRef<CalendarUrlState>(initialUrlState);
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const next: CalendarUrlState = { view: activeTab as CalendarView, date: calendarViewDate, category: categoryFilter, organization: organizationFilter, search: searchFilter };
+    const href = writeCalendarUrlState(window.location.href, next, urlDefaults);
+    if (href !== window.location.href) {
+      if (isNavigation(lastUrlState.current, next)) window.history.pushState(window.history.state, '', href);
+      else window.history.replaceState(window.history.state, '', href);
+    }
+    lastUrlState.current = next;
+  }, [activeTab, calendarViewDate, categoryFilter, organizationFilter, searchFilter, urlDefaults]);
+
+  React.useEffect(() => {
+    const onPopState = () => {
+      const state = readCalendarUrlState(window.location.search, urlDefaults, allowedViews);
+      lastUrlState.current = state;
+      setActiveTab(state.view);
+      setCalendarViewDate(state.date);
+      setSelectedDate(state.date);
+      setCategoryFilter(state.category);
+      setOrganizationFilter(state.organization);
+      setSearchInput(state.search);
+      setSearchFilter(state.search);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [urlDefaults, allowedViews]);
 
   const categoryConfigData = useCategoryConfig();
   const dateFilters = React.useMemo(() => ({
@@ -253,6 +295,11 @@ export default function UNBCCalendar({
     category: categoryFilter === 'all' ? '' : [categoryFilter, ...(categoryConfigData.config?.categoryRelationships[categoryFilter] || [])].join(','),
     search: searchFilter,
   }), [activeTab, calendarViewDate, organizationFilter, categoryFilter, categoryConfigData.config, searchFilter]);
+
+  const subscribeUrl = React.useMemo(() => {
+    const apiUrl = (typeof window !== 'undefined' && (window as any).unbcCalendarData?.apiUrl) || `${typeof window !== 'undefined' ? window.location.origin : ''}/wp-json/unbc-events/v1/`;
+    return webcalUrl(calendarFeedUrl(apiUrl, { category: dateFilters.category, organization: dateFilters.organization }));
+  }, [dateFilters.category, dateFilters.organization]);
 
   // Use appropriate hooks based on environment
   const devData = useEventsDev(dateFilters);
@@ -572,8 +619,17 @@ export default function UNBCCalendar({
                 {loading && allEvents && allEvents.length > 0 && (
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 )}
+                <a
+                  href={subscribeUrl}
+                  className="inline-flex items-center gap-1 h-9 px-2 rounded-md border border-border bg-card text-xs text-foreground hover:bg-muted no-underline"
+                  title="Subscribe in Google, Apple or Outlook Calendar. New and changed events appear automatically."
+                >
+                  <Rss className="h-3 w-3" aria-hidden="true" />
+                  Subscribe
+                </a>
                 <Input
                   placeholder="Search events..."
+                  aria-label="Search events"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   className="w-40 border border-border bg-card text-foreground placeholder:text-muted-foreground"
@@ -644,9 +700,18 @@ export default function UNBCCalendar({
                 {loading && allEvents && allEvents.length > 0 && (
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 )}
+                <a
+                  href={subscribeUrl}
+                  aria-label="Subscribe to this calendar"
+                  title="Subscribe to this calendar"
+                  className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-border bg-card text-muted-foreground hover:bg-muted"
+                >
+                  <Rss className="h-4 w-4" aria-hidden="true" />
+                </a>
                 <Button
                   variant="outline"
                   size="sm"
+                  aria-label="Search events"
                   className="h-9 px-2 border border-border bg-card hover:bg-muted"
                 onClick={() => {
                   const searchInput = document.querySelector('.mobile-search-input') as HTMLInputElement;

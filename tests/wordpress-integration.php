@@ -202,6 +202,28 @@ try {
     wp_update_post(array('ID'=>$sched,'post_title'=>$prefix.' no dates'));
     cm_check((int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}event_occurrences WHERE post_id=%d",$sched))===0 && get_post_meta($sched,'event_date',true)==='','removing every date clears occurrences and legacy date');
     $_POST=$old_post;
+    // Subscribe feed: real HTTP request so the raw text/calendar output path runs.
+    wp_update_post(array('ID'=>$sched,'post_status'=>'publish'));
+    $_POST=array('event_series_nonce'=>wp_create_nonce('event_series_nonce'),'unbc_schedule_submitted'=>'1','event_status'=>'canceled','status_reason'=>'Snow, again',
+        'unbc_schedule'=>array(array('start_date'=>current_time('Y-m-d'),'start_time'=>'18:00','end_date'=>'','end_time'=>'20:00')));
+    wp_update_post(array('ID'=>$sched,'post_title'=>$prefix.' feed, event'));
+    $_POST=$old_post;
+    $feed=wp_remote_get(add_query_arg('organization',$sched_org,rest_url('unbc-events/v1/calendar.ics')),array('timeout'=>20,'sslverify'=>false));
+    $body=wp_remote_retrieve_body($feed);
+    cm_check(wp_remote_retrieve_response_code($feed)===200 && strpos(wp_remote_retrieve_header($feed,'content-type'),'text/calendar')===0 && strpos($body,"BEGIN:VCALENDAR\r\n")===0,'calendar feed is served as raw text/calendar');
+    cm_check(strpos($body,'SUMMARY:'.$prefix.' feed\, event')!==false && strpos($body,"STATUS:CANCELLED")!==false && strpos($body,'Snow\, again')!==false,'feed carries escaped titles, cancellation and reason');
+    $single=wp_remote_get(add_query_arg('event',$sched,rest_url('unbc-events/v1/calendar.ics')),array('timeout'=>20,'sslverify'=>false));
+    cm_check(substr_count(wp_remote_retrieve_body($single),'BEGIN:VEVENT')===1,'single-event download contains that event');
+    $other=wp_remote_get(add_query_arg('organization',$orga,rest_url('unbc-events/v1/calendar.ics')),array('timeout'=>20,'sslverify'=>false));
+    cm_check(strpos(wp_remote_retrieve_body($other),$prefix.' feed')===false,'feed organization filter excludes other organizations');
+    $draft_feed=wp_remote_get(add_query_arg('event',$foreign,rest_url('unbc-events/v1/calendar.ics')),array('timeout'=>20,'sslverify'=>false));
+    cm_check(wp_remote_retrieve_response_code($draft_feed)===400,'unpublished events are not exposed by the feed');
+    // Import log and settings page.
+    $log=get_option('unbc_events_import_log',array());
+    cm_check(!empty($log) && $log[0]['title']===$prefix.' no status' && $log[0]['status']===200,'import requests are logged with their result');
+    cm_check((bool)array_filter($log,function($e){return $e['status']===403;}),'refused imports are logged too');
+    $admin_page=new UNBC_Integrations_Admin(); ob_start(); $admin_page->render(); $html=ob_get_clean();
+    cm_check(strpos($html,'Integration health')!==false && strpos($html,'Recent imports')!==false && strpos($html,'calendar.ics')!==false && strpos($html,'<script>')===false,'settings page renders health, log and feed');
     echo "ALL WORDPRESS REGRESSIONS PASSED\n";
 } finally {
     wp_set_current_user($admin);

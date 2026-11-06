@@ -44,6 +44,7 @@ class UNBC_Events_Plugin {
         add_action('init', array($this, 'init'));
 
         new UNBC_Events_REST_API();
+        new UNBC_ICal_Feed();
     }
 
     public function init() {
@@ -61,6 +62,7 @@ class UNBC_Events_Plugin {
         new UNBC_Calendar_Blocks();
         new UNBC_Events_Settings();
         new UNBC_Events_Admin_Columns();
+        new UNBC_Integrations_Admin();
 
         // Add custom rewrite rules for organizations/departments
         add_action('init', array($this, 'add_rewrite_rules'));
@@ -113,6 +115,8 @@ class UNBC_Events_Plugin {
             'includes/class-rest-organizations-controller.php',
             'includes/class-post-types.php',
             'includes/class-rest-api.php',
+            'includes/class-ical-feed.php',
+            'includes/class-integrations-admin.php',
             'includes/class-meta-boxes.php',
             'includes/class-user-roles.php',
             'includes/class-event-series.php', // NEW: Event series and occurrences

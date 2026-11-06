@@ -291,7 +291,7 @@ class UNBC_Event_Series {
                     </td>
                 </tr>
             </table>
-            <style>.unbc-all-day .unbc-schedule-time{display:none}.unbc-schedule-table input[type=date],.unbc-schedule-table input[type=time]{max-width:100%}</style>
+            <style>.unbc-all-day .unbc-schedule-time{display:none}.unbc-schedule-table td,.unbc-schedule-table th{padding:6px 4px}.unbc-schedule-table input[type=date]{width:9.5em;max-width:100%}.unbc-schedule-table input[type=time]{width:7em;max-width:100%}.unbc-schedule-table select{max-width:9em}</style>
         </div>
         <?php
     }
